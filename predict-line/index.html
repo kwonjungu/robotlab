@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예측 놀이터 · 추세선으로 미래 맞히기</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:660px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  .flow{display:flex;align-items:stretch;gap:0;margin:0 0 24px;flex-wrap:nowrap}
+  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .fstep .snum{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:14px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .2s,color .2s;box-shadow:var(--hard-sm)}
+  .fstep .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .2s}
+  .fstep:not(:last-child)::after{content:"";position:absolute;top:14px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2.5px;background:var(--ink);opacity:.22}
+  .fstep.on .snum{background:var(--point);color:#fff}
+  .fstep.on .slab{color:var(--ink)}
+  .fstep.done .snum{background:var(--ink);color:#fff}
+  @media(max-width:560px){.fstep .slab{font-size:10.5px}}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:21px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 시나리오 선택 */
+  .scenrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .scenbtn{cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:800;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:11px;box-shadow:var(--hard-sm);
+    padding:9px 14px;min-height:44px;display:inline-flex;align-items:center;gap:8px;transition:transform .1s,box-shadow .1s,background .12s}
+  .scenbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .scenbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .scenbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .scenbtn[aria-pressed=true]{background:var(--point-soft)}
+  .scenbtn .dt{width:14px;height:14px;border:2px solid var(--ink);border-radius:50%;background:var(--point)}
+
+  /* 캔버스 */
+  .stage{position:relative;border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard);
+    background:var(--surface);overflow:hidden;touch-action:none}
+  .stage canvas{display:block;width:100%;height:auto}
+  .axlab{position:absolute;font-size:12px;font-weight:800;color:var(--muted);pointer-events:none}
+  .axlab.x{right:12px;bottom:8px}
+  .axlab.y{left:10px;top:8px}
+  .draghint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:800;
+    color:#fff;background:var(--ink);border-radius:999px;padding:4px 12px;pointer-events:none;transition:opacity .3s}
+  .draghint.hide{opacity:0}
+
+  /* 손잡이 안내 */
+  .handleinfo{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .hpill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;
+    background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;padding:5px 12px;box-shadow:var(--hard-sm)}
+  .hpill .sw{width:14px;height:14px;border:2px solid var(--ink);border-radius:50%}
+
+  /* 오차 미터 */
+  .errbox{margin-top:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px 16px}
+  .errhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+  .errhead .lab{font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;display:flex;align-items:center;gap:7px}
+  .errhead .val{font-size:15px;font-weight:900}
+  .errbar{height:22px;border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--surface)}
+  .errbar > div{height:100%;width:100%;transition:width .25s ease,background .25s ease}
+  .errrate{font-size:13px;font-weight:900;text-align:center;margin-top:9px;min-height:22px}
+  .errrate .tag{display:inline-block;border:2px solid var(--ink);border-radius:999px;padding:2px 12px}
+
+  /* 예측 카드 */
+  .predrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media(max-width:560px){.predrow{grid-template-columns:1fr}}
+  .predcard{background:var(--point-soft);border:2.75px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px}
+  .predcard .pt{font-size:12.5px;font-weight:800;color:#333;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .predcard .pv{font-size:26px;font-weight:900;letter-spacing:-.02em}
+  .predcard .pv small{font-size:14px;font-weight:800;color:var(--muted)}
+  .predcard .ctrl{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .predcard input[type=range]{flex:1;accent-color:var(--point);height:32px}
+  .predcard .xv{font-size:14px;font-weight:900;min-width:44px;text-align:right}
+
+  /* 버튼 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn svg{flex-shrink:0}
+  .btn.busy{background:var(--point);color:#fff;animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.015)}}
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  @media(max-width:560px){.btnrow{grid-template-columns:1fr}}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:14px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:12px 14px;min-height:52px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  /* AI 비교 결과 */
+  .cmp{display:none;margin-top:16px;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px 16px}
+  .cmp.show{display:block}
+  .cmp h3{font-size:14px;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .cmp-rows{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.cmp-rows{grid-template-columns:1fr}}
+  .cmp-cell{border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:800}
+  .cmp-cell .cn{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+  .cmp-cell .cn .sw{width:12px;height:12px;border:2px solid var(--ink);border-radius:2px}
+  .cmp-cell .cv{font-size:18px;font-weight:900}
+  .cmp-msg{font-size:13px;font-weight:700;color:#333;margin-top:10px;line-height:1.5}
+  .cmp-msg b{color:var(--ink);font-weight:900}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .checks{display:grid;gap:10px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;cursor:pointer;transition:transform .1s,box-shadow .1s;min-height:52px}
+  .check:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .check:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .check .box{width:26px;height:26px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);display:grid;place-items:center}
+  .check .box svg{opacity:0;transition:opacity .15s}
+  .check[aria-checked=true] .box{background:var(--green)}
+  .check[aria-checked=true] .box svg{opacity:1}
+  .check .lab{font-size:14.5px;font-weight:700}
+
+  .badgebox{margin-top:20px;display:flex;align-items:center;gap:16px;background:var(--point-soft);
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .badgebox.locked{opacity:.55;filter:grayscale(.5)}
+  .medal{width:66px;height:66px;flex-shrink:0}
+  .badgebox .bt{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .badgebox .bp{font-size:13px;font-weight:700;color:#333;margin-top:3px}
+  .badgebox .bp b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">AI 개념 · 예측 놀이터</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 미래를 맞히는 방법</span>
+    <h1>예측 놀이터 — <span class="u">추세선으로 미래 맞히기</span></h1>
+    <p class="lead">점들이 대체로 한 방향으로 흩어져 있어요. <b>추세선</b>을 드래그해 점들에 가깝게 맞추면, AI처럼 <b>새로운 값의 미래</b>를 예측할 수 있어요. <b>오차(잔차)</b>가 작을수록 잘 맞춘 거예요. 점이 많이 흩어질수록 예측이 어려워요.</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>진짜 AI 라이브러리 없이, <b style="font-weight:900">직선으로 경향을 찾는 회귀</b>를 손으로 체험해요. 카메라·인터넷은 쓰지 않아요.</span>
+  </div>
+
+  <div class="flow" id="flow" aria-hidden="true">
+    <div class="fstep on" data-fstep="1"><span class="snum">1</span><span class="slab">데이터 관찰</span></div>
+    <div class="fstep" data-fstep="2"><span class="snum">2</span><span class="slab">추세선 맞추기</span></div>
+    <div class="fstep" data-fstep="3"><span class="snum">3</span><span class="slab">미래 예측</span></div>
+    <div class="fstep" data-fstep="4"><span class="snum">4</span><span class="slab">AI와 비교</span></div>
+  </div>
+
+  <section class="panel" aria-labelledby="h1step">
+    <div class="phead"><span class="badge-n">1</span><div><div class="sub">Trend</div><h2 id="h1step">추세선을 맞춰요</h2></div></div>
+    <p class="phint">아래 두 손잡이(<b>●</b>)를 위아래로 드래그해 <b>파란 선</b>을 점들 한가운데로 지나가게 맞춰요. 각 점에서 선까지의 <b>세로 거리(오차)</b>가 빨간 선으로 보여요.</p>
+
+    <div class="scenrow" id="scenRow" role="group" aria-label="예측 상황 고르기"></div>
+
+    <div class="stage">
+      <canvas id="cv" width="860" height="480" role="img" aria-label="데이터 점들과 추세선 그래프"></canvas>
+      <span class="axlab x" id="xlab">가로 →</span>
+      <span class="axlab y" id="ylab">세로 ↑</span>
+      <span class="draghint" id="dragHint">파란 선의 ● 손잡이를 잡고 움직여요</span>
+    </div>
+
+    <div class="handleinfo">
+      <span class="hpill"><span class="sw" style="background:var(--point)"></span>내 추세선</span>
+      <span class="hpill"><span class="sw" style="background:var(--red);border-radius:2px"></span>오차(점→선 거리)</span>
+      <span class="hpill" id="aiPill" style="display:none"><span class="sw" style="background:var(--green);border-radius:2px"></span>AI 자동 맞춤 선</span>
+    </div>
+
+    <div class="errbox">
+      <div class="errhead">
+        <span class="lab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10M12 20V4M20 20v-7" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg>내 선의 총 오차</span>
+        <span class="val" id="errVal">–</span>
+      </div>
+      <div class="errbar" role="img" aria-label="오차 크기 막대"><div id="errFill"></div></div>
+      <div class="errrate" id="errRate">손잡이를 움직여 점에 가깝게 맞춰 봐요.</div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="aiBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        AI 자동 맞춤</button>
+      <button class="minibtn" id="resetBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        내 선 다시 맞추기</button>
+    </div>
+
+    <div class="cmp" id="cmpBox">
+      <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/></svg>내 선 vs AI 자동 맞춤 선</h3>
+      <div class="cmp-rows">
+        <div class="cmp-cell"><div class="cn"><span class="sw" style="background:var(--point)"></span>내 선 오차</div><div class="cv" id="cmpMine">–</div></div>
+        <div class="cmp-cell"><div class="cn"><span class="sw" style="background:var(--green)"></span>AI 최적 오차</div><div class="cv" id="cmpAi">–</div></div>
+      </div>
+      <div class="cmp-msg" id="cmpMsg"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h2step">
+    <div class="phead"><span class="badge-n">2</span><div><div class="sub">Predict</div><h2 id="h2step">새로운 값의 미래를 예측해요</h2></div></div>
+    <p class="phint">맞춘 선을 이용하면, 아직 <b>점이 없는 새로운 가로값(x)</b>에 대해서도 세로값(y)을 <b>예측</b>할 수 있어요. 슬라이더를 움직여 예측이 어떻게 변하는지 봐요.</p>
+
+    <div class="predrow">
+      <div class="predcard">
+        <div class="pt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V6M6 12l6-6 6 6" stroke="var(--ink)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="xName">가로값</span> 고르기</div>
+        <div class="ctrl">
+          <input type="range" id="xSlider" min="0" max="100" value="80" aria-label="예측할 가로값">
+          <span class="xv" id="xShow">80</span>
+        </div>
+      </div>
+      <div class="predcard">
+        <div class="pt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4v16h16" stroke="var(--ink)" stroke-width="2.3" stroke-linecap="round"/><path d="M8 14l3-3 3 2 4-5" stroke="var(--ink)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>내 선의 예측 <span id="yName">세로값</span></div>
+        <div class="pv"><span id="yPred">–</span> <small id="yUnit"></small></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="obs" id="obsMain">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>관찰해요</b> — AI는 점을 하나하나 외우는 게 아니라, 점들의 <b>경향(방향)</b>을 직선 하나로 요약해요. 이 선으로 <b>안 본 값의 미래</b>를 예측하죠. 그런데 점이 많이 <b>흩어질수록</b> 어떤 선을 그어도 오차가 커서 예측이 어려워요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검해요</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks" id="checks">
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="1">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">데이터의 <b>경향</b>을 직선으로 요약해 <b>예측</b>할 수 있다는 걸 알아요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="2">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>오차(잔차)</b>가 작을수록 선이 점을 잘 맞춘다는 걸 확인했어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="3">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">데이터가 <b>많이 흩어질수록</b> 예측이 어려워진다는 걸 체험했어요.</span>
+    </div>
+  </div>
+
+  <div class="badgebox locked" id="badgeBox">
+    <svg class="medal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <circle cx="32" cy="26" r="18" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+      <circle cx="32" cy="26" r="11" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>
+      <path d="M27 26l3.5 3.5L38 22" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 41 16 60l16-8 16 8-6-19" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="bt" id="badgeTitle">예측 마법사 배지 (잠김)</div>
+      <div class="bp" id="badgeMsg">위 3가지를 모두 체크하면 <b>예측 마법사 배지</b>를 받아요!</div>
+    </div>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ── 데이터 좌표계 ────────────────────────────
+   데이터 x,y는 0~100 논리 좌표. 캔버스에 그릴 때만 픽셀로 변환.
+   추세선 = 두 끝점의 y값(yL: x=0에서 y, yR: x=100에서 y)로 표현.
+   기울기 m=(yR-yL)/100, 절편 b=yL → y = m*x + b.
+   오차 = 각 점의 |실제y - 예측y| 평균(평균 절대 오차, 논리단위). */
+
+const SCENARIOS=[
+  {key:'practice', name:'연습 횟수 → 점수', xName:'연습 횟수', yName:'점수', yUnit:'점',
+   slope:0.75, base:15, spread:6},
+  {key:'time',     name:'시간 → 온도',      xName:'시간(분)', yName:'온도', yUnit:'℃',
+   slope:0.55, base:22, spread:9},
+  {key:'noisy',    name:'흩어진 데이터(어려움)', xName:'가로값', yName:'세로값', yUnit:'',
+   slope:0.5, base:30, spread:20}
+];
+
+const PAD={l:56, r:26, t:26, b:44};
+let cv, ctx, W, H;
+let scen=SCENARIOS[0];
+let points=[];       // {x,y} 논리좌표 0~100
+let line={yL:50, yR:50};   // 내 선(양 끝 y)
+let aiLine=null;     // 최소제곱 최적선
+let dragging=null;   // 'L' | 'R' | null
+let touched=false;
+
+/* 시드 난수(시나리오마다 안정적인 점 배치) */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* 점 생성: y = slope*x + base + 노이즈(spread) */
+function makePoints(s){
+  const rnd=mulberry32(s.key.length*7919 + Math.floor(s.slope*1000));
+  const pts=[];
+  const n=12;
+  for(let i=0;i<n;i++){
+    const x = 6 + i*(88/(n-1)) + (rnd()-0.5)*4;
+    const noise=(rnd()-0.5)*2*s.spread;
+    let y = s.slope*x + s.base + noise;
+    y=Math.max(3, Math.min(97, y));
+    pts.push({x:Math.max(2,Math.min(98,x)), y});
+  }
+  return pts;
+}
+
+/* ── 최소제곱 회귀(순수 JS) : 최적 기울기·절편 계산 ── */
+function leastSquares(pts){
+  const n=pts.length;
+  let sx=0,sy=0,sxx=0,sxy=0;
+  for(const p of pts){ sx+=p.x; sy+=p.y; sxx+=p.x*p.x; sxy+=p.x*p.y; }
+  const denom = n*sxx - sx*sx;
+  let m,b;
+  if(Math.abs(denom)<1e-9){ m=0; b=sy/n; }
+  else{ m=(n*sxy - sx*sy)/denom; b=(sy - m*sx)/n; }
+  return {yL: b, yR: m*100 + b, m, b};
+}
+
+/* ── 오차: 평균 절대 오차(논리단위) ── */
+function lineYAt(ln, x){ return ln.yL + (ln.yR-ln.yL)*(x/100); }
+function meanAbsError(pts, ln){
+  if(pts.length===0) return 0;
+  let s=0;
+  for(const p of pts){ s += Math.abs(p.y - lineYAt(ln,p.x)); }
+  return s/pts.length;
+}
+
+/* ── 좌표 변환 ── */
+function toPx(x,y){
+  const px = PAD.l + (x/100)*(W-PAD.l-PAD.r);
+  const py = (H-PAD.b) - (y/100)*(H-PAD.t-PAD.b);
+  return [px,py];
+}
+function pyToLogicalY(py){
+  const y = ((H-PAD.b) - py)/(H-PAD.t-PAD.b)*100;
+  return Math.max(0, Math.min(100, y));
+}
+
+/* ═══════════ 그리기 ═══════════ */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 배경 격자
+  ctx.strokeStyle='#E7E2D3'; ctx.lineWidth=1.5;
+  for(let g=0; g<=100; g+=20){
+    const [gx]=toPx(g,0); const [,gy]=toPx(0,g);
+    ctx.beginPath(); ctx.moveTo(gx,PAD.t); ctx.lineTo(gx,H-PAD.b); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD.l,gy); ctx.lineTo(W-PAD.r,gy); ctx.stroke();
+  }
+  // 축
+  ctx.strokeStyle='#141414'; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(PAD.l,PAD.t); ctx.lineTo(PAD.l,H-PAD.b); ctx.lineTo(W-PAD.r,H-PAD.b); ctx.stroke();
+
+  // AI 선(있으면 먼저, 초록)
+  if(aiLine){
+    const [ax1,ay1]=toPx(0,aiLine.yL); const [ax2,ay2]=toPx(100,aiLine.yR);
+    ctx.strokeStyle='#12B76A'; ctx.lineWidth=4; ctx.setLineDash([10,7]);
+    ctx.beginPath(); ctx.moveTo(ax1,ay1); ctx.lineTo(ax2,ay2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 오차선(각 점 → 내 선까지 세로 빨간선)
+  ctx.strokeStyle='#FF4D4D'; ctx.lineWidth=2.5;
+  for(const p of points){
+    const py=lineYAt(line,p.x);
+    const [x1,y1]=toPx(p.x,p.y); const [,y2]=toPx(p.x,py);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1,y2); ctx.stroke();
+  }
+
+  // 내 추세선(파랑)
+  const [lx1,ly1]=toPx(0,line.yL); const [lx2,ly2]=toPx(100,line.yR);
+  ctx.strokeStyle='#3D5AFE'; ctx.lineWidth=4.5;
+  ctx.beginPath(); ctx.moveTo(lx1,ly1); ctx.lineTo(lx2,ly2); ctx.stroke();
+
+  // 손잡이(양 끝 ●)
+  [[0,line.yL,'L'],[100,line.yR,'R']].forEach(([x,y])=>{
+    const [hx,hy]=toPx(x,y);
+    ctx.fillStyle='#3D5AFE'; ctx.strokeStyle='#141414'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(hx,hy,11,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(hx,hy,3.5,0,Math.PI*2); ctx.fill();
+  });
+
+  // 데이터 점
+  for(const p of points){
+    const [x,y]=toPx(p.x,p.y);
+    ctx.fillStyle='#141414'; ctx.beginPath(); ctx.arc(x,y,6.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#FFB800'; ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
+  }
+
+  // 예측 지점 표시(슬라이더 x)
+  const px=+$('xSlider').value;
+  const pyPred=lineYAt(line,px);
+  const [ppx,ppy]=toPx(px,pyPred);
+  ctx.strokeStyle='#3D5AFE'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(ppx,H-PAD.b); ctx.lineTo(ppx,ppy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l,ppy); ctx.lineTo(ppx,ppy); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#fff'; ctx.strokeStyle='#3D5AFE'; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.arc(ppx,ppy,8,0,Math.PI*2); ctx.fill(); ctx.stroke();
+}
+
+/* ── 오차 UI 갱신 ── */
+function updateError(){
+  const e=meanAbsError(points,line);
+  $('errVal').textContent='약 '+e.toFixed(1);
+  // 흩어짐(spread) 기준으로 정규화: 오차가 spread보다 크면 나쁨
+  const worst=scen.spread*1.6;
+  const ratio=Math.max(0,Math.min(1, e/worst));
+  const fill=$('errFill');
+  fill.style.width=Math.round(ratio*100)+'%';
+  let color, msg, tag;
+  if(e<=scen.spread*0.55){ color='var(--green)'; tag='잘 맞췄어요'; }
+  else if(e<=scen.spread){ color='var(--amber)'; tag='조금 더!'; }
+  else{ color='var(--red)'; tag='더 가깝게'; }
+  fill.style.background=color;
+  $('errRate').innerHTML='<span class="tag" style="color:'+color+';border-color:var(--ink)">'+tag+'</span> 오차가 <b>작을수록</b> 선이 점을 잘 맞춘 거예요.';
+  $('cmpMine').textContent='약 '+e.toFixed(1);
+}
+
+/* ── 예측 UI ── */
+function updatePredict(){
+  const x=+$('xSlider').value;
+  $('xShow').textContent=x;
+  const y=lineYAt(line,x);
+  $('yPred').textContent=y.toFixed(1);
+}
+
+function setFlow(n){
+  document.querySelectorAll('#flow .fstep').forEach(el=>{
+    const s=+el.dataset.fstep;
+    el.classList.toggle('on', s===n);
+    el.classList.toggle('done', s<n);
+  });
+}
+
+function refresh(){ draw(); updateError(); updatePredict(); }
+
+/* ═══════════ 상호작용: 손잡이 드래그 ═══════════ */
+function canvasPos(evt){
+  const r=cv.getBoundingClientRect();
+  const t=(evt.touches&&evt.touches[0])||evt;
+  const sx=W/r.width, sy=H/r.height;
+  return [(t.clientX-r.left)*sx, (t.clientY-r.top)*sy];
+}
+function pickHandle(mx,my){
+  const [Lx,Ly]=toPx(0,line.yL); const [Rx,Ry]=toPx(100,line.yR);
+  const dL=Math.hypot(mx-Lx,my-Ly), dR=Math.hypot(mx-Rx,my-Ry);
+  const R=34;
+  if(dL<R && dL<=dR) return 'L';
+  if(dR<R) return 'R';
+  return null;
+}
+function onDown(evt){
+  const [mx,my]=canvasPos(evt);
+  dragging=pickHandle(mx,my);
+  if(dragging){ evt.preventDefault(); touched=true; $('dragHint').classList.add('hide'); setFlow(2); }
+}
+function onMove(evt){
+  if(!dragging) return;
+  evt.preventDefault();
+  const [,my]=canvasPos(evt);
+  const y=pyToLogicalY(my);
+  if(dragging==='L') line.yL=y; else line.yR=y;
+  aiLine=null; $('aiPill').style.display='none'; $('cmpBox').classList.remove('show');
+  refresh();
+}
+function onUp(){ dragging=null; }
+
+/* ═══════════ AI 자동 맞춤 ═══════════ */
+let aiBusy=false;
+$('aiBtn').addEventListener('click',()=>{
+  if(aiBusy) return;
+  aiBusy=true; setFlow(4);
+  const btn=$('aiBtn'); btn.classList.add('busy');
+  const target=leastSquares(points);
+  // 부드럽게 애니메이션(현재 내 선 상태 저장 후 비교)
+  const mineErr=meanAbsError(points,line);
+  const start={yL:line.yL, yR:line.yR};
+  let step=0; const steps=18;
+  const timer=setInterval(()=>{
+    step++;
+    const k=step/steps;
+    aiLine={
+      yL:start.yL+(target.yL-start.yL)*k,
+      yR:start.yR+(target.yR-start.yR)*k
+    };
+    draw();
+    if(step>=steps){
+      clearInterval(timer);
+      aiLine=target;
+      $('aiPill').style.display='inline-flex';
+      const aiErr=meanAbsError(points,target);
+      $('cmpMine').textContent='약 '+mineErr.toFixed(1);
+      $('cmpAi').textContent='약 '+aiErr.toFixed(1);
+      let msg;
+      if(mineErr<=aiErr+0.4){
+        msg='굉장해요! <b>내 선이 AI 최적선과 거의 같아요.</b> 눈으로도 최적선을 찾았네요.';
+      }else if(mineErr<=aiErr+scen.spread*0.5){
+        msg='좋아요! 내 선도 꽤 잘 맞췄어요. AI는 <b>모든 오차를 가장 작게</b> 만드는 선을 계산으로 찾아요.';
+      }else{
+        msg='AI 선이 더 가깝네요. AI는 점마다의 오차를 모아 <b>가장 작아지는 선</b>을 수학(최소제곱)으로 딱 찾아요.';
+      }
+      if(scen.key==='noisy') msg+=' 이 데이터는 <b>많이 흩어져</b> 있어서, AI가 계산한 최적선도 오차가 커요 — 그만큼 예측이 어렵다는 뜻이에요.';
+      $('cmpMsg').innerHTML=msg;
+      $('cmpBox').classList.add('show');
+      draw();
+      btn.classList.remove('busy'); aiBusy=false;
+    }
+  },28);
+});
+
+$('resetBtn').addEventListener('click',()=>{
+  line={yL:50,yR:50}; aiLine=null; $('aiPill').style.display='none'; $('cmpBox').classList.remove('show');
+  $('dragHint').classList.remove('hide'); touched=false; setFlow(1); refresh();
+});
+
+/* ── 시나리오 버튼 ── */
+function loadScenario(s){
+  scen=s;
+  points=makePoints(s);
+  line={yL:50,yR:50}; aiLine=null;
+  $('aiPill').style.display='none'; $('cmpBox').classList.remove('show');
+  $('xName').textContent=s.xName; $('yName').textContent=s.yName; $('yUnit').textContent=s.yUnit;
+  $('xlab').textContent=s.xName+' →'; $('ylab').textContent=s.yName+' ↑';
+  $('dragHint').classList.remove('hide'); touched=false;
+  document.querySelectorAll('#scenRow .scenbtn').forEach(b=>b.setAttribute('aria-pressed', b.dataset.key===s.key?'true':'false'));
+  setFlow(1); refresh();
+}
+function buildScenarioButtons(){
+  const row=$('scenRow'); row.innerHTML='';
+  SCENARIOS.forEach(s=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='scenbtn'; b.dataset.key=s.key;
+    b.setAttribute('aria-pressed', s.key===scen.key?'true':'false');
+    b.innerHTML='<span class="dt" style="background:'+(s.key==='noisy'?'var(--red)':'var(--point)')+'"></span>'+s.name;
+    b.addEventListener('click',()=>loadScenario(s));
+    row.appendChild(b);
+  });
+}
+
+/* ── 슬라이더 ── */
+$('xSlider').addEventListener('input',()=>{ setFlow(3); updatePredict(); draw(); });
+
+/* ── 캔버스 크기 세팅 & 리스너 ── */
+function initCanvas(){
+  cv=$('cv'); ctx=cv.getContext('2d'); W=cv.width; H=cv.height;
+  cv.addEventListener('mousedown',onDown);
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onUp);
+  cv.addEventListener('touchstart',onDown,{passive:false});
+  cv.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('touchend',onUp);
+}
+
+/* ── 자기 점검 ── */
+document.querySelectorAll('.check').forEach(c=>{
+  const toggle=()=>{
+    const on=c.getAttribute('aria-checked')==='true';
+    c.setAttribute('aria-checked', on?'false':'true');
+    updateBadge();
+  };
+  c.addEventListener('click',toggle);
+  c.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+});
+function updateBadge(){
+  const all=[...document.querySelectorAll('.check')].every(c=>c.getAttribute('aria-checked')==='true');
+  const box=$('badgeBox');
+  if(all){
+    box.classList.remove('locked');
+    $('badgeTitle').textContent='예측 마법사 배지 획득!';
+    $('badgeMsg').innerHTML='경향을 직선으로 요약해 <b>미래를 예측</b>하고, 오차와 흩어짐의 뜻을 알아냈어요!';
+  }else{
+    box.classList.add('locked');
+    $('badgeTitle').textContent='예측 마법사 배지 (잠김)';
+    $('badgeMsg').innerHTML='위 3가지를 모두 체크하면 <b>예측 마법사 배지</b>를 받아요!';
+  }
+}
+
+/* ── 시작 ── */
+initCanvas();
+buildScenarioButtons();
+loadScenario(SCENARIOS[0]);
+</script>
+</body>
+</html>

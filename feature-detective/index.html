@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>특징 탐정 · 분류 기준 만들기</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#7C3AED; --point-soft:#EDE7FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+    --cog:#3D5AFE;   /* 톱니족 A */
+    --cog-soft:#E4E8FF;
+    --gear:#F59E0B;  /* 태엽족 B */
+    --gear-soft:#FFF0C7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:660px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  /* 스테퍼 */
+  .flow{display:flex;align-items:stretch;gap:0;margin:0 0 24px;flex-wrap:nowrap}
+  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .fstep .snum{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:14px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .2s,color .2s;box-shadow:var(--hard-sm)}
+  .fstep .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .2s}
+  .fstep:not(:last-child)::after{content:"";position:absolute;top:14px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2.5px;background:var(--ink);opacity:.22}
+  .fstep.on .snum{background:var(--point);color:#fff}
+  .fstep.on .slab{color:var(--ink)}
+  .fstep.done .snum{background:var(--ink);color:#fff}
+  @media(max-width:560px){.fstep .slab{font-size:10.5px}}
+
+  /* panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:21px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 범례 */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .legchip{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;
+    background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;padding:5px 13px;box-shadow:var(--hard-sm)}
+  .legchip .dot{width:16px;height:16px;border:2px solid var(--ink);border-radius:50%}
+
+  /* 로봇 격자 */
+  .grid-bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
+  .bot{aspect-ratio:1;border:2.5px solid var(--ink);border-radius:12px;background:var(--surface);
+    box-shadow:var(--hard-sm);display:flex;align-items:center;justify-content:center;padding:5px;transition:transform .18s ease,opacity .18s}
+  .bot svg{width:100%;height:100%}
+
+  /* 질문(특징) 선택 */
+  .qgroup{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.qgroup{grid-template-columns:1fr}}
+  .qbtn{cursor:pointer;font-family:inherit;text-align:left;font-size:14.5px;font-weight:800;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);
+    padding:12px 14px;min-height:52px;display:flex;align-items:center;gap:10px;transition:transform .1s,box-shadow .1s,background .12s}
+  .qbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .qbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .qbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .qbtn[aria-pressed=true]{background:var(--point-soft)}
+  .qbtn .qi{width:26px;height:26px;flex-shrink:0;display:grid;place-items:center;border:2px solid var(--ink);border-radius:7px;background:var(--paper)}
+  .qbtn .qtxt small{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-top:1px}
+
+  /* 두 무리로 갈라진 결과 */
+  .splitwrap{display:none;margin-top:18px}
+  .splitwrap.show{display:block}
+  .qtitle{font-size:14px;font-weight:900;text-align:center;margin-bottom:14px;
+    background:var(--ink);color:var(--paper);border-radius:999px;padding:7px 16px;display:inline-block}
+  .qtitle-wrap{text-align:center;margin-bottom:14px}
+  .branches{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.branches{grid-template-columns:1fr}}
+  .branch{border:2.75px solid var(--ink);border-radius:var(--r-sm);padding:12px;background:var(--paper);box-shadow:var(--hard-sm)}
+  .branch h4{font-size:14px;font-weight:900;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+  .branch .yn{font-size:12px;font-weight:900;border:2px solid var(--ink);border-radius:999px;padding:1px 9px;background:var(--surface)}
+  .purity{margin:9px 0 11px}
+  .purity-bar{height:20px;border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--surface);display:flex}
+  .purity-bar .pa{background:var(--cog)}
+  .purity-bar .pb{background:var(--gear)}
+  .purity-bar > div{transition:width .4s ease}
+  .purity-lab{font-size:12px;font-weight:800;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:7px;justify-content:space-between}
+  .purity-lab .pure-tag{font-weight:900;border:2px solid var(--ink);border-radius:999px;padding:1px 9px;background:var(--surface)}
+  .purity-lab .pure-tag.clean{background:var(--green);color:#fff}
+  .branch .mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:5px;min-height:44px}
+  .branch .mini{aspect-ratio:1;border:2px solid var(--ink);border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;padding:3px}
+  .branch .mini svg{width:100%;height:100%}
+  .branch.done{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
+
+  /* 두 번째 질문 영역 */
+  .followup{display:none;margin-top:18px;background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:16px}
+  .followup.show{display:block}
+  .followup h3{font-size:14.5px;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .followup .which{font-size:13px;font-weight:800;color:#333;margin-bottom:10px}
+  .followup .which b{background:linear-gradient(transparent 62%,#fff 0);padding:0 2px;font-weight:900}
+
+  /* 큰 액션 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn svg{flex-shrink:0}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:9px 14px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  /* 성공 카드 */
+  .win{display:none;margin-top:18px;background:var(--green);color:#fff;border:3px solid var(--ink);border-radius:var(--r);
+    box-shadow:var(--hard);padding:18px 20px;align-items:center;gap:14px}
+  .win.show{display:flex}
+  .win .wt{font-size:17px;font-weight:900}
+  .win .wp{font-size:13.5px;font-weight:700;margin-top:3px;opacity:.95}
+  .win svg{flex-shrink:0}
+
+  /* 결정 트리 요약 */
+  .tree{display:none;margin-top:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:16px}
+  .tree.show{display:block}
+  .tree h3{font-size:14px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .tnode{font-size:13.5px;font-weight:800}
+  .tnode .qq{background:var(--ink);color:var(--paper);border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:8px}
+  .tbranch{margin-left:14px;padding-left:14px;border-left:2.5px solid var(--ink);margin-top:6px}
+  .tleaf{display:inline-flex;align-items:center;gap:6px;font-weight:900;border:2px solid var(--ink);border-radius:999px;padding:3px 11px;background:var(--surface);margin:4px 0}
+  .tleaf .dot{width:13px;height:13px;border:2px solid var(--ink);border-radius:50%}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* 자기 점검 */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .checks{display:grid;gap:10px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;cursor:pointer;transition:transform .1s,box-shadow .1s;min-height:52px}
+  .check:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .check:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .check .box{width:26px;height:26px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);display:grid;place-items:center}
+  .check .box svg{opacity:0;transition:opacity .15s}
+  .check[aria-checked=true] .box{background:var(--green)}
+  .check[aria-checked=true] .box svg{opacity:1}
+  .check .lab{font-size:14.5px;font-weight:700}
+
+  .badgebox{margin-top:20px;display:flex;align-items:center;gap:16px;background:var(--point-soft);
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .badgebox.locked{opacity:.55;filter:grayscale(.5)}
+  .medal{width:66px;height:66px;flex-shrink:0}
+  .badgebox .bt{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .badgebox .bp{font-size:13px;font-weight:700;color:#333;margin-top:3px}
+  .badgebox .bp b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">AI 개념 · 특징 탐정</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 나누는 방법</span>
+    <h1>특징 탐정 — <span class="u">분류 기준을 만들어요</span></h1>
+    <p class="lead">두 로봇 부족이 섞여 있어요. AI처럼 <b>구별되는 특징(feature)</b>을 찾아 <b>질문</b>을 만들면 무리가 갈라져요. 한 무리에 한 부족만 남으면 <b>깨끗하게(순도 100%)</b> 나눈 거예요. 좋은 특징일수록 한 번에 깔끔하게 갈려요.</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>진짜 AI 라이브러리 없이, <b style="font-weight:900">특징으로 질문을 만들어</b> 나누는 결정 트리를 흉내 내는 체험이에요. 카메라·인터넷은 쓰지 않아요.</span>
+  </div>
+
+  <div class="flow" id="flow" aria-hidden="true">
+    <div class="fstep on" data-fstep="1"><span class="snum">1</span><span class="slab">특징 관찰</span></div>
+    <div class="fstep" data-fstep="2"><span class="snum">2</span><span class="slab">질문 고르기</span></div>
+    <div class="fstep" data-fstep="3"><span class="snum">3</span><span class="slab">한 번 더 나누기</span></div>
+    <div class="fstep" data-fstep="4"><span class="snum">4</span><span class="slab">완성!</span></div>
+  </div>
+
+  <!-- STEP 1: 관찰 -->
+  <section class="panel" aria-labelledby="h1step">
+    <div class="phead"><span class="badge-n">1</span><div><div class="sub">Observe</div><h2 id="h1step">두 부족의 특징을 관찰해요</h2></div></div>
+    <p class="phint">아래 로봇들은 <b>톱니족</b>과 <b>태엽족</b>이 섞여 있어요. 색·눈 개수·안테나·다리 수가 저마다 달라요. 어떤 특징으로 나눌지 눈여겨봐요.</p>
+
+    <div class="legend">
+      <span class="legchip"><span class="dot" style="background:var(--cog)"></span>톱니족</span>
+      <span class="legchip"><span class="dot" style="background:var(--gear)"></span>태엽족</span>
+      <span class="legchip" style="background:var(--surface)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.4"/><path d="M12 8v4l3 2" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>총 <b id="botCount" style="margin-left:3px">12</b>마리</span>
+      <button type="button" class="minibtn" id="shuffleBtn" style="margin-left:auto">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h5l8 10h3M17 5l3 2-3 2M4 17h5l3-4M17 19l3-2-3-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        새 로봇들로 바꾸기</button>
+    </div>
+
+    <div class="grid-bots" id="botGrid" aria-label="섞여 있는 로봇들"></div>
+  </section>
+
+  <!-- STEP 2: 질문 고르기 -->
+  <section class="panel" aria-labelledby="h2step">
+    <div class="phead"><span class="badge-n">2</span><div><div class="sub">Split</div><h2 id="h2step">어떤 특징으로 나눌까요?</h2></div></div>
+    <p class="phint">특징 하나를 골라 <b>예/아니오 질문</b>을 만들어요. 그 질문으로 로봇들이 두 무리로 갈라지고, 각 무리의 <b>순도</b>(한 부족만 있는 정도)가 표시돼요.</p>
+
+    <div class="qgroup" id="qGroup"></div>
+
+    <div class="splitwrap" id="splitWrap">
+      <div class="qtitle-wrap"><span class="qtitle" id="qTitle"></span></div>
+      <div class="branches">
+        <div class="branch" id="branchYes">
+          <h4><span class="yn">예</span> <span id="yesLab">그렇다</span></h4>
+          <div class="purity">
+            <div class="purity-bar" role="img" aria-label="예 무리의 부족 비율"><div class="pa" id="yesPa" style="width:50%"></div><div class="pb" id="yesPb" style="width:50%"></div></div>
+            <div class="purity-lab"><span id="yesNote">–</span><span class="pure-tag" id="yesPure">–</span></div>
+          </div>
+          <div class="mini-grid" id="yesGrid"></div>
+        </div>
+        <div class="branch" id="branchNo">
+          <h4><span class="yn">아니오</span> <span id="noLab">아니다</span></h4>
+          <div class="purity">
+            <div class="purity-bar" role="img" aria-label="아니오 무리의 부족 비율"><div class="pa" id="noPa" style="width:50%"></div><div class="pb" id="noPb" style="width:50%"></div></div>
+            <div class="purity-lab"><span id="noNote">–</span><span class="pure-tag" id="noPure">–</span></div>
+          </div>
+          <div class="mini-grid" id="noGrid"></div>
+        </div>
+      </div>
+
+      <!-- 완전히 나눴을 때 -->
+      <div class="win" id="win1">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2.4"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><div class="wt">단 한 번에 깨끗하게 나눴어요!</div><div class="wp">이 특징은 두 부족을 완벽히 구별하는 <b style="color:#fff;text-decoration:underline">아주 좋은 특징</b>이에요.</div></div>
+      </div>
+
+      <!-- 아직 섞였을 때 두 번째 질문 -->
+      <div class="followup" id="followup">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M9 12l2 2 4-5" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>아직 섞인 무리가 있어요 — 질문을 하나 더!</h3>
+        <div class="which" id="whichMixed"></div>
+        <div class="qgroup" id="qGroup2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 두 번째 분할 결과 -->
+  <section class="panel" id="panel3" aria-labelledby="h3step" style="display:none">
+    <div class="phead"><span class="badge-n">3</span><div><div class="sub">Split again</div><h2 id="h3step">섞인 무리를 한 번 더 나눠요</h2></div></div>
+    <p class="phint" id="split2Hint"></p>
+    <div class="branches">
+      <div class="branch" id="branch2Yes">
+        <h4><span class="yn">예</span> <span id="yes2Lab"></span></h4>
+        <div class="purity">
+          <div class="purity-bar" role="img" aria-label="두 번째 질문 예 무리 비율"><div class="pa" id="yes2Pa" style="width:50%"></div><div class="pb" id="yes2Pb" style="width:50%"></div></div>
+          <div class="purity-lab"><span id="yes2Note">–</span><span class="pure-tag" id="yes2Pure">–</span></div>
+        </div>
+        <div class="mini-grid" id="yes2Grid"></div>
+      </div>
+      <div class="branch" id="branch2No">
+        <h4><span class="yn">아니오</span> <span id="no2Lab"></span></h4>
+        <div class="purity">
+          <div class="purity-bar" role="img" aria-label="두 번째 질문 아니오 무리 비율"><div class="pa" id="no2Pa" style="width:50%"></div><div class="pb" id="no2Pb" style="width:50%"></div></div>
+          <div class="purity-lab"><span id="no2Note">–</span><span class="pure-tag" id="no2Pure">–</span></div>
+        </div>
+        <div class="mini-grid" id="no2Grid"></div>
+      </div>
+    </div>
+
+    <div class="win" id="win2">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2.4"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><div class="wt">두 질문으로 모두 나눴어요! 🎉</div><div class="wp">이렇게 이어 붙인 질문이 바로 <b style="color:#fff;text-decoration:underline">결정 트리(분류 기준)</b>예요.</div></div>
+    </div>
+
+    <div class="tree" id="treeBox">
+      <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="3" width="6" height="6" rx="1.5" stroke="var(--ink)" stroke-width="2.2"/><rect x="3" y="15" width="6" height="6" rx="1.5" stroke="var(--ink)" stroke-width="2.2"/><rect x="15" y="15" width="6" height="6" rx="1.5" stroke="var(--ink)" stroke-width="2.2"/><path d="M12 9v3M12 12H6v3M12 12h6v3" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg>내가 만든 분류 기준</h3>
+      <div id="treeBody"></div>
+    </div>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>관찰해요</b> — 어떤 특징은 한 번에 깨끗하게 갈리지만, 어떤 특징은 두 부족이 계속 섞여요. <b>잘 갈리는 특징이 좋은 특징</b>이에요. AI도 이렇게 순도가 높아지는 질문을 골라 <b>결정 트리</b>를 만들어요.</span>
+  </div>
+
+  <!-- 자기 점검 -->
+  <div class="cmp-head"><h2>스스로 점검해요</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks" id="checks">
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="1">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">여러 대상을 구별하는 <b>특징(feature)</b>이 무엇인지 예를 들 수 있어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="2">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">특징으로 <b>예/아니오 질문</b>을 만들면 무리가 갈라진다는 걸 확인했어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="3">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>순도가 높게 갈리는 특징이 좋은 분류 기준</b>이라는 걸 알아냈어요.</span>
+    </div>
+  </div>
+
+  <div class="badgebox locked" id="badgeBox">
+    <svg class="medal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <circle cx="32" cy="26" r="18" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+      <circle cx="32" cy="26" r="11" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>
+      <path d="M27 26l3.5 3.5L38 22" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 41 16 60l16-8 16 8-6-19" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="bt" id="badgeTitle">특징 탐정 배지 (잠김)</div>
+      <div class="bp" id="badgeMsg">위 3가지를 모두 체크하면 <b>특징 탐정 배지</b>를 받아요!</div>
+    </div>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ── 데이터 모델 ─────────────────────────────
+   로봇 = {tribe:'A'|'B', color, eyes, antenna, legs}
+   A=톱니족, B=태엽족
+   특징(feature)로 예/아니오 질문을 만들어 분할한다.
+   순도(purity) = 무리 안 다수 부족 비율. 100%면 완전 분리. */
+
+const TRIBE={A:'톱니족', B:'태엽족'};
+const TRIBE_HEX={A:'#3D5AFE', B:'#F59E0B'};
+
+/* 특징 질문 정의: 각 질문은 로봇에 대해 예(true)/아니오(false)를 준다 */
+const QUESTIONS=[
+  {key:'eyes',   label:'눈이 3개 이상인가요?',  hint:'눈 개수 특징', test:b=>b.eyes>=3},
+  {key:'antenna',label:'안테나가 있나요?',       hint:'안테나 유무 특징', test:b=>b.antenna===true},
+  {key:'legs',   label:'다리가 4개인가요?',      hint:'다리 수 특징', test:b=>b.legs>=4},
+  {key:'color',  label:'몸이 파란색인가요?',      hint:'몸 색깔 특징', test:b=>b.color==='blue'}
+];
+const COLORHEX={blue:'#3D5AFE', red:'#FF4D4D', teal:'#12B76A'};
+
+let bots=[];
+let firstQ=null;   // 첫 질문
+let secondQ=null;  // 두 번째 질문
+let mixedSide=null; // 섞인 쪽 'yes'|'no'
+let solved=false;
+
+/* ── 데이터셋 생성: 두 특징을 이어야 완전 분리되도록 설계 ──
+   설계 규칙:
+   톱니족(A): 눈 2개, 다리는 2 또는 4  (안테나·색은 섞음)
+   태엽족(B): 눈 3개, 다리는 2 또는 4  (안테나·색은 섞음)
+   => '눈 3개 이상?' 질문이 A/B를 완벽히 가른다(좋은 특징).
+      '다리 4개?' '안테나?' 는 두 부족에 섞여 있어 한 번에 못 가른다.
+   그래도 두 번 이어 붙이면(예: 다리→눈) 완전 분리가 가능. */
+function makeBots(){
+  const list=[];
+  const colors=['blue','red','teal'];
+  // A 6마리, B 6마리
+  for(let i=0;i<6;i++){
+    list.push({tribe:'A', eyes:2, antenna: i%2===0, legs: i<3?2:4, color:colors[i%3]});
+  }
+  for(let i=0;i<6;i++){
+    list.push({tribe:'B', eyes:3, antenna: i%2===1, legs: i<3?4:2, color:colors[(i+1)%3]});
+  }
+  // 섞기
+  for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [list[i],list[j]]=[list[j],list[i]]; }
+  return list;
+}
+
+/* ── 순도 계산 ── */
+function purity(group){
+  if(group.length===0) return {a:0,b:0,pa:50,pb:50,pct:100,clean:true,major:null};
+  const a=group.filter(b=>b.tribe==='A').length;
+  const b=group.filter(x=>x.tribe==='B').length;
+  const t=a+b;
+  const major=a>=b?'A':'B';
+  const pct=Math.round(Math.max(a,b)/t*100);
+  return {a,b,pa:Math.round(a/t*100),pb:Math.round(b/t*100),pct,clean:(a===0||b===0),major};
+}
+
+/* ── 분할 ── */
+function splitBy(group,q){
+  const yes=group.filter(q.test);
+  const no=group.filter(b=>!q.test(b));
+  return {yes,no};
+}
+
+/* 완전 분리 판정: 두 무리 모두 순도 100% */
+function isCleanSplit(group,q){
+  const {yes,no}=splitBy(group,q);
+  return purity(yes).clean && purity(no).clean;
+}
+
+/* ═══════════ 로봇 그리기(인라인 SVG, 먹색 아웃라인) ═══════════ */
+function botSVG(b){
+  const c=COLORHEX[b.color];
+  let eyes='';
+  if(b.eyes===2){
+    eyes='<circle cx="26" cy="34" r="4.5" fill="#fff" stroke="#141414" stroke-width="2"/><circle cx="46" cy="34" r="4.5" fill="#fff" stroke="#141414" stroke-width="2"/><circle cx="26" cy="34" r="1.8" fill="#141414"/><circle cx="46" cy="34" r="1.8" fill="#141414"/>';
+  }else{
+    eyes='<circle cx="22" cy="35" r="3.6" fill="#fff" stroke="#141414" stroke-width="2"/><circle cx="36" cy="32" r="3.6" fill="#fff" stroke="#141414" stroke-width="2"/><circle cx="50" cy="35" r="3.6" fill="#fff" stroke="#141414" stroke-width="2"/><circle cx="22" cy="35" r="1.5" fill="#141414"/><circle cx="36" cy="32" r="1.5" fill="#141414"/><circle cx="50" cy="35" r="1.5" fill="#141414"/>';
+  }
+  let ant = b.antenna
+    ? '<line x1="36" y1="14" x2="36" y2="6" stroke="#141414" stroke-width="2.4" stroke-linecap="round"/><circle cx="36" cy="5" r="3" fill="#FFB800" stroke="#141414" stroke-width="2"/>'
+    : '';
+  let legs='';
+  if(b.legs===2){
+    legs='<line x1="28" y1="58" x2="28" y2="66" stroke="#141414" stroke-width="3" stroke-linecap="round"/><line x1="44" y1="58" x2="44" y2="66" stroke="#141414" stroke-width="3" stroke-linecap="round"/>';
+  }else{
+    legs='<line x1="20" y1="58" x2="18" y2="66" stroke="#141414" stroke-width="2.6" stroke-linecap="round"/><line x1="30" y1="58" x2="29" y2="66" stroke="#141414" stroke-width="2.6" stroke-linecap="round"/><line x1="42" y1="58" x2="43" y2="66" stroke="#141414" stroke-width="2.6" stroke-linecap="round"/><line x1="52" y1="58" x2="54" y2="66" stroke="#141414" stroke-width="2.6" stroke-linecap="round"/>';
+  }
+  return '<svg viewBox="0 0 72 72" aria-hidden="true">'
+    + ant
+    + legs
+    + '<rect x="14" y="16" width="44" height="42" rx="10" fill="'+c+'" stroke="#141414" stroke-width="3"/>'
+    + eyes
+    + '<line x1="28" y1="48" x2="44" y2="48" stroke="#141414" stroke-width="2.4" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+/* ═══════════ 렌더 ═══════════ */
+function setFlow(n){
+  document.querySelectorAll('#flow .fstep').forEach(el=>{
+    const s=+el.dataset.fstep;
+    el.classList.toggle('on', s===n);
+    el.classList.toggle('done', s<n);
+  });
+}
+
+function renderBots(){
+  const g=$('botGrid'); g.innerHTML='';
+  bots.forEach(b=>{ const d=document.createElement('div'); d.className='bot'; d.innerHTML=botSVG(b); g.appendChild(d); });
+  $('botCount').textContent=bots.length;
+}
+
+function renderQButtons(container, groupForCount, onPick, currentKey){
+  container.innerHTML='';
+  QUESTIONS.forEach(q=>{
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='qbtn';
+    btn.setAttribute('aria-pressed', currentKey===q.key ? 'true':'false');
+    btn.innerHTML='<span class="qi"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.2 2.4c-.8.3-1.2.8-1.2 1.6M12 16.5v.5" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg></span>'
+      + '<span class="qtxt">'+q.label+'<small>'+q.hint+'</small></span>';
+    btn.addEventListener('click',()=>onPick(q));
+    container.appendChild(btn);
+  });
+}
+
+function fillPurity(group, els){
+  const p=purity(group);
+  els.pa.style.width=p.pa+'%'; els.pb.style.width=p.pb+'%';
+  els.note.textContent='톱니족 '+p.a+' · 태엽족 '+p.b;
+  const tag=els.pure;
+  if(group.length===0){ tag.textContent='없음'; tag.classList.remove('clean'); }
+  else{ tag.textContent='순도 '+p.pct+'%'; tag.classList.toggle('clean', p.clean); }
+  return p;
+}
+function fillMini(group, el){
+  el.innerHTML='';
+  group.forEach(b=>{ const d=document.createElement('div'); d.className='mini'; d.innerHTML=botSVG(b); el.appendChild(d); });
+}
+
+/* 첫 질문 처리 */
+function pickFirst(q){
+  firstQ=q; secondQ=null; mixedSide=null; solved=false;
+  $('panel3').style.display='none'; $('treeBox').classList.remove('show'); $('win2').classList.remove('show');
+  renderQButtons($('qGroup'), bots, pickFirst, q.key);
+  setFlow(2);
+  const {yes,no}=splitBy(bots,q);
+  $('qTitle').textContent='질문: '+q.label;
+  $('yesLab').textContent='그렇다'; $('noLab').textContent='아니다';
+  const pYes=fillPurity(yes,{pa:$('yesPa'),pb:$('yesPb'),note:$('yesNote'),pure:$('yesPure')});
+  const pNo =fillPurity(no ,{pa:$('noPa'), pb:$('noPb'), note:$('noNote'), pure:$('noPure')});
+  fillMini(yes,$('yesGrid')); fillMini(no,$('noGrid'));
+  $('branchYes').classList.toggle('done', pYes.clean && yes.length>0);
+  $('branchNo').classList.toggle('done', pNo.clean && no.length>0);
+  $('splitWrap').classList.add('show');
+
+  const clean = pYes.clean && pNo.clean;
+  if(clean){
+    solved=true;
+    $('win1').classList.add('show'); $('followup').classList.remove('show');
+    setFlow(4);
+    buildTree(true);
+    $('treeBox').classList.add('show');
+    $('panel3').style.display='';
+    $('h3step').parentElement.parentElement.style.display='';
+    $('split2Hint').textContent='한 번의 질문으로 이미 완전히 나뉘었어요! 아래에서 만든 분류 기준을 확인해요.';
+    document.querySelectorAll('#panel3 .branches')[0].style.display='none';
+  }else{
+    $('win1').classList.remove('show');
+    // 섞인 쪽 찾기
+    mixedSide = !pYes.clean ? 'yes' : 'no';
+    const mixedGroup = mixedSide==='yes'?yes:no;
+    $('whichMixed').innerHTML='<b>'+(mixedSide==='yes'?'“예”':'“아니오”')+' 무리</b>가 아직 섞였어요(순도 '+purity(mixedGroup).pct+'%). 이 무리를 나눌 질문을 하나 더 골라요.';
+    renderQButtons($('qGroup2'), mixedGroup, pickSecond, secondQ?secondQ.key:null);
+    $('followup').classList.add('show');
+  }
+}
+
+/* 두 번째 질문 처리 */
+function pickSecond(q){
+  secondQ=q; setFlow(3);
+  const {yes,no}=splitBy(bots,firstQ);
+  const mixedGroup = mixedSide==='yes'?yes:no;
+  renderQButtons($('qGroup2'), mixedGroup, pickSecond, q.key);
+
+  $('panel3').style.display='';
+  document.querySelectorAll('#panel3 .branches')[0].style.display='';
+  $('split2Hint').innerHTML='섞였던 <b>'+(mixedSide==='yes'?'“예”':'“아니오”')+'</b> 무리에 <b>'+q.label+'</b> 질문을 적용했어요.';
+  const {yes:y2,no:n2}=splitBy(mixedGroup,q);
+  $('yes2Lab').textContent='그렇다'; $('no2Lab').textContent='아니다';
+  const p2y=fillPurity(y2,{pa:$('yes2Pa'),pb:$('yes2Pb'),note:$('yes2Note'),pure:$('yes2Pure')});
+  const p2n=fillPurity(n2,{pa:$('no2Pa'), pb:$('no2Pb'), note:$('no2Note'), pure:$('no2Pure')});
+  fillMini(y2,$('yes2Grid')); fillMini(n2,$('no2Grid'));
+  $('branch2Yes').classList.toggle('done', p2y.clean && y2.length>0);
+  $('branch2No').classList.toggle('done', p2n.clean && n2.length>0);
+  $('panel3').scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  const clean2 = p2y.clean && p2n.clean;
+  if(clean2){
+    solved=true; setFlow(4);
+    $('win2').classList.add('show');
+    buildTree(false);
+    $('treeBox').classList.add('show');
+  }else{
+    $('win2').classList.remove('show');
+    $('treeBox').classList.remove('show');
+  }
+}
+
+/* 결정 트리 요약 */
+function leaf(tribe){
+  return '<span class="tleaf"><span class="dot" style="background:'+TRIBE_HEX[tribe]+'"></span>'+TRIBE[tribe]+'</span>';
+}
+function buildTree(oneShot){
+  const {yes,no}=splitBy(bots,firstQ);
+  const pYes=purity(yes), pNo=purity(no);
+  let html='<div class="tnode"><span class="qq">Q1. '+firstQ.label+'</span>';
+  if(oneShot){
+    html+='<div class="tbranch"><div>예 → '+leaf(pYes.major)+'</div><div>아니오 → '+leaf(pNo.major)+'</div></div>';
+  }else{
+    const mixedGroup = mixedSide==='yes'?yes:no;
+    const cleanSide = mixedSide==='yes'?no:yes;
+    const cleanP = mixedSide==='yes'?pNo:pYes;
+    const {yes:y2,no:n2}=splitBy(mixedGroup,secondQ);
+    const cleanLabel = mixedSide==='yes'?'아니오':'예';
+    const mixedLabel = mixedSide==='yes'?'예':'아니오';
+    html+='<div class="tbranch">';
+    html+='<div>'+cleanLabel+' → '+leaf(cleanP.major)+'</div>';
+    html+='<div style="margin-top:6px">'+mixedLabel+' → <span class="qq">Q2. '+secondQ.label+'</span>';
+    html+='<div class="tbranch"><div>예 → '+leaf(purity(y2).major)+'</div><div>아니오 → '+leaf(purity(n2).major)+'</div></div></div>';
+    html+='</div>';
+  }
+  html+='</div>';
+  $('treeBody').innerHTML=html;
+}
+
+/* 리셋 & 셔플 */
+function newRound(){
+  bots=makeBots();
+  firstQ=null; secondQ=null; mixedSide=null; solved=false;
+  renderBots();
+  renderQButtons($('qGroup'), bots, pickFirst, null);
+  $('splitWrap').classList.remove('show');
+  $('win1').classList.remove('show'); $('followup').classList.remove('show');
+  $('panel3').style.display='none'; $('treeBox').classList.remove('show'); $('win2').classList.remove('show');
+  document.querySelectorAll('#panel3 .branches')[0].style.display='';
+  setFlow(1);
+}
+$('shuffleBtn').addEventListener('click', newRound);
+
+/* 자기 점검 */
+document.querySelectorAll('.check').forEach(c=>{
+  const toggle=()=>{
+    const on=c.getAttribute('aria-checked')==='true';
+    c.setAttribute('aria-checked', on?'false':'true');
+    updateBadge();
+  };
+  c.addEventListener('click',toggle);
+  c.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+});
+function updateBadge(){
+  const all=[...document.querySelectorAll('.check')].every(c=>c.getAttribute('aria-checked')==='true');
+  const box=$('badgeBox');
+  if(all){
+    box.classList.remove('locked');
+    $('badgeTitle').textContent='특징 탐정 배지 획득!';
+    $('badgeMsg').innerHTML='특징을 찾아 질문을 만들고, <b>순도가 높게 갈리는 좋은 기준</b>으로 결정 트리를 완성했어요!';
+  }else{
+    box.classList.add('locked');
+    $('badgeTitle').textContent='특징 탐정 배지 (잠김)';
+    $('badgeMsg').innerHTML='위 3가지를 모두 체크하면 <b>특징 탐정 배지</b>를 받아요!';
+  }
+}
+
+/* 초기화 */
+newRound();
+</script>
+</body>
+</html>

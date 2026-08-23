@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>군집화 놀이터 · 비지도 학습 체험</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#F59E0B; --point-soft:#FFF0C7;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+    /* 무리(클러스터) 색 팔레트 */
+    --c0:#3D5AFE; --c1:#12B76A; --c2:#FF5A5F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+  .safe b{font-weight:900}
+
+  /* 단계 스테퍼 */
+  .flow{display:flex;align-items:stretch;gap:0;margin:0 0 24px;flex-wrap:nowrap}
+  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .fstep .snum{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:14px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .2s,color .2s;box-shadow:var(--hard-sm)}
+  .fstep .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .2s}
+  .fstep:not(:last-child)::after{content:"";position:absolute;top:14px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2.5px;background:var(--ink);opacity:.22}
+  .fstep.on .snum{background:var(--point);color:#fff}
+  .fstep.on .slab{color:var(--ink)}
+  .fstep.done .snum{background:var(--ink);color:#fff}
+  @media(max-width:560px){.fstep .slab{font-size:10.5px}}
+
+  /* panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:21px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 축 라벨 + 캔버스 */
+  .plotwrap{position:relative;border:2.5px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);
+    padding:10px 10px 10px 34px;box-shadow:var(--hard-sm)}
+  .ylab{position:absolute;left:6px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:center;
+    font-size:12px;font-weight:900;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+  .xlab{text-align:center;font-size:12px;font-weight:900;color:var(--muted);margin-top:6px;letter-spacing:.02em}
+  canvas{display:block;width:100%;height:auto;border:2px solid var(--ink);border-radius:10px;background:var(--surface);touch-action:none;cursor:pointer}
+
+  /* 컨트롤 */
+  .toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:9px 14px;min-height:44px;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .minibtn svg{flex-shrink:0}
+  .minibtn[aria-pressed=true]{background:var(--point);color:#fff}
+
+  /* k 선택 */
+  .krow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .klabel{font-size:13px;font-weight:900}
+  .kbtns{display:inline-flex;gap:6px}
+  .kbtn{cursor:pointer;font-family:inherit;font-size:15px;font-weight:900;color:var(--ink);background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);width:46px;min-height:44px;
+    display:grid;place-items:center;transition:transform .1s,box-shadow .1s}
+  .kbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .kbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .kbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .kbtn[aria-pressed=true]{background:var(--point);color:#fff}
+
+  /* 큰 액션 버튼 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn svg{flex-shrink:0}
+  .btn.busy{background:var(--point);color:#fff;animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.015)}}
+
+  /* 진행바 */
+  .train-anim{margin-top:16px;display:none}
+  .train-anim.show{display:block}
+  .prog{position:relative;height:22px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden}
+  .progbar{height:100%;width:0%;background:repeating-linear-gradient(45deg,var(--point),var(--point) 9px,#ffcf6b 9px,#ffcf6b 18px);transition:width .12s linear}
+  .prog-txt{font-size:12.5px;font-weight:800;color:var(--muted);text-align:center;margin-top:7px;min-height:18px}
+  .prog-txt b{color:var(--ink)}
+
+  /* 무리 요약 */
+  .clustersum{display:none;margin-top:16px;background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px 16px}
+  .clustersum.show{display:block}
+  .clustersum h3{font-size:14px;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .ccard{background:var(--surface);border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:700}
+  .ccard .cn{font-size:14px;font-weight:900;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+  .cdot{width:16px;height:16px;border:2px solid var(--ink);border-radius:50%;flex-shrink:0}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* 배지 / 자기점검 */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .checks{display:grid;gap:10px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;cursor:pointer;transition:transform .1s,box-shadow .1s}
+  .check:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .check:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .check .box{width:26px;height:26px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);
+    display:grid;place-items:center}
+  .check .box svg{opacity:0;transition:opacity .15s}
+  .check[aria-checked=true] .box{background:var(--green)}
+  .check[aria-checked=true] .box svg{opacity:1}
+  .check .lab{font-size:14.5px;font-weight:700}
+  .check .lab b{font-weight:900}
+
+  .badgebox{margin-top:20px;display:flex;align-items:center;gap:16px;background:var(--point-soft);
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .badgebox.locked{opacity:.55;filter:grayscale(.5)}
+  .medal{width:66px;height:66px;flex-shrink:0}
+  .badgebox .bt{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .badgebox .bp{font-size:13px;font-weight:700;color:#333;margin-top:3px}
+  .badgebox .bp b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">비지도 학습 · 군집화 놀이터</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 스스로 무리 짓기</span>
+    <h1>군집화 놀이터 — <span class="u">정답 없이 비슷한 것끼리</span></h1>
+    <p class="lead">부품들이 <b>크기</b>와 <b>반짝임</b> 두 가지 특징으로 흩어져 있어요. <b>정답표(라벨)가 없어도</b> 비슷한 것끼리 스스로 무리(그룹)를 지을 수 있어요. 내 눈으로 나눠 보고, <b>AI처럼 자동 군집</b>도 눌러 비교해요. 무리 수(k)를 바꾸면 결과가 달라진답니다.</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>진짜 AI 라이브러리 없이, 순수 계산으로 <b>k-평균 군집</b>을 흉내 내는 체험이에요. 카메라·인터넷은 쓰지 않아요.</span>
+  </div>
+
+  <!-- 큰 흐름 -->
+  <div class="flow" id="flow" aria-hidden="true">
+    <div class="fstep on" data-fstep="1"><span class="snum">1</span><span class="slab">부품 흩뿌리기</span></div>
+    <div class="fstep" data-fstep="2"><span class="snum">2</span><span class="slab">눈으로 나누기</span></div>
+    <div class="fstep" data-fstep="3"><span class="snum">3</span><span class="slab">AI 자동 군집</span></div>
+    <div class="fstep" data-fstep="4"><span class="snum">4</span><span class="slab">k 바꿔보기</span></div>
+  </div>
+
+  <!-- STEP 1: 부품 흩뿌리기 + 눈으로 나누기 -->
+  <section class="panel" aria-labelledby="h1step">
+    <div class="phead"><span class="badge-n">1</span><div><div class="sub">Scatter &amp; Guess</div><h2 id="h1step">부품 흩뿌리고 눈으로 나누기</h2></div></div>
+    <p class="phint">아래 평면에 부품들이 흩어져 있어요. 가로는 <b>크기</b>, 세로는 <b>반짝임</b>이에요. <b>부품을 눌러</b> 내가 생각한 무리 색으로 칠해 보세요. 정답은 없어요 — 비슷해 보이면 같은 무리예요!</p>
+
+    <div class="plotwrap">
+      <span class="ylab" aria-hidden="true">반짝임 (별처럼 빛남 ↑)</span>
+      <canvas id="board" width="720" height="440" aria-label="부품이 크기와 반짝임으로 흩어진 평면"></canvas>
+      <div class="xlab" aria-hidden="true">크기 (작음 → 큼)</div>
+    </div>
+
+    <div class="krow" style="margin-top:14px">
+      <span class="klabel">칠할 무리 색:</span>
+      <div class="kbtns" id="paintBtns" role="group" aria-label="칠할 무리 색 고르기">
+        <button type="button" class="kbtn" data-paint="0" aria-pressed="true" style="color:var(--c0)" aria-label="파랑 무리로 칠하기">●</button>
+        <button type="button" class="kbtn" data-paint="1" style="color:var(--c1)" aria-label="초록 무리로 칠하기">●</button>
+        <button type="button" class="kbtn" data-paint="2" style="color:var(--c2)" aria-label="빨강 무리로 칠하기">●</button>
+      </div>
+      <span style="font-size:12.5px;font-weight:700;color:var(--muted)">부품을 눌러 칠해요</span>
+    </div>
+
+    <div class="toolrow">
+      <button type="button" class="minibtn" id="reshuffle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 9a8 8 0 0 0-14-3M4 15a8 8 0 0 0 14 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        부품 새로 흩뿌리기</button>
+      <button type="button" class="minibtn" id="clearPaint">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        내 무리 지우기</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: AI 자동 군집 -->
+  <section class="panel" aria-labelledby="h2step">
+    <div class="phead"><span class="badge-n">2</span><div><div class="sub">Auto Cluster</div><h2 id="h2step">AI처럼 자동 군집 (k-평균)</h2></div></div>
+    <p class="phint">무리 개수 <b>k</b>를 고르고 버튼을 누르면, AI가 <b>중심점</b>을 잡고 → 가까운 부품을 배정하고 → 중심을 옮기는 일을 <b>여러 번 반복</b>해 스스로 무리를 나눠요. 라벨(정답)은 전혀 주지 않았어요!</p>
+
+    <div class="krow">
+      <span class="klabel">무리 개수 k:</span>
+      <div class="kbtns" id="kBtns" role="group" aria-label="무리 개수 k 고르기">
+        <button type="button" class="kbtn" data-k="2" aria-pressed="true">2</button>
+        <button type="button" class="kbtn" data-k="3">3</button>
+      </div>
+    </div>
+
+    <button class="btn" id="clusterBtn" style="margin-top:16px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="7" cy="8" r="3" stroke="currentColor" stroke-width="2.2"/><circle cx="17" cy="7" r="3" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="17" r="3" stroke="currentColor" stroke-width="2.2"/></svg>
+      AI처럼 자동으로 무리 짓기</button>
+
+    <div class="train-anim" id="trainAnim">
+      <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progWrap"><div class="progbar" id="progbar"></div></div>
+      <div class="prog-txt" id="progTxt"></div>
+    </div>
+
+    <div class="clustersum" id="clusterSum">
+      <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/></svg>무리 짓기 끝! AI가 나눈 무리</h3>
+      <div class="cgrid" id="cgrid"></div>
+    </div>
+  </section>
+
+  <div class="obs" id="obsMain">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>관찰해요</b> — AI는 “이건 나사, 저건 스프링”이라고 <b>이름(정답)</b>을 몰라요. 그저 <b>비슷한 것끼리</b> 가까운 것을 한 무리로 묶었을 뿐이에요. 이렇게 정답 없이 스스로 무리 짓는 걸 <b>비지도 학습</b>이라고 해요.</span>
+  </div>
+
+  <!-- STEP 3: k 바꿔보기 -->
+  <section class="panel" aria-labelledby="h3step">
+    <div class="phead"><span class="badge-n">3</span><div><div class="sub">Change k</div><h2 id="h3step">무리 수(k)를 바꿔 봐요</h2></div></div>
+    <p class="phint">위에서 <b>k를 2 → 3</b>으로 바꾸고 다시 <b>자동 군집</b>을 눌러 보세요. 같은 부품인데도 <b>무리 수를 정하는 사람</b>에 따라 결과가 달라져요. 정답이 하나로 딱 정해진 게 아니에요.</p>
+    <p class="prog-txt" id="kNote" style="text-align:left;font-size:13.5px;color:#333"></p>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>알아냈어요</b> — 비지도 학습은 <b>정답이 없어서</b>, 무리를 몇 개로 볼지(k)를 사람이 정해요. k를 바꾸면 무리가 달라지죠. 그래서 결과를 보고 <b>“이 나눔이 뜻이 있나?”</b>를 사람이 판단해야 해요.</span>
+  </div>
+
+  <!-- 자기 점검 -->
+  <div class="cmp-head"><h2>스스로 점검해요</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks" id="checks">
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="1">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>정답(라벨)이 없어도</b> 비슷한 것끼리 무리 지을 수 있다는 걸 설명할 수 있어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="2">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">AI가 <b>중심점을 잡고 반복</b>하며 무리를 나누는 걸 자동 군집으로 봤어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="3">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>무리 수(k)를 바꾸면</b> 결과가 달라진다는 걸 실험으로 확인했어요.</span>
+    </div>
+  </div>
+
+  <div class="badgebox locked" id="badgeBox">
+    <svg class="medal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <circle cx="32" cy="26" r="18" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+      <circle cx="24" cy="24" r="4" fill="var(--c0)" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="40" cy="22" r="4" fill="var(--c1)" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="32" cy="33" r="4" fill="var(--c2)" stroke="var(--ink)" stroke-width="2"/>
+      <path d="M22 41 16 60l16-8 16 8-6-19" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="bt" id="badgeTitle">군집왕 배지 (잠김)</div>
+      <div class="bp" id="badgeMsg">위 3가지를 모두 체크하면 <b>군집왕 배지</b>를 받아요!</div>
+    </div>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const CCOL=['#3D5AFE','#12B76A','#FF5A5F'];        // 무리 색
+const CNAME=['파랑 무리','초록 무리','빨강 무리'];
+
+/* ── 데이터: 각 부품 = {x, y}  (x=크기 0~1, y=반짝임 0~1)
+   실제 라벨은 없다(비지도). 화면 표시는 사람이 칠한 색(myGroup) 또는 AI 무리(aiGroup). */
+let items=[];        // {x,y, myGroup:null|0..2, aiGroup:null|0..2}
+let centroids=[];    // k-평균 중심점 [{x,y}]
+let paintColor=0;    // 지금 칠하는 무리 색
+let K=2;             // 무리 개수
+let mode='mine';     // 'mine'(내가 칠함) | 'ai'(AI 결과 표시)
+let clustering=false;
+
+/* 3개의 느슨한 덩어리에서 점을 뽑아 흩뿌린다(자연스러운 군집감) */
+function makeItems(){
+  const blobs=[{cx:.24,cy:.30},{cx:.74,cy:.34},{cx:.50,cy:.78}];
+  const arr=[];
+  const N=24;
+  for(let i=0;i<N;i++){
+    const b=blobs[i%blobs.length];
+    let x=b.cx+(Math.random()-0.5)*0.30;
+    let y=b.cy+(Math.random()-0.5)*0.28;
+    x=Math.max(0.05,Math.min(0.95,x));
+    y=Math.max(0.05,Math.min(0.95,y));
+    arr.push({x,y,myGroup:null,aiGroup:null});
+  }
+  return arr;
+}
+
+/* ── k-평균 한 스텝: (1)각 점을 가장 가까운 중심에 배정 (2)중심을 무리 평균으로 갱신
+   반환: {assign:[클러스터index...], moved:중심이 얼마나 움직였나} */
+function kmeansStep(pts, cents){
+  // 배정
+  const assign=pts.map(p=>{
+    let best=0,bd=Infinity;
+    for(let c=0;c<cents.length;c++){
+      const dx=p.x-cents[c].x, dy=p.y-cents[c].y;
+      const d=dx*dx+dy*dy;
+      if(d<bd){bd=d;best=c;}
+    }
+    return best;
+  });
+  // 갱신
+  let moved=0;
+  const newCents=cents.map((c,ci)=>{
+    let sx=0,sy=0,n=0;
+    for(let i=0;i<pts.length;i++){ if(assign[i]===ci){sx+=pts[i].x;sy+=pts[i].y;n++;} }
+    if(n===0) return {x:c.x,y:c.y};        // 빈 무리는 그대로
+    const nx=sx/n, ny=sy/n;
+    moved+=Math.hypot(nx-c.x, ny-c.y);
+    return {x:nx,y:ny};
+  });
+  return {assign, newCents, moved};
+}
+
+/* 초기 중심: 서로 떨어진 점 k개(간단 k-means++ 느낌) */
+function initCentroids(pts,k){
+  const chosen=[pts[Math.floor(Math.random()*pts.length)]];
+  while(chosen.length<k){
+    let best=null,bd=-1;
+    for(const p of pts){
+      let dmin=Infinity;
+      for(const c of chosen){ const d=(p.x-c.x)**2+(p.y-c.y)**2; if(d<dmin)dmin=d; }
+      if(dmin>bd){bd=dmin;best=p;}
+    }
+    chosen.push(best);
+  }
+  return chosen.map(p=>({x:p.x,y:p.y}));
+}
+
+/* ═══════════ 그리기 ═══════════ */
+const cv=$('board'); const ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height, PAD=26;
+function toPx(x,y){ return {px:PAD+x*(W-2*PAD), py:H-PAD-y*(H-2*PAD)}; }
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 격자
+  ctx.strokeStyle='rgba(20,20,20,.10)'; ctx.lineWidth=1;
+  for(let i=1;i<8;i++){ const gx=PAD+i/8*(W-2*PAD); ctx.beginPath();ctx.moveTo(gx,PAD);ctx.lineTo(gx,H-PAD);ctx.stroke(); }
+  for(let i=1;i<6;i++){ const gy=PAD+i/6*(H-2*PAD); ctx.beginPath();ctx.moveTo(PAD,gy);ctx.lineTo(W-PAD,gy);ctx.stroke(); }
+  // AI 중심점
+  if(mode==='ai'){
+    centroids.forEach((c,ci)=>{
+      const {px,py}=toPx(c.x,c.y);
+      ctx.save();
+      ctx.fillStyle=CCOL[ci]; ctx.strokeStyle='#141414'; ctx.lineWidth=3;
+      // 별 모양 중심
+      star(px,py,10,5); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+  }
+  // 부품(점) — 육각 볼트 느낌
+  items.forEach(p=>{
+    const {px,py}=toPx(p.x,p.y);
+    const g = mode==='ai' ? p.aiGroup : p.myGroup;
+    const fill = g==null ? '#FFFFFF' : CCOL[g];
+    ctx.save();
+    ctx.strokeStyle='#141414'; ctx.lineWidth=2.5;
+    ctx.fillStyle=fill;
+    // 크기가 클수록 살짝 큰 볼트
+    const r=8+p.x*5;
+    hex(px,py,r); ctx.fill(); ctx.stroke();
+    // 반짝임 큰 점은 가운데 반짝 표시
+    if(p.y>0.6){ ctx.fillStyle= g==null?'#F59E0B':'rgba(255,255,255,.9)'; ctx.beginPath();ctx.arc(px,py,2.4,0,7);ctx.fill(); }
+    ctx.restore();
+  });
+}
+function hex(cx,cy,r){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){ const a=Math.PI/6+i*Math.PI/3; const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath();
+}
+function star(cx,cy,r,n){
+  ctx.beginPath();
+  for(let i=0;i<n*2;i++){ const rr=i%2?r*0.45:r; const a=-Math.PI/2+i*Math.PI/n; const x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath();
+}
+
+/* 클릭/터치로 부품 칠하기 */
+function pickItem(clientX,clientY){
+  const rect=cv.getBoundingClientRect();
+  const sx=(clientX-rect.left)*(W/rect.width);
+  const sy=(clientY-rect.top)*(H/rect.height);
+  let best=-1,bd=Infinity;
+  items.forEach((p,i)=>{ const {px,py}=toPx(p.x,p.y); const d=(px-sx)**2+(py-sy)**2; if(d<bd){bd=d;best=i;} });
+  if(best>=0 && bd< (26*26)){ return best; }
+  return -1;
+}
+function onBoard(e){
+  e.preventDefault();
+  const pt = e.touches? e.touches[0] : e;
+  if(!pt) return;
+  const i=pickItem(pt.clientX, pt.clientY);
+  if(i<0) return;
+  mode='mine';
+  items[i].myGroup = (items[i].myGroup===paintColor)? null : paintColor;
+  $('clusterSum').classList.remove('show');
+  setFlow(2);
+  draw();
+}
+cv.addEventListener('click',onBoard);
+cv.addEventListener('touchstart',onBoard,{passive:false});
+
+/* 칠할 색 고르기 */
+document.querySelectorAll('#paintBtns .kbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    paintColor=+b.dataset.paint;
+    document.querySelectorAll('#paintBtns .kbtn').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+  });
+});
+
+/* k 고르기 */
+document.querySelectorAll('#kBtns .kbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    K=+b.dataset.k;
+    document.querySelectorAll('#kBtns .kbtn').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+    // 세번째 칠하기 색은 k=3일 때만 의미
+  });
+});
+
+/* 새로 흩뿌리기 / 지우기 */
+$('reshuffle').addEventListener('click',()=>{
+  items=makeItems(); mode='mine'; centroids=[];
+  $('clusterSum').classList.remove('show'); $('kNote').textContent=''; setFlow(1); draw();
+});
+$('clearPaint').addEventListener('click',()=>{
+  items.forEach(p=>p.myGroup=null); mode='mine'; $('clusterSum').classList.remove('show'); setFlow(1); draw();
+});
+
+function setFlow(n){
+  document.querySelectorAll('#flow .fstep').forEach(el=>{
+    const s=+el.dataset.fstep;
+    el.classList.toggle('on', s===n);
+    el.classList.toggle('done', s<n);
+  });
+}
+
+/* ── AI 자동 군집(애니메이션으로 k-평균 반복) ── */
+let lastK=null;
+$('clusterBtn').addEventListener('click',()=>{
+  if(clustering) return;
+  clustering=true; mode='ai'; setFlow(3);
+  const btn=$('clusterBtn'); btn.classList.add('busy');
+  $('trainAnim').classList.add('show'); $('clusterSum').classList.remove('show');
+  const wrap=$('progWrap'), bar=$('progbar'), txt=$('progTxt');
+  centroids=initCentroids(items,K);
+  // 초기 배정 표시
+  let step=0; const MAXSTEP=8;
+  let assign=items.map(()=>0);
+  const timer=setInterval(()=>{
+    const res=kmeansStep(items, centroids);
+    assign=res.assign; centroids=res.newCents;
+    items.forEach((p,i)=>p.aiGroup=assign[i]);
+    step++;
+    const p=Math.min(100, Math.round(step/MAXSTEP*100));
+    bar.style.width=p+'%'; wrap.setAttribute('aria-valuenow',p);
+    txt.innerHTML='반복 <b>'+step+'회</b> — 중심을 옮기고 가까운 부품을 다시 모아요…';
+    draw();
+    if(step>=MAXSTEP || res.moved<0.004){
+      clearInterval(timer);
+      bar.style.width='100%'; wrap.setAttribute('aria-valuenow',100);
+      // 최종 배정 한번 더
+      const fin=kmeansStep(items,centroids); items.forEach((p,i)=>p.aiGroup=fin.assign[i]);
+      draw();
+      clustering=false; btn.classList.remove('busy');
+      txt.innerHTML='<b>무리 짓기 완료!</b> AI가 '+K+'개 무리로 나눴어요. 라벨은 전혀 주지 않았답니다.';
+      showClusterSummary();
+      // k 바꿔보기 안내
+      const note=$('kNote');
+      if(lastK!==null && lastK!==K){
+        note.innerHTML='방금 <b>k를 '+lastK+' → '+K+'</b>으로 바꿨더니 무리 모양이 달라졌죠? 같은 부품인데 <b>무리 수를 정하는 사람</b>에 따라 결과가 바뀌어요.';
+        setFlow(4);
+      }else{
+        note.innerHTML='이제 위에서 <b>k를 '+(K===2?'3':'2')+'</b>으로 바꾸고 다시 자동 군집을 눌러 결과가 어떻게 달라지는지 비교해 보세요.';
+      }
+      lastK=K;
+    }
+  },320);
+});
+
+function showClusterSummary(){
+  const counts=Array(K).fill(0);
+  const sumSize=Array(K).fill(0), sumShine=Array(K).fill(0);
+  items.forEach(p=>{ counts[p.aiGroup]++; sumSize[p.aiGroup]+=p.x; sumShine[p.aiGroup]+=p.y; });
+  const grid=$('cgrid'); grid.innerHTML='';
+  for(let c=0;c<K;c++){
+    const n=counts[c]||0;
+    const sz = n? sumSize[c]/n:0, sh=n? sumShine[c]/n:0;
+    const szTxt = sz<0.4?'작은 편':sz>0.6?'큰 편':'중간';
+    const shTxt = sh<0.4?'덜 반짝':sh>0.6?'많이 반짝':'중간 반짝';
+    const el=document.createElement('div'); el.className='ccard';
+    el.innerHTML='<div class="cn"><span class="cdot" style="background:'+CCOL[c]+'"></span>'+CNAME[c]+'</div>'
+      +'<div>부품 <b>'+n+'개</b></div>'
+      +'<div>크기: <b>'+szTxt+'</b></div>'
+      +'<div>반짝임: <b>'+shTxt+'</b></div>';
+    grid.appendChild(el);
+  }
+  $('clusterSum').classList.add('show');
+}
+
+/* ── 자기 점검 체크 ── */
+document.querySelectorAll('.check').forEach(c=>{
+  const toggle=()=>{
+    const on=c.getAttribute('aria-checked')==='true';
+    c.setAttribute('aria-checked', on?'false':'true');
+    updateBadge();
+  };
+  c.addEventListener('click',toggle);
+  c.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+});
+function updateBadge(){
+  const all=[...document.querySelectorAll('.check')].every(c=>c.getAttribute('aria-checked')==='true');
+  const box=$('badgeBox');
+  if(all){
+    box.classList.remove('locked');
+    $('badgeTitle').textContent='군집왕 배지 획득!';
+    $('badgeMsg').innerHTML='정답 없이 <b>비슷한 것끼리</b> 무리 짓는 비지도 학습을 알아냈어요. k를 바꾸며 실험한 멋진 탐험가!';
+  }else{
+    box.classList.add('locked');
+    $('badgeTitle').textContent='군집왕 배지 (잠김)';
+    $('badgeMsg').innerHTML='위 3가지를 모두 체크하면 <b>군집왕 배지</b>를 받아요!';
+  }
+}
+
+// 초기화
+items=makeItems();
+draw();
+</script>
+</body>
+</html>

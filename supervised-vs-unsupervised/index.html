@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지도 vs 비지도 학습 비교 · AI 학습 원리</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+    /* 라벨/무리 색 */
+    --gA:#3D5AFE; --gB:#F59E0B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:660px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+  .safe b{font-weight:900}
+
+  /* 모드 토글 */
+  .modewrap{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+  .modebtn{flex:1;min-width:200px;cursor:pointer;font-family:inherit;text-align:left;
+    background:var(--surface);border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    padding:14px 16px;transition:transform .1s,box-shadow .1s;display:flex;gap:12px;align-items:center}
+  .modebtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .modebtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .modebtn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .modebtn[aria-pressed=true]{background:var(--point);color:#fff;box-shadow:var(--hard)}
+  .modebtn[aria-pressed=true] .mt,.modebtn[aria-pressed=true] .md{color:#fff}
+  .modebtn[aria-pressed=true] .micon{background:#fff;color:var(--ink)}
+  .micon{width:40px;height:40px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:10px;background:var(--amber-soft);
+    display:grid;place-items:center}
+  .mt{font-size:16px;font-weight:900;letter-spacing:-.02em}
+  .md{font-size:12.5px;font-weight:700;color:var(--muted);margin-top:2px}
+
+  /* panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:15px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:20px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 캔버스 */
+  .plotwrap{position:relative;border:2.5px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);
+    padding:10px 10px 10px 34px;box-shadow:var(--hard-sm)}
+  .ylab{position:absolute;left:6px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:center;
+    font-size:12px;font-weight:900;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+  .xlab{text-align:center;font-size:12px;font-weight:900;color:var(--muted);margin-top:6px;letter-spacing:.02em}
+  canvas{display:block;width:100%;height:auto;border:2px solid var(--ink);border-radius:10px;background:var(--surface);touch-action:none;cursor:pointer}
+
+  /* 라벨 팔레트(지도 모드) */
+  .labrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .klabel{font-size:13px;font-weight:900}
+  .kbtns{display:inline-flex;gap:6px}
+  .kbtn{cursor:pointer;font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:0 14px;min-height:44px;min-width:56px;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,box-shadow .1s}
+  .kbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .kbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .kbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .kbtn[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
+  .kbtn .sw{width:14px;height:14px;border:2px solid var(--ink);border-radius:50%;flex-shrink:0}
+
+  .toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:9px 14px;min-height:44px;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .minibtn svg{flex-shrink:0}
+
+  /* 큰 액션 버튼 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn svg{flex-shrink:0}
+  .btn.busy{background:var(--point);color:#fff;animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.015)}}
+
+  .result{font-size:14px;font-weight:700;color:#333;margin-top:14px;min-height:20px}
+  .result b{color:var(--ink);font-weight:900}
+  .result .tag{display:inline-block;background:var(--ink);color:var(--paper);border-radius:999px;padding:1px 10px;font-size:12.5px;margin:0 3px;font-weight:900}
+
+  /* 비교 표 */
+  .cmp{margin-top:8px;border:2.5px solid var(--ink);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--hard-sm)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{background:var(--ink);color:var(--paper);font-weight:900;padding:11px 12px;text-align:left;font-size:13px}
+  tbody th{background:var(--point-soft);font-weight:900;padding:11px 12px;text-align:left;white-space:nowrap;border-top:2px solid var(--ink)}
+  tbody td{padding:11px 12px;font-weight:700;border-top:2px solid var(--ink);border-left:2px solid var(--ink);vertical-align:top}
+  tbody td:first-of-type{background:var(--point-soft)}
+  .cell-sup{background:#F0F3FF}
+  .cell-uns{background:#FFF7E6}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* 자기점검 / 배지 */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .checks{display:grid;gap:10px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;cursor:pointer;transition:transform .1s,box-shadow .1s}
+  .check:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .check:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .check .box{width:26px;height:26px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);
+    display:grid;place-items:center}
+  .check .box svg{opacity:0;transition:opacity .15s}
+  .check[aria-checked=true] .box{background:var(--green)}
+  .check[aria-checked=true] .box svg{opacity:1}
+  .check .lab{font-size:14.5px;font-weight:700}
+  .check .lab b{font-weight:900}
+
+  .badgebox{margin-top:20px;display:flex;align-items:center;gap:16px;background:var(--point-soft);
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .badgebox.locked{opacity:.55;filter:grayscale(.5)}
+  .medal{width:66px;height:66px;flex-shrink:0}
+  .badgebox .bt{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .badgebox .bp{font-size:13px;font-weight:700;color:#333;margin-top:3px}
+  .badgebox .bp b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">AI 학습 원리 · 지도 vs 비지도</span>
+  </nav>
+
+  <header>
+    <span class="kicker">라벨이 있으면 지도, 없으면 비지도</span>
+    <h1>지도 vs 비지도 — <span class="u">같은 부품, 다른 배움</span></h1>
+    <p class="lead">똑같은 부품 세트인데, 배우는 방법이 달라요. <b>지도 학습</b>은 몇 개에 <b>정답표(A/B 라벨)</b>를 붙여 주면 규칙(경계선)을 배워 나머지를 분류해요. <b>비지도 학습</b>은 라벨 없이 <b>비슷한 것끼리</b> 스스로 무리만 지어요. 두 모드를 켜 보고 결과를 나란히 비교해요!</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>진짜 AI 라이브러리 없이, 순수 계산으로 <b>지도 규칙 분류</b>와 <b>k-평균 군집</b>을 흉내 내는 체험이에요.</span>
+  </div>
+
+  <!-- 모드 토글 -->
+  <div class="modewrap" role="group" aria-label="학습 방법 고르기">
+    <button type="button" class="modebtn" id="btnSup" aria-pressed="true">
+      <span class="micon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h10M4 12h7M4 17h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M17 6l2 2 3-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span><span class="mt">지도 학습</span><span class="md">정답표(라벨) 있음 → 규칙 배워 분류</span></span>
+    </button>
+    <button type="button" class="modebtn" id="btnUns" aria-pressed="false">
+      <span class="micon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="7" cy="8" r="2.6" stroke="currentColor" stroke-width="2.2"/><circle cx="17" cy="7" r="2.6" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="17" r="2.6" stroke="currentColor" stroke-width="2.2"/></svg></span>
+      <span><span class="mt">비지도 학습</span><span class="md">정답 없음 → 스스로 무리 짓기</span></span>
+    </button>
+  </div>
+
+  <!-- 지도 학습 패널 -->
+  <section class="panel" id="supPanel" aria-labelledby="hSup">
+    <div class="phead"><span class="badge-n">A</span><div><div class="sub">Supervised</div><h2 id="hSup">지도 학습 — 라벨을 붙여 규칙 배우기</h2></div></div>
+    <p class="phint">부품 몇 개를 눌러 <b>A</b> 또는 <b>B</b> 라벨(정답)을 붙여 주세요. 각 종류를 <b>2개 이상</b> 알려 주면, AI가 <b>경계선(규칙)</b>을 만들어 나머지를 자동으로 분류해요.</p>
+
+    <div class="plotwrap">
+      <span class="ylab" aria-hidden="true">반짝임 (별처럼 빛남 ↑)</span>
+      <canvas id="boardS" width="720" height="420" aria-label="부품 평면 - 지도 학습"></canvas>
+      <div class="xlab" aria-hidden="true">크기 (작음 → 큼)</div>
+    </div>
+
+    <div class="labrow">
+      <span class="klabel">붙일 라벨:</span>
+      <div class="kbtns" id="labBtns" role="group" aria-label="라벨 고르기">
+        <button type="button" class="kbtn" data-lab="0" aria-pressed="true"><span class="sw" style="background:var(--gA)"></span>A</button>
+        <button type="button" class="kbtn" data-lab="1"><span class="sw" style="background:var(--gB)"></span>B</button>
+        <button type="button" class="kbtn" data-lab="-1">지우개</button>
+      </div>
+    </div>
+
+    <button class="btn" id="learnBtn" style="margin-top:16px" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18 L11 8 L20 14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="8" r="2.2" fill="currentColor"/></svg>
+      규칙(경계선) 배워서 나머지 분류하기</button>
+
+    <div class="result" id="supResult">부품에 A·B 라벨을 각각 2개 이상 붙이면 학습할 수 있어요.</div>
+
+    <div class="toolrow">
+      <button type="button" class="minibtn" id="clearSup">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        라벨·분류 지우기</button>
+    </div>
+  </section>
+
+  <!-- 비지도 학습 패널 -->
+  <section class="panel" id="unsPanel" aria-labelledby="hUns" style="display:none">
+    <div class="phead"><span class="badge-n">B</span><div><div class="sub">Unsupervised</div><h2 id="hUns">비지도 학습 — 라벨 없이 무리 짓기</h2></div></div>
+    <p class="phint">여기서는 <b>라벨을 하나도 주지 않아요.</b> 버튼을 누르면 AI가 <b>비슷한 것끼리</b> 스스로 무리(그룹)를 지어요. 무리에는 A·B 같은 이름이 아니라, 그냥 <b>무리 1·무리 2</b>라는 표시만 붙어요.</p>
+
+    <div class="plotwrap">
+      <span class="ylab" aria-hidden="true">반짝임 (별처럼 빛남 ↑)</span>
+      <canvas id="boardU" width="720" height="420" aria-label="부품 평면 - 비지도 학습"></canvas>
+      <div class="xlab" aria-hidden="true">크기 (작음 → 큼)</div>
+    </div>
+
+    <button class="btn" id="clusterBtn" style="margin-top:16px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="7" cy="8" r="3" stroke="currentColor" stroke-width="2.2"/><circle cx="17" cy="7" r="3" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="17" r="3" stroke="currentColor" stroke-width="2.2"/></svg>
+      비슷한 것끼리 스스로 무리 짓기</button>
+
+    <div class="result" id="unsResult">아직 무리를 짓지 않았어요. 버튼을 눌러 보세요.</div>
+  </section>
+
+  <!-- 비교 표 -->
+  <section class="panel" aria-labelledby="hCmp">
+    <div class="phead"><span class="badge-n" style="font-size:13px">VS</span><div><div class="sub">Compare</div><h2 id="hCmp">두 방법 나란히 비교</h2></div></div>
+    <p class="phint">방금 두 모드를 모두 돌려 봤다면, 아래 표에서 차이가 한눈에 보여요. 핵심은 <b>라벨(정답표)이 있느냐 없느냐</b>예요.</p>
+    <div class="cmp">
+      <table>
+        <thead><tr><th>무엇을</th><th>지도 학습</th><th>비지도 학습</th></tr></thead>
+        <tbody>
+          <tr><th>정답표(라벨)</th><td class="cell-sup"><b>있음</b> (A·B를 알려 줌)</td><td class="cell-uns"><b>없음</b></td></tr>
+          <tr><th>AI가 하는 일</th><td class="cell-sup">경계선(규칙)을 배워 <b>분류</b></td><td class="cell-uns">비슷한 것끼리 <b>무리 짓기</b></td></tr>
+          <tr><th>결과 이름</th><td class="cell-sup">A · B (사람이 정한 이름)</td><td class="cell-uns">무리 1 · 무리 2 (이름 없음)</td></tr>
+          <tr><th>내가 한 일</th><td class="cell-sup" id="cmpMy">라벨을 붙였다</td><td class="cell-uns">버튼만 눌렀다</td></tr>
+          <tr><th>이럴 때 좋아요</th><td class="cell-sup">정답을 알고 새것을 <b>맞혀야</b> 할 때</td><td class="cell-uns">정답을 모르고 <b>구조를 찾고</b> 싶을 때</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>핵심 메시지</b> — 데이터가 같아도, <b>라벨(정답표)이 있으면 지도 학습, 없으면 비지도 학습</b>이에요. 지도는 “이건 A, 저건 B”를 배워 <b>분류</b>하고, 비지도는 이름 없이 <b>비슷한 것끼리 무리</b>만 지어요.</span>
+  </div>
+
+  <!-- 자기 점검 -->
+  <div class="cmp-head"><h2>스스로 점검해요</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks" id="checks">
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="1">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>라벨이 있으면 지도, 없으면 비지도</b> 학습이라는 걸 말할 수 있어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="2">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">지도 학습은 <b>규칙(경계선)을 배워 분류</b>한다는 걸 봤어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="3">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">비지도 학습은 이름 없이 <b>비슷한 것끼리 무리</b> 짓는다는 걸 봤어요.</span>
+    </div>
+  </div>
+
+  <div class="badgebox locked" id="badgeBox">
+    <svg class="medal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <circle cx="32" cy="26" r="18" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+      <path d="M22 30 L30 20 L42 27" stroke="var(--gA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="24" cy="31" r="2.6" fill="var(--gB)" stroke="var(--ink)" stroke-width="1.5"/>
+      <circle cx="40" cy="30" r="2.6" fill="var(--gA)" stroke="var(--ink)" stroke-width="1.5"/>
+      <path d="M22 41 16 60l16-8 16 8-6-19" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="bt" id="badgeTitle">학습 원리 배지 (잠김)</div>
+      <div class="bp" id="badgeMsg">위 3가지를 모두 체크하면 <b>학습 원리 배지</b>를 받아요!</div>
+    </div>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const GCOL=['#3D5AFE','#F59E0B'];       // A, B / 무리1, 무리2 색
+const GNAME_SUP=['A','B'];
+const GNAME_UNS=['무리 1','무리 2'];
+
+/* 공통 데이터: 같은 부품 세트를 두 모드가 함께 쓴다.
+   각 부품 = {x(크기 0~1), y(반짝임 0~1), label:null|0|1(지도용 사람이 붙인 정답), pred:null|0|1(지도 예측), cluster:null|0|1(비지도)} */
+let items=[];
+function makeItems(){
+  const blobs=[{cx:.28,cy:.66},{cx:.72,cy:.34}];   // 두 덩어리(자연스러운 2무리)
+  const arr=[];
+  const N=22;
+  for(let i=0;i<N;i++){
+    const b=blobs[i%2];
+    let x=b.cx+(Math.random()-0.5)*0.34;
+    let y=b.cy+(Math.random()-0.5)*0.34;
+    x=Math.max(0.05,Math.min(0.95,x));
+    y=Math.max(0.05,Math.min(0.95,y));
+    arr.push({x,y,label:null,pred:null,cluster:null});
+  }
+  return arr;
+}
+
+/* ── 지도 학습 규칙: 라벨된 점들의 각 클래스 평균(프로토타입)을 구해,
+   나머지 점은 더 가까운 평균 쪽 클래스로 예측(가장 가까운 평균 = 선형 경계). ── */
+function trainSupervised(pts){
+  const A=pts.filter(p=>p.label===0), B=pts.filter(p=>p.label===1);
+  if(A.length<1||B.length<1) return null;
+  const mean=arr=>({x:arr.reduce((s,p)=>s+p.x,0)/arr.length, y:arr.reduce((s,p)=>s+p.y,0)/arr.length});
+  return {A:mean(A), B:mean(B)};
+}
+function predictSupervised(model, p){
+  const dA=(p.x-model.A.x)**2+(p.y-model.A.y)**2;
+  const dB=(p.x-model.B.x)**2+(p.y-model.B.y)**2;
+  return dA<=dB?0:1;
+}
+
+/* ── 비지도 k-평균(k=2) 한 스텝 ── */
+function kmeansStep(pts, cents){
+  const assign=pts.map(p=>{
+    let best=0,bd=Infinity;
+    for(let c=0;c<cents.length;c++){ const d=(p.x-cents[c].x)**2+(p.y-cents[c].y)**2; if(d<bd){bd=d;best=c;} }
+    return best;
+  });
+  let moved=0;
+  const newCents=cents.map((c,ci)=>{
+    let sx=0,sy=0,n=0;
+    for(let i=0;i<pts.length;i++){ if(assign[i]===ci){sx+=pts[i].x;sy+=pts[i].y;n++;} }
+    if(n===0) return {x:c.x,y:c.y};
+    const nx=sx/n, ny=sy/n; moved+=Math.hypot(nx-c.x,ny-c.y);
+    return {x:nx,y:ny};
+  });
+  return {assign,newCents,moved};
+}
+function initCentroids(pts,k){
+  const chosen=[pts[Math.floor(Math.random()*pts.length)]];
+  while(chosen.length<k){
+    let best=null,bd=-1;
+    for(const p of pts){ let dmin=Infinity; for(const c of chosen){const d=(p.x-c.x)**2+(p.y-c.y)**2; if(d<dmin)dmin=d;} if(dmin>bd){bd=dmin;best=p;} }
+    chosen.push(best);
+  }
+  return chosen.map(p=>({x:p.x,y:p.y}));
+}
+
+/* ═══ 그리기 공통 ═══ */
+function drawBoard(cv, opts){
+  const ctx=cv.getContext('2d'); const W=cv.width,H=cv.height,PAD=26;
+  const toPx=(x,y)=>({px:PAD+x*(W-2*PAD), py:H-PAD-y*(H-2*PAD)});
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(20,20,20,.10)'; ctx.lineWidth=1;
+  for(let i=1;i<8;i++){ const gx=PAD+i/8*(W-2*PAD); ctx.beginPath();ctx.moveTo(gx,PAD);ctx.lineTo(gx,H-PAD);ctx.stroke(); }
+  for(let i=1;i<6;i++){ const gy=PAD+i/6*(H-2*PAD); ctx.beginPath();ctx.moveTo(PAD,gy);ctx.lineTo(W-PAD,gy);ctx.stroke(); }
+
+  // 지도: 경계선(두 평균의 수직 이등분선)
+  if(opts.boundary){
+    const m=opts.boundary; const mx=(m.A.x+m.B.x)/2, my=(m.A.y+m.B.y)/2;
+    const dx=m.B.x-m.A.x, dy=m.B.y-m.A.y;   // 법선 방향
+    // 경계선: dx*(x-mx)+dy*(y-my)=0  → 화면 좌우 끝에서의 y 계산
+    ctx.save(); ctx.strokeStyle='#141414'; ctx.lineWidth=3; ctx.setLineDash([9,7]);
+    const pts=[];
+    for(const X of [0.0,1.0]){
+      if(Math.abs(dy)>1e-6){ const Y=my - dx*(X-mx)/dy; pts.push({X,Y}); }
+    }
+    if(pts.length===2){
+      const a=toPx(pts[0].X,pts[0].Y), b=toPx(pts[1].X,pts[1].Y);
+      ctx.beginPath();ctx.moveTo(a.px,a.py);ctx.lineTo(b.px,b.py);ctx.stroke();
+    } else { // 세로선
+      const gx=toPx(mx,0).px; ctx.beginPath();ctx.moveTo(gx,PAD);ctx.lineTo(gx,H-PAD);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // 비지도: 중심점(별)
+  if(opts.centroids){
+    opts.centroids.forEach((c,ci)=>{ const {px,py}=toPx(c.x,c.y);
+      ctx.save(); ctx.fillStyle=GCOL[ci]; ctx.strokeStyle='#141414'; ctx.lineWidth=3;
+      star(ctx,px,py,10,5); ctx.fill(); ctx.stroke(); ctx.restore(); });
+  }
+
+  // 부품
+  items.forEach(p=>{
+    const {px,py}=toPx(p.x,p.y);
+    let fill='#FFFFFF', ring=false;
+    if(opts.kind==='sup'){
+      if(p.label!=null){ fill=GCOL[p.label]; ring=true; }        // 사람이 붙인 라벨(테두리 강조)
+      else if(p.pred!=null){ fill=GCOL[p.pred]; }                 // AI 예측
+    }else{ // uns
+      if(p.cluster!=null) fill=GCOL[p.cluster];
+    }
+    ctx.save(); ctx.strokeStyle='#141414'; ctx.lineWidth=ring?4:2.5; ctx.fillStyle=fill;
+    const r=8+p.x*5; hex(ctx,px,py,r); ctx.fill(); ctx.stroke();
+    if(ring){ // 라벨 표시(사람이 정답 준 것)
+      ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(GNAME_SUP[p.label], px, py+0.5);
+    } else if(p.y>0.6){ ctx.fillStyle=(opts.kind==='uns'&&p.cluster!=null)?'rgba(255,255,255,.9)':(p.pred!=null?'rgba(255,255,255,.9)':'#F59E0B'); ctx.beginPath();ctx.arc(px,py,2.2,0,7);ctx.fill(); }
+    ctx.restore();
+  });
+}
+function hex(ctx,cx,cy,r){ ctx.beginPath(); for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); }
+function star(ctx,cx,cy,r,n){ ctx.beginPath(); for(let i=0;i<n*2;i++){const rr=i%2?r*0.45:r;const a=-Math.PI/2+i*Math.PI/n;const x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a);i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); }
+
+function pickItem(cv,clientX,clientY){
+  const W=cv.width,H=cv.height,PAD=26; const rect=cv.getBoundingClientRect();
+  const sx=(clientX-rect.left)*(W/rect.width), sy=(clientY-rect.top)*(H/rect.height);
+  const toPx=(x,y)=>({px:PAD+x*(W-2*PAD), py:H-PAD-y*(H-2*PAD)});
+  let best=-1,bd=Infinity;
+  items.forEach((p,i)=>{const {px,py}=toPx(p.x,p.y);const d=(px-sx)**2+(py-sy)**2;if(d<bd){bd=d;best=i;}});
+  return (best>=0 && bd<26*26)?best:-1;
+}
+
+/* ═══ 상태 ═══ */
+let supModel=null, supBoundary=null;
+let paintLabel=0;
+let centroids=[], clustering=false;
+
+/* ── 모드 토글 ── */
+function setMode(mode){
+  const sup=mode==='sup';
+  $('btnSup').setAttribute('aria-pressed', sup?'true':'false');
+  $('btnUns').setAttribute('aria-pressed', sup?'false':'true');
+  $('supPanel').style.display= sup?'':'none';
+  $('unsPanel').style.display= sup?'none':'';
+  redraw();
+}
+$('btnSup').addEventListener('click',()=>setMode('sup'));
+$('btnUns').addEventListener('click',()=>setMode('uns'));
+
+function redraw(){
+  drawBoard($('boardS'), {kind:'sup', boundary:supBoundary});
+  drawBoard($('boardU'), {kind:'uns', centroids:centroids.length?centroids:null});
+}
+
+/* ── 지도: 라벨 붙이기 ── */
+document.querySelectorAll('#labBtns .kbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    paintLabel=+b.dataset.lab;
+    document.querySelectorAll('#labBtns .kbtn').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+  });
+});
+function onBoardS(e){
+  e.preventDefault(); const pt=e.touches?e.touches[0]:e; if(!pt) return;
+  const i=pickItem($('boardS'),pt.clientX,pt.clientY); if(i<0) return;
+  if(paintLabel===-1) items[i].label=null;
+  else items[i].label = (items[i].label===paintLabel)? null : paintLabel;
+  // 라벨 바뀌면 예측 무효화
+  items.forEach(p=>p.pred=null); supModel=null; supBoundary=null;
+  updateSupState(); redraw();
+}
+$('boardS').addEventListener('click',onBoardS);
+$('boardS').addEventListener('touchstart',onBoardS,{passive:false});
+
+function updateSupState(){
+  const nA=items.filter(p=>p.label===0).length, nB=items.filter(p=>p.label===1).length;
+  const ready = nA>=2 && nB>=2;
+  $('learnBtn').disabled=!ready;
+  if(!supModel){
+    $('supResult').innerHTML = ready
+      ? 'A '+nA+'개 · B '+nB+'개 라벨을 붙였어요. <b>규칙 배우기</b> 버튼을 누르세요!'
+      : 'A '+nA+'개 · B '+nB+'개. 각 종류를 <b>2개 이상</b> 붙이면 학습할 수 있어요.';
+  }
+}
+
+$('learnBtn').addEventListener('click',()=>{
+  const model=trainSupervised(items); if(!model) return;
+  supModel=model; supBoundary=model;
+  let n=0; items.forEach(p=>{ if(p.label==null){ p.pred=predictSupervised(model,p); n++; } });
+  const nA=items.filter(p=>p.label===0||p.pred===0).length;
+  const nB=items.filter(p=>p.label===1||p.pred===1).length;
+  $('supResult').innerHTML='규칙(경계선)을 배웠어요! 남은 <b>'+n+'개</b>를 자동 분류 → '
+    +'<span class="tag" style="background:var(--gA)">A '+nA+'</span> <span class="tag" style="background:var(--gB)">B '+nB+'</span>. '
+    +'점선이 AI가 만든 <b>경계선(규칙)</b>이에요.';
+  $('cmpMy').textContent='라벨을 붙였다';
+  markUsed('sup'); redraw();
+});
+$('clearSup').addEventListener('click',()=>{
+  items.forEach(p=>{p.label=null;p.pred=null;}); supModel=null; supBoundary=null;
+  updateSupState(); redraw();
+});
+
+/* ── 비지도: 자동 무리 짓기 ── */
+$('clusterBtn').addEventListener('click',()=>{
+  if(clustering) return; clustering=true;
+  const btn=$('clusterBtn'); btn.classList.add('busy');
+  centroids=initCentroids(items,2);
+  let step=0; const MAX=8;
+  const timer=setInterval(()=>{
+    const res=kmeansStep(items,centroids); centroids=res.newCents;
+    items.forEach((p,i)=>p.cluster=res.assign[i]); step++;
+    $('unsResult').innerHTML='반복 <b>'+step+'회</b> — 중심을 옮기며 비슷한 것끼리 모으는 중…';
+    redraw();
+    if(step>=MAX || res.moved<0.004){
+      clearInterval(timer);
+      const fin=kmeansStep(items,centroids); items.forEach((p,i)=>p.cluster=fin.assign[i]);
+      const n1=items.filter(p=>p.cluster===0).length, n2=items.filter(p=>p.cluster===1).length;
+      $('unsResult').innerHTML='<b>무리 짓기 완료!</b> 라벨 없이 스스로 나눴어요 → '
+        +'<span class="tag" style="background:var(--gA)">무리 1: '+n1+'</span> <span class="tag" style="background:var(--gB)">무리 2: '+n2+'</span>. '
+        +'이름(A·B)은 없고, 그냥 <b>비슷한 것끼리</b> 모였을 뿐이에요.';
+      clustering=false; btn.classList.remove('busy'); markUsed('uns'); redraw();
+    }
+  },300);
+});
+
+/* ── 두 모드 다 써봤는지 추적(자기점검 힌트) ── */
+const used={sup:false,uns:false};
+function markUsed(k){ used[k]=true; }
+
+/* ── 자기 점검 ── */
+document.querySelectorAll('.check').forEach(c=>{
+  const toggle=()=>{ const on=c.getAttribute('aria-checked')==='true'; c.setAttribute('aria-checked',on?'false':'true'); updateBadge(); };
+  c.addEventListener('click',toggle);
+  c.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){e.preventDefault();toggle();} });
+});
+function updateBadge(){
+  const all=[...document.querySelectorAll('.check')].every(c=>c.getAttribute('aria-checked')==='true');
+  const box=$('badgeBox');
+  if(all){
+    box.classList.remove('locked');
+    $('badgeTitle').textContent='학습 원리 배지 획득!';
+    $('badgeMsg').innerHTML='지도와 비지도의 차이를 알아냈어요. <b>라벨이 있으면 지도, 없으면 비지도!</b> 훌륭한 AI 탐험가예요.';
+  }else{
+    box.classList.add('locked');
+    $('badgeTitle').textContent='학습 원리 배지 (잠김)';
+    $('badgeMsg').innerHTML='위 3가지를 모두 체크하면 <b>학습 원리 배지</b>를 받아요!';
+  }
+}
+
+// 초기화
+items=makeItems();
+setMode('sup');
+updateSupState();
+</script>
+</body>
+</html>
