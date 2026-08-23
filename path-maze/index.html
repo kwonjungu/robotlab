@@ -54,6 +54,8 @@
   .schip:focus-visible{outline:3px solid var(--point);outline-offset:3px}
   .schip.on{background:var(--point);color:#fff}
   .schip.cleared{background:var(--blue);color:#fff}
+  .mapcount{margin-left:auto;font-weight:900;font-size:13px;letter-spacing:.02em;background:var(--ink);color:var(--paper);
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:var(--hard-sm)}
 
   /* stats row */
   .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
@@ -200,11 +202,9 @@
     </div>
   </header>
 
-  <div class="stagebar">
+  <div class="stagebar" id="stagebar">
     <span class="lbl">방</span>
-    <button class="schip" data-stage="0" type="button">방 1</button>
-    <button class="schip" data-stage="1" type="button">방 2</button>
-    <button class="schip" data-stage="2" type="button">방 3</button>
+    <span class="mapcount" id="mapCount">맵 1 / 10</span>
   </div>
 
   <div class="stats">
@@ -223,6 +223,10 @@
     <div class="stat">
       <div class="ic" style="background:var(--point-soft)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l2 6h10l2-6" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 3v10M9 6l3-3 3 3" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div><div class="num" id="bestNum">–</div><div class="cap">최소 명령 기록</div></div>
+    </div>
+    <div class="stat">
+      <div class="ic" style="background:var(--amber-soft)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="var(--ink)" stroke-width="2.2"/><path d="M12 9v4l3 2M9 2h6" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><div class="num" id="totalTime">0.0<small>초</small></div><div class="cap">완주 총 시간</div></div>
     </div>
   </div>
 
@@ -344,13 +348,80 @@ const STAGES=[
     goal:"먼지가 방에 <b>넓게</b> 퍼져 있어요. 한 줄씩 훑는 <b>지그재그</b> 경로를 계획하고 반복으로 줄여요.",
     size:6, start:{x:1,y:1,dir:1}, walls:[{x:4,y:2},{x:4,y:3}],
     dust:[{x:2,y:1},{x:3,y:1},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:1,y:3},{x:2,y:3},{x:3,y:3}],
-    optMoves:8, par:8 }
+    optMoves:8, par:8 },
+
+  { name:"방 4 · ㄷ자 우회",
+    goal:"가운데 <b>벽 기둥</b>이 길을 막아요. 왼쪽 먼지를 훑고 <b>아래로 돌아</b> 오른쪽까지 이어 청소해요.",
+    size:7, start:{x:1,y:1,dir:1},
+    walls:[{x:3,y:1},{x:3,y:2},{x:3,y:3},{x:3,y:4}],
+    dust:[{x:1,y:2},{x:1,y:3},{x:1,y:4},{x:2,y:4},{x:4,y:4},{x:5,y:4},{x:5,y:3},{x:5,y:2},{x:5,y:1}],
+    optMoves:12, par:10 },
+
+  { name:"방 5 · 좁은 통로",
+    goal:"두 방이 <b>좁은 문 한 칸</b>으로만 이어져요. 왼방을 청소하고 통로를 지나 오른방으로 넘어가요.",
+    size:7, start:{x:1,y:1,dir:1},
+    walls:[{x:3,y:0},{x:3,y:1},{x:3,y:3},{x:3,y:4},{x:3,y:5},{x:3,y:6}],
+    dust:[{x:1,y:1},{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:3,y:2},{x:4,y:2},{x:4,y:3},{x:4,y:4},{x:5,y:4},{x:5,y:5}],
+    optMoves:14, par:11 },
+
+  { name:"방 6 · 빗살 지그재그",
+    goal:"<b>빗살 벽</b> 사이를 지그재그로 훑어요. 한쪽 끝에서 반대쪽 끝으로 넘나들며 먼지를 이어 청소해요.",
+    size:8, start:{x:0,y:0,dir:2},
+    walls:[{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1},{x:5,y:1},{x:6,y:1},
+           {x:1,y:3},{x:2,y:3},{x:3,y:3},{x:4,y:3},{x:5,y:3},{x:6,y:3},
+           {x:1,y:5},{x:2,y:5},{x:3,y:5},{x:4,y:5},{x:5,y:5},{x:6,y:5}],
+    dust:[{x:0,y:1},{x:7,y:2},{x:0,y:3},{x:7,y:4},{x:0,y:5},{x:7,y:6},{x:3,y:0},{x:4,y:7}],
+    optMoves:26, par:14 },
+
+  { name:"방 7 · 나선 청소",
+    goal:"벽이 <b>나선</b>으로 감겨 있어요. 바깥 테두리를 돌며 안쪽으로 파고드는 경로를 계획해요.",
+    size:8, start:{x:0,y:0,dir:1},
+    walls:[{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:4,y:2},{x:5,y:2},
+           {x:5,y:3},{x:5,y:4},{x:5,y:5},
+           {x:2,y:4},{x:2,y:5},{x:3,y:5},{x:4,y:5}],
+    dust:[{x:2,y:0},{x:5,y:0},{x:7,y:1},{x:7,y:4},{x:6,y:6},{x:3,y:7},{x:0,y:5},{x:0,y:2},{x:3,y:3},{x:3,y:4}],
+    optMoves:30, par:16 },
+
+  { name:"방 8 · 네 개의 방",
+    goal:"<b>십자 통로</b>로 이어진 네 개의 방이에요. 방마다 들어가 먼지를 청소하고 통로로 옮겨 다녀요.",
+    size:9, start:{x:1,y:1,dir:1},
+    walls:[{x:4,y:0},{x:4,y:1},{x:4,y:3},{x:4,y:4},{x:4,y:5},{x:4,y:7},{x:4,y:8},
+           {x:0,y:4},{x:1,y:4},{x:3,y:4},{x:5,y:4},{x:7,y:4},{x:8,y:4}],
+    dust:[{x:1,y:1},{x:2,y:2},{x:6,y:1},{x:7,y:2},{x:1,y:6},{x:2,y:7},{x:6,y:6},{x:7,y:7},{x:4,y:2},{x:4,y:6},{x:2,y:4},{x:6,y:4}],
+    optMoves:40, par:18 },
+
+  { name:"방 9 · 꼬불꼬불 미로",
+    goal:"<b>좁은 통로</b>가 위아래로 꺾여 이어져요. 막다른 곳을 피해 꼬불꼬불 길을 따라 끝까지 훑어요.",
+    size:9, start:{x:0,y:0,dir:2},
+    walls:[{x:1,y:0},{x:1,y:1},{x:1,y:2},{x:1,y:3},{x:1,y:4},{x:1,y:5},{x:1,y:6},
+           {x:3,y:2},{x:3,y:3},{x:3,y:4},{x:3,y:5},{x:3,y:6},{x:3,y:7},{x:3,y:8},
+           {x:5,y:0},{x:5,y:1},{x:5,y:2},{x:5,y:3},{x:5,y:4},{x:5,y:5},{x:5,y:6},
+           {x:7,y:2},{x:7,y:3},{x:7,y:4},{x:7,y:5},{x:7,y:6},{x:7,y:7},{x:7,y:8}],
+    dust:[{x:0,y:6},{x:2,y:8},{x:2,y:0},{x:4,y:0},{x:4,y:8},{x:6,y:0},{x:6,y:8},{x:8,y:0},{x:8,y:8},{x:0,y:3}],
+    optMoves:48, par:20 },
+
+  { name:"방 10 · 대나선 종합",
+    goal:"가장 넓은 방이에요. <b>나선 벽·장애물·좁은 길</b>이 모두 섞여 있어요. 지금까지 배운 전략을 총동원해 완주해요!",
+    size:10, start:{x:0,y:0,dir:1},
+    walls:[{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:4,y:2},{x:5,y:2},{x:6,y:2},{x:7,y:2},
+           {x:7,y:3},{x:7,y:4},{x:7,y:5},{x:7,y:6},{x:7,y:7},
+           {x:2,y:4},{x:3,y:4},{x:4,y:4},{x:5,y:4},
+           {x:2,y:5},{x:2,y:6},{x:2,y:7},
+           {x:3,y:7},{x:4,y:7},{x:5,y:7},
+           {x:5,y:6}],
+    dust:[{x:2,y:0},{x:5,y:0},{x:9,y:0},{x:9,y:4},{x:9,y:8},{x:4,y:9},{x:0,y:9},{x:0,y:5},{x:0,y:2},
+          {x:4,y:3},{x:6,y:3},{x:3,y:5},{x:4,y:6},{x:4,y:5}],
+    optMoves:55, par:24 }
 ];
 
 let stageIdx=0, program=[], running=false;
 const cleared=new Set();
 const best={};        // stageIdx -> 최소 명령 개수 기록
 const badges={clean:false,loop:false,eff:false};
+let stageStartTime=0; // 현재 방에 들어온 시각
+let totalMs=0;        // 1번~마지막 맵 누적: 각 방을 처음 클리어한 시간의 합
+function fmtTime(ms){return (ms/1000).toFixed(1);}
+function renderTotalTime(){$('totalTime').innerHTML=fmtTime(totalMs)+'<small>초</small>';}
 
 const OPINFO={
   fwd:{lab:"전진",color:"#12B76A"},
@@ -556,8 +627,23 @@ function onWin(sim){
   // 기록
   if(best[stageIdx]===undefined||cmds<best[stageIdx]){ best[stageIdx]=cmds; }
   $('bestNum').textContent=best[stageIdx];
+  // 완주 총 시간: 각 방을 "처음" 클리어할 때 걸린 시간을 누적(1번~마지막 맵)
+  const firstClear=!cleared.has(stageIdx);
   cleared.add(stageIdx);
-  document.querySelector('.schip[data-stage="'+stageIdx+'"]').classList.add('cleared');
+  if(firstClear&&stageStartTime){ totalMs+=Math.max(0,performance.now()-stageStartTime); renderTotalTime(); }
+  if(cleared.size===STAGES.length){ msg+=' <b>모든 맵 완주!</b> 총 시간 '+fmtTime(totalMs)+'초'; setState(msg,'ok'); }
+  const chip=document.querySelector('.schip[data-stage="'+stageIdx+'"]'); if(chip) chip.classList.add('cleared');
+}
+
+/* ── 방 선택 칩 생성 (맵 개수만큼) ── */
+function buildStageChips(){
+  const bar=$('stagebar'), cnt=$('mapCount');
+  STAGES.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='schip'; b.dataset.stage=i; b.textContent='방 '+(i+1);
+    b.addEventListener('click',()=>loadStage(i));
+    bar.insertBefore(b,cnt);
+  });
 }
 
 /* ── 방 전환 ── */
@@ -569,10 +655,12 @@ function loadStage(i){
   $('dustTot').textContent=stage().dust.length;
   $('dustNum').textContent=0;
   $('bestNum').textContent=best[i]!==undefined?best[i]:'–';
+  $('mapCount').textContent='맵 '+(i+1)+' / '+STAGES.length;
+  stageStartTime=performance.now();
   buildBoard(); renderProg();
   setState('명령을 쌓고 청소 실행을 눌러요.');
 }
-document.querySelectorAll('.schip').forEach(c=>c.addEventListener('click',()=>loadStage(+c.dataset.stage)));
+buildStageChips();
 
 /* ── 자기 점검 ── */
 document.querySelectorAll('.selfcheck .cbx').forEach(cb=>{
@@ -594,6 +682,7 @@ function onResize(){
 window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',onResize);
 
+renderTotalTime();
 loadStage(0);
 
 if(typeof module!=='undefined'&&module.exports){
