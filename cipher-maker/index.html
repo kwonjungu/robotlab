@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>암호 만들기 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#7C3AED; --point-soft:#EDE7FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:940px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:660px;font-weight:600}
+  .lead b{color:var(--ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:32px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  /* 진행바 */
+  .prog{display:flex;align-items:center;gap:12px;margin:0 0 18px}
+  .prog .pbar{flex:1;height:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;box-shadow:var(--hard-sm)}
+  .prog .pfill{height:100%;background:var(--point);width:0%;transition:width .35s}
+  .prog .plab{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* 탭(모드 고르기) */
+  .modes{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .modebtn{flex:1;min-width:130px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:11px 12px;min-height:50px;
+    transition:transform .1s,box-shadow .1s;text-align:center}
+  .modebtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .modebtn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .modebtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .modebtn[aria-pressed=true]{background:var(--point-soft)}
+
+  /* 규칙 선택(알파벳/한글) */
+  .subtabs{display:inline-flex;gap:0;margin-bottom:16px;border:2.5px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm)}
+  .subtab{cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:900;color:var(--ink);background:var(--surface);
+    border:0;padding:10px 18px;min-height:44px;transition:background .12s}
+  .subtab + .subtab{border-left:2.5px solid var(--ink)}
+  .subtab[aria-pressed=true]{background:var(--point)}
+  .subtab[aria-pressed=true]{color:#fff}
+  .subtab:focus-visible{outline:3px solid var(--point);outline-offset:2px;position:relative;z-index:2}
+
+  /* 키 조절(슬라이더 + 스텝퍼) */
+  .keybox{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px 16px;margin-bottom:16px}
+  .keyrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .keylab{font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .keylab b{color:var(--point)}
+  .keyval{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+  .sbtn{width:44px;height:44px;flex-shrink:0;cursor:pointer;font-family:inherit;font-size:24px;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:11px;box-shadow:var(--hard-sm);display:grid;place-items:center;line-height:1;
+    transition:transform .1s,box-shadow .1s}
+  .sbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .sbtn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .sbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .sbtn:disabled{opacity:.4;cursor:not-allowed}
+  input[type=range]{flex:1;min-width:150px;height:34px;accent-color:var(--point);cursor:pointer}
+  input[type=range]:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  /* 암호화/복호화 토글 */
+  .dir{display:flex;gap:8px;margin-bottom:16px}
+  .dirbtn{flex:1;cursor:pointer;font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:12px;min-height:48px;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .dirbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .dirbtn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .dirbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .dirbtn[aria-pressed=true]{background:var(--amber-soft)}
+  .dirbtn svg{flex-shrink:0}
+
+  /* 입출력 텍스트 */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  textarea,.out{width:100%;font-family:'Segoe UI',-apple-system,sans-serif;font-size:18px;font-weight:700;line-height:1.5;
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 14px;resize:vertical}
+  textarea{background:var(--surface);color:var(--ink);min-height:80px}
+  textarea:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .out{background:var(--point-soft);min-height:64px;white-space:pre-wrap;word-break:break-word;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .out:empty::before{content:'여기에 결과가 나와요';color:var(--muted);font-weight:600}
+
+  .rowbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-family:inherit;font-size:16px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:13px 16px;min-height:50px;flex:1;min-width:130px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--surface)}
+  .btn svg{flex-shrink:0}
+
+  /* 대응표(원판/표) */
+  .wheelwrap{margin:14px 0 4px}
+  .maptable{width:100%;border-collapse:separate;border-spacing:0;border:2.5px solid var(--ink);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--hard-sm);font-variant-numeric:tabular-nums}
+  .maptable td,.maptable th{border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:7px 2px;text-align:center;font-weight:900;font-size:15px}
+  .maptable tr td:last-child,.maptable tr th:last-child{border-right:0}
+  .maptable tr:last-child td{border-bottom:0}
+  .maptable .rh{background:var(--ink);color:var(--paper);font-size:12px;letter-spacing:.02em;white-space:nowrap;padding-left:8px;padding-right:8px;text-align:left}
+  .maptable .plain{background:var(--surface)}
+  .maptable .cipher{background:var(--point-soft);color:var(--point)}
+  .maptable td.hl{background:var(--amber);color:var(--ink)}
+  .tablescroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .maphint{font-size:13px;font-weight:700;color:var(--muted);margin-top:8px}
+  .maphint b{color:var(--point)}
+
+  .feedback{text-align:center;font-size:15px;font-weight:800;min-height:24px;padding:6px 4px}
+  .feedback b{color:var(--point)}
+  .feedback.ok b{color:var(--green)}
+  .feedback.no b{color:var(--red)}
+
+  .readq{background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px;font-weight:800;font-size:15px;margin-bottom:14px}
+  .readq b{color:var(--point)}
+  .cipherhero{font-size:22px;font-weight:900;letter-spacing:.06em;color:var(--ink);background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);padding:12px 14px;text-align:center;margin:10px 0;word-break:break-word;box-shadow:var(--hard-sm)}
+
+  .missionnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .dots{display:flex;gap:7px}
+  .dot{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--ink);background:var(--surface)}
+  .dot.on{background:var(--amber)}
+  .dot.cur{background:var(--point)}
+
+  /* 무차별 풀기 결과 */
+  .brutebox{margin-top:12px;border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);overflow:hidden}
+  .bruterow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:2px solid var(--ink);font-weight:800;font-size:15px;background:var(--surface)}
+  .bruterow:last-child{border-bottom:0}
+  .bruterow .k{flex-shrink:0;font-weight:900;background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:2px 9px;font-size:13px;min-width:56px;text-align:center}
+  .bruterow .t{word-break:break-word;letter-spacing:.02em}
+  .bruterow.pick{background:var(--amber-soft)}
+  .bruterow.pick .t{color:var(--ink)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .checks{display:grid;gap:12px}
+  .checkitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px}
+  .checkitem .ctxt{font-size:14.5px;font-weight:700;flex:1}
+  .checkitem .ctxt b{color:var(--point)}
+  .cbox{width:34px;height:34px;flex-shrink:0;cursor:pointer;background:var(--paper);border:2.5px solid var(--ink);
+    border-radius:9px;display:grid;place-items:center;padding:0}
+  .cbox svg{opacity:0;transition:opacity .12s}
+  .cbox[aria-pressed=true]{background:var(--green)}
+  .cbox[aria-pressed=true] svg{opacity:1}
+  .cbox:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  .hide{display:none!important}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media(max-width:520px){
+    .maptable td,.maptable th{font-size:13px;padding:6px 1px}
+    .keyval{font-size:26px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">개념 게임 · 암호</span>
+  </nav>
+
+  <header>
+    <span class="kicker">규칙으로 글자를 바꿔요</span>
+    <h1>암호 만들기 <span class="u">🔒 시저 암호</span></h1>
+    <p class="lead">암호는 <b>약속된 규칙(키)</b>으로 글자를 바꾸는 거예요. <b>몇 칸 밀기</b>를 정하면 글자가 그만큼 밀려 다른 글자가 돼요. 같은 규칙으로 되돌리면(복호화) 원래 글자가 나와요. 컴퓨터가 정보를 <b>0·1</b>이나 <b>픽셀 신호</b>로 바꾸는 것도 이렇게 규칙으로 바꾸는 거예요.</p>
+    <div class="chips">
+      <span class="chip pt">개념 · 암호화(밀기)</span>
+      <span class="chip pt">개념 · 복호화(되돌리기)</span>
+      <span class="chip pt">개념 · 키(규칙)</span>
+    </div>
+  </header>
+
+  <div class="cmp-head"><h2>암호 놀이터</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <div class="modes" role="group" aria-label="놀이 고르기">
+    <button class="modebtn" id="modePlay" type="button" aria-pressed="true">암호 놀이터 · 직접 바꿔 보기</button>
+    <button class="modebtn" id="modeSolve" type="button" aria-pressed="false">암호 풀기 도전 · 미션</button>
+  </div>
+
+  <!-- ============ 놀이터 모드 ============ -->
+  <section class="panel" id="playPanel">
+    <div class="subtabs" role="group" aria-label="암호 규칙 고르기">
+      <button class="subtab" id="ruleEn" type="button" aria-pressed="true">알파벳 (A~Z)</button>
+      <button class="subtab" id="ruleKo" type="button" aria-pressed="false">한글 (가나다…)</button>
+    </div>
+
+    <div class="keybox">
+      <div class="keyrow">
+        <span class="keylab"><b>키</b> · 몇 칸 밀기</span>
+        <button class="sbtn" id="keyMinus" type="button" aria-label="키 줄이기">−</button>
+        <span class="keyval" id="keyVal" aria-live="polite">3</span>
+        <button class="sbtn" id="keyPlus" type="button" aria-label="키 늘리기">+</button>
+        <input type="range" id="keyRange" min="1" max="25" value="3" aria-label="키(밀기 칸 수) 슬라이더">
+      </div>
+    </div>
+
+    <div class="dir" role="group" aria-label="방향 고르기">
+      <button class="dirbtn" id="dirEnc" type="button" aria-pressed="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" stroke="var(--ink)" stroke-width="2.4"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="var(--ink)" stroke-width="2.4"/></svg>
+        암호로 만들기</button>
+      <button class="dirbtn" id="dirDec" type="button" aria-pressed="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" stroke="var(--ink)" stroke-width="2.4"/><path d="M8 10V7a4 4 0 0 1 7-1" stroke="var(--ink)" stroke-width="2.4"/></svg>
+        암호 풀기</button>
+    </div>
+
+    <div class="field">
+      <label for="inText" id="inLabel">바꿀 문장 (원문)</label>
+      <textarea id="inText" placeholder="여기에 글자를 쳐 보세요">HELLO</textarea>
+    </div>
+    <div class="field">
+      <label for="outText" id="outLabel">바뀐 결과 (암호문)</label>
+      <div class="out" id="outText" aria-live="polite"></div>
+    </div>
+
+    <div class="rowbtns">
+      <button class="btn ghost" id="btnSwap" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        결과를 입력창으로</button>
+      <button class="btn ghost" id="btnCopy" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" stroke="var(--ink)" stroke-width="2.4"/><path d="M6 15H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1" stroke="var(--ink)" stroke-width="2.4"/></svg>
+        결과 복사</button>
+    </div>
+
+    <div class="cmp-head"><h2>글자 밀기 대응표</h2><span class="bar" aria-hidden="true"></span></div>
+    <div class="wheelwrap">
+      <div class="tablescroll"><table class="maptable" id="mapTable" aria-label="글자 밀기 대응표"></table></div>
+      <p class="maphint" id="mapHint">위 칸은 <b>원래 글자</b>, 아래 칸은 <b>밀린 글자</b>예요. 지금 문장에 쓰인 글자는 노란색으로 표시돼요.</p>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label id="secretLabel">비밀 편지 만들기</label>
+      <div class="readq" id="secretMsg" style="margin-bottom:0">문장과 키를 정하면 아래 안내가 나와요.</div>
+    </div>
+  </section>
+
+  <!-- ============ 풀기 도전 모드 ============ -->
+  <section class="panel hide" id="solvePanel">
+    <div class="prog">
+      <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="pbar" aria-label="미션 진행">
+        <div class="pfill" id="pfill"></div>
+      </div>
+      <span class="plab"><span id="solvedLab">0</span>/<span id="totalLab">4</span> 해결 · <span id="scoreLab">0</span>점</span>
+    </div>
+
+    <div class="missionnav">
+      <span class="keylab">미션 <b id="mNow" style="color:var(--point)">1</b> / <span id="mTot">4</span></span>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+    </div>
+
+    <div class="readq" id="solveHint">아래 암호문의 <b>키(몇 칸 밀기)</b>를 찾아 원래 문장을 밝혀내세요!</div>
+    <div class="cipherhero" id="solveCipher" aria-label="풀어야 할 암호문">?</div>
+
+    <div class="keybox">
+      <div class="keyrow">
+        <span class="keylab"><b>키</b> 돌려보기</span>
+        <button class="sbtn" id="sKeyMinus" type="button" aria-label="키 줄이기">−</button>
+        <span class="keyval" id="sKeyVal" aria-live="polite">1</span>
+        <button class="sbtn" id="sKeyPlus" type="button" aria-label="키 늘리기">+</button>
+        <input type="range" id="sKeyRange" min="1" max="25" value="1" aria-label="키 돌려보기 슬라이더">
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="tryLabel">이 키로 풀면…</label>
+      <div class="out" id="solveTry" aria-live="polite"></div>
+    </div>
+
+    <div class="rowbtns">
+      <button class="btn" id="btnCheckSolve" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4 10-11" stroke="var(--ink)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        이 답이 맞아!</button>
+      <button class="btn ghost" id="btnBrute" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-6.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg>
+        전부 돌려보기</button>
+    </div>
+
+    <div class="feedback" id="solveFeedback" aria-live="polite" style="margin-top:12px">키를 바꿔 가며 뜻이 통하는 문장을 찾아요.</div>
+    <div id="bruteWrap"></div>
+
+    <button class="btn ghost hide" id="btnNextMission" type="button" style="margin-top:12px">다음 미션 →</button>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8 8 10 4.6-2 8-5 8-10V6l-8-3Z" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span><b>알아 둬요</b> — 암호는 <b>규칙(키)</b>을 아는 사람만 풀 수 있어요. 같은 키로 밀면 암호가 되고, 같은 키로 되돌리면 원래 글자가 나와요. 키를 모르면 <b>전부 돌려봐야</b> 하니 어렵죠. 그래서 컴퓨터는 훨씬 복잡한 규칙으로 비밀을 지켜요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks">
+    <div class="checkitem">
+      <span class="ctxt"><b>키(몇 칸 밀기)</b>를 정해 내 문장을 암호로 바꿔 봤어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 1 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt"><b>같은 키</b>로 암호를 풀면 원래 문장이 돌아온다는 걸 확인했어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 2 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt"><b>풀기 도전</b>에서 키를 찾아 암호문을 원래 문장으로 밝혀냈어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 3 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="badge" id="badge">
+    <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><rect x="18" y="18" width="12" height="9" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.4"/><path d="M20 18v-2a4 4 0 0 1 8 0v2" stroke="var(--ink)" stroke-width="2.4"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><div class="bt">암호 박사 배지 획득!</div><div class="bd">규칙(키)으로 글자를 바꾸고 되돌릴 수 있어요.</div></div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+/* ============================================================
+   암호 만들기 (시저 암호) — 핵심 로직 + UI
+   외부 라이브러리 없음. node --check 통과용으로 module.exports 포함.
+   ============================================================ */
+
+// ── 알파벳(A~Z) 26글자 ──
+const EN = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+// ── 한글 '가나다라…' 대표 14글자(초성 순, 초등이 이해하는 순환) ──
+const KO = ["가","나","다","라","마","바","사","아","자","차","카","타","파","하"];
+
+// 규칙(alphabet 크기)별 최대 키
+function alphabetOf(rule){ return rule === "ko" ? KO : EN; }
+
+// 한 글자 밀기: 사전에 있으면 밀고, 없으면(공백·기호) 그대로.
+// dir: +1 암호화, -1 복호화
+function shiftChar(ch, key, rule, dir){
+  const A = alphabetOf(rule);
+  const n = A.length;
+  const idx = A.indexOf(ch);
+  if (idx === -1) return ch;               // 규칙에 없는 글자는 그대로
+  // ((idx + dir*key) mod n) — 자바스크립트 음수 나머지 보정
+  const j = ((idx + dir * key) % n + n) % n;
+  return A[j];
+}
+
+// 문자열 전체 변환
+function transform(text, key, rule, dir){
+  const A = alphabetOf(rule);
+  const norm = rule === "en" ? text.toUpperCase() : text; // 알파벳은 대문자 통일
+  let out = "";
+  for (const ch of norm) out += shiftChar(ch, key, rule, dir);
+  return out;
+}
+
+// 암호화 / 복호화 편의 함수
+function encode(text, key, rule){ return transform(text, key, rule, +1); }
+function decode(text, key, rule){ return transform(text, key, rule, -1); }
+
+// 무차별 풀기: 가능한 모든 키로 복호화한 후보 목록
+function bruteForce(cipher, rule){
+  const A = alphabetOf(rule);
+  const res = [];
+  for (let k = 0; k < A.length; k++){
+    res.push({ key: k, text: decode(cipher, k, rule) });
+  }
+  return res;
+}
+
+/* node 단위 확인용 export */
+if (typeof module !== "undefined" && module.exports){
+  module.exports = { EN, KO, alphabetOf, shiftChar, transform, encode, decode, bruteForce };
+}
+
+/* ============================================================
+   아래는 브라우저 UI. node에서는 document가 없으므로 건너뜀.
+   ============================================================ */
+if (typeof document !== "undefined"){
+document.addEventListener("DOMContentLoaded", function(){
+  const $ = id => document.getElementById(id);
+
+  // ── 놀이터 상태 ──
+  let rule = "en";     // 'en' | 'ko'
+  let dir  = 1;        // +1 암호화, -1 복호화
+  let key  = 3;
+
+  function maxKey(){ return alphabetOf(rule).length - 1; }
+
+  function clampKey(v){
+    const mx = maxKey();
+    if (v < 1) return 1;
+    if (v > mx) return mx;
+    return v;
+  }
+
+  // ── 규칙(알파벳/한글) 전환 ──
+  function setRule(r){
+    rule = r;
+    $("ruleEn").setAttribute("aria-pressed", r === "en");
+    $("ruleKo").setAttribute("aria-pressed", r === "ko");
+    const mx = maxKey();
+    $("keyRange").max = mx;
+    if (key > mx) key = mx;
+    // 기본 예문 힌트
+    if (r === "ko" && $("inText").value.trim() === "HELLO") $("inText").value = "가나다";
+    if (r === "en" && $("inText").value.trim() === "가나다") $("inText").value = "HELLO";
+    setKey(key);
+    buildMap();
+    render();
+  }
+
+  // ── 방향 전환 ──
+  function setDir(d){
+    dir = d;
+    $("dirEnc").setAttribute("aria-pressed", d === 1);
+    $("dirDec").setAttribute("aria-pressed", d === -1);
+    $("inLabel").textContent  = d === 1 ? "바꿀 문장 (원문)" : "바꿀 암호문";
+    $("outLabel").textContent = d === 1 ? "바뀐 결과 (암호문)" : "풀린 결과 (원문)";
+    buildMap();
+    render();
+  }
+
+  // ── 키 설정 ──
+  function setKey(v){
+    key = clampKey(v);
+    $("keyVal").textContent = key;
+    $("keyRange").value = key;
+    buildMap();
+    render();
+  }
+
+  // ── 대응표 그리기 ──
+  function buildMap(){
+    const A = alphabetOf(rule);
+    const used = new Set();
+    for (const ch of (rule === "en" ? $("inText").value.toUpperCase() : $("inText").value)){
+      if (A.indexOf(ch) !== -1) used.add(ch);
+    }
+    // dir 방향에 맞춰 위=입력글자, 아래=변환글자
+    let top = '<tr><td class="rh">' + (dir === 1 ? "원래 글자" : "암호 글자") + '</td>';
+    let bot = '<tr><td class="rh">' + (dir === 1 ? "밀린 글자" : "풀린 글자") + '</td>';
+    for (const ch of A){
+      const mapped = shiftChar(ch, key, rule, dir);
+      const hl = used.has(ch) ? " hl" : "";
+      top += '<td class="plain' + hl + '">' + ch + "</td>";
+      bot += '<td class="cipher' + hl + '">' + mapped + "</td>";
+    }
+    top += "</tr>"; bot += "</tr>";
+    $("mapTable").innerHTML = top + bot;
+  }
+
+  // ── 실시간 변환 렌더 ──
+  function render(){
+    const src = $("inText").value;
+    const out = transform(src, key, rule, dir);
+    $("outText").textContent = out;
+    // 비밀 편지 안내
+    const A = alphabetOf(rule);
+    const hasLetter = [...(rule === "en" ? src.toUpperCase() : src)].some(c => A.indexOf(c) !== -1);
+    if (dir === 1 && hasLetter && src.trim() !== ""){
+      $("secretMsg").innerHTML =
+        '친구에게 <b>암호문 “' + out + '”</b> 과 <b>키 ' + key + '</b> 을(를) 알려 주세요. ' +
+        '키를 알려 주지 않으면 <b>암호 퀴즈</b>가 돼요!';
+    } else if (dir === -1) {
+      $("secretMsg").innerHTML = '<b>키 ' + key + '</b> 로 되돌렸어요. 원문이 나오면 규칙(키)이 맞은 거예요.';
+    } else {
+      $("secretMsg").innerHTML = '문장을 치고 키를 정하면 여기에 안내가 나와요.';
+    }
+    markCheck(0);
+    if (dir === -1) markCheck(1);
+  }
+
+  // ── 이벤트 바인딩(놀이터) ──
+  $("ruleEn").addEventListener("click", () => setRule("en"));
+  $("ruleKo").addEventListener("click", () => setRule("ko"));
+  $("dirEnc").addEventListener("click", () => setDir(1));
+  $("dirDec").addEventListener("click", () => setDir(-1));
+  $("keyMinus").addEventListener("click", () => setKey(key - 1));
+  $("keyPlus").addEventListener("click",  () => setKey(key + 1));
+  $("keyRange").addEventListener("input", e => setKey(parseInt(e.target.value, 10)));
+  $("inText").addEventListener("input", () => { buildMap(); render(); });
+
+  $("btnSwap").addEventListener("click", () => {
+    $("inText").value = $("outText").textContent;
+    // 방향을 반대로 뒤집어 "왕복" 체험
+    setDir(dir === 1 ? -1 : 1);
+    markCheck(1);
+  });
+  $("btnCopy").addEventListener("click", () => {
+    const t = $("outText").textContent;
+    if (!t) return;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(showCopied, showCopied);
+    } else { showCopied(); }
+  });
+  function showCopied(){
+    const b = $("btnCopy");
+    const old = b.innerHTML;
+    b.innerHTML = "복사했어요!";
+    setTimeout(() => { b.innerHTML = old; }, 1200);
+  }
+
+  /* ============ 풀기 도전 모드 ============ */
+  // 미션 데이터: 원문·규칙·키를 정하면 암호문은 자동 생성
+  const MISSIONS = [
+    { rule: "en", plain: "ROBOT", key: 3,  hint: "로봇을 뜻하는 영어 단어예요." },
+    { rule: "en", plain: "SECRET", key: 7, hint: "‘비밀’을 뜻하는 영어 단어예요." },
+    { rule: "ko", plain: "가나다", key: 2, hint: "우리가 아는 글자 순서예요." },
+    { rule: "en", plain: "PIXEL", key: 11, hint: "화면을 이루는 작은 점이에요." }
+  ];
+  let mIdx = 0;
+  let sKey = 1;
+  let sSolved = [false, false, false, false];
+  let score = 0;
+
+  function curMission(){ return MISSIONS[mIdx]; }
+  function curCipher(){ const m = curMission(); return encode(m.plain, m.key, m.rule); }
+  function sMaxKey(){ return alphabetOf(curMission().rule).length - 1; }
+
+  function loadMission(){
+    const m = curMission();
+    sKey = 1;
+    $("mNow").textContent = mIdx + 1;
+    $("solveHint").innerHTML = '아래 암호문의 <b>키(몇 칸 밀기)</b>를 찾아 원래 문장을 밝혀내세요! 힌트: ' + m.hint;
+    $("solveCipher").textContent = curCipher();
+    $("sKeyRange").max = sMaxKey();
+    $("bruteWrap").innerHTML = "";
+    $("btnNextMission").classList.add("hide");
+    $("solveFeedback").className = "feedback";
+    $("solveFeedback").textContent = "키를 바꿔 가며 뜻이 통하는 문장을 찾아요.";
+    setSKey(1);
+    renderDots();
+    updateProg();
+  }
+
+  function setSKey(v){
+    const mx = sMaxKey();
+    sKey = v < 1 ? 1 : (v > mx ? mx : v);
+    $("sKeyVal").textContent = sKey;
+    $("sKeyRange").value = sKey;
+    renderTry();
+  }
+
+  function renderTry(){
+    const m = curMission();
+    $("solveTry").textContent = decode(curCipher(), sKey, m.rule);
+  }
+
+  function renderDots(){
+    let h = "";
+    for (let i = 0; i < MISSIONS.length; i++){
+      let cls = "dot";
+      if (sSolved[i]) cls += " on";
+      if (i === mIdx) cls += " cur";
+      h += '<span class="' + cls + '"></span>';
+    }
+    $("dots").innerHTML = h;
+  }
+
+  function updateProg(){
+    const done = sSolved.filter(Boolean).length;
+    $("solvedLab").textContent = done;
+    $("totalLab").textContent = MISSIONS.length;
+    $("mTot").textContent = MISSIONS.length;
+    $("scoreLab").textContent = score;
+    $("pfill").style.width = (done / MISSIONS.length * 100) + "%";
+    $("pbar").setAttribute("aria-valuenow", done);
+    $("pbar").setAttribute("aria-valuemax", MISSIONS.length);
+  }
+
+  $("sKeyMinus").addEventListener("click", () => setSKey(sKey - 1));
+  $("sKeyPlus").addEventListener("click",  () => setSKey(sKey + 1));
+  $("sKeyRange").addEventListener("input", e => setSKey(parseInt(e.target.value, 10)));
+
+  $("btnCheckSolve").addEventListener("click", () => {
+    const m = curMission();
+    const guess = decode(curCipher(), sKey, m.rule);
+    const okText = guess === (m.rule === "en" ? m.plain.toUpperCase() : m.plain);
+    if (okText){
+      if (!sSolved[mIdx]){ sSolved[mIdx] = true; score += 10; }
+      $("solveFeedback").className = "feedback ok";
+      $("solveFeedback").innerHTML = '정답! 원래 문장은 <b>“' + guess + '”</b> (키 ' + sKey + ').';
+      markCheck(2);
+      renderDots();
+      updateProg();
+      if (sSolved.every(Boolean)){
+        $("solveFeedback").innerHTML += '<br>모든 미션 완료! <b>' + score + '점</b>';
+        $("btnNextMission").textContent = "처음부터 다시 →";
+        $("btnNextMission").classList.remove("hide");
+      } else {
+        $("btnNextMission").textContent = "다음 미션 →";
+        $("btnNextMission").classList.remove("hide");
+      }
+    } else {
+      $("solveFeedback").className = "feedback no";
+      $("solveFeedback").innerHTML = '<b>아직이에요</b> — 뜻이 통하지 않아요. 키를 더 돌려 보세요.';
+    }
+  });
+
+  $("btnBrute").addEventListener("click", () => {
+    const m = curMission();
+    const cands = bruteForce(curCipher(), m.rule);
+    const answerKey = m.key % alphabetOf(m.rule).length;
+    let h = "";
+    for (const c of cands){
+      const pick = (c.key === answerKey) ? " pick" : "";
+      h += '<div class="bruterow' + pick + '"><span class="k">키 ' + c.key + '</span><span class="t">' + c.text + "</span></div>";
+    }
+    $("bruteWrap").innerHTML = '<div class="brutebox">' + h + "</div>";
+    $("solveFeedback").className = "feedback";
+    $("solveFeedback").innerHTML = '키가 <b>없으면</b> 이렇게 전부 돌려봐야 해요. 뜻이 통하는 줄(노란색)이 정답!';
+  });
+
+  $("btnNextMission").addEventListener("click", () => {
+    if (sSolved.every(Boolean)){
+      mIdx = 0; score = 0; sSolved = [false, false, false, false];
+    } else {
+      // 아직 안 푼 다음 미션으로
+      let next = (mIdx + 1) % MISSIONS.length;
+      let guard = 0;
+      while (sSolved[next] && guard < MISSIONS.length){ next = (next + 1) % MISSIONS.length; guard++; }
+      mIdx = next;
+    }
+    loadMission();
+  });
+
+  /* ============ 큰 모드 전환(놀이터 / 풀기) ============ */
+  function setMode(m){
+    $("modePlay").setAttribute("aria-pressed", m === "play");
+    $("modeSolve").setAttribute("aria-pressed", m === "solve");
+    $("playPanel").classList.toggle("hide", m !== "play");
+    $("solvePanel").classList.toggle("hide", m !== "solve");
+    if (m === "solve") loadMission();
+  }
+  $("modePlay").addEventListener("click", () => setMode("play"));
+  $("modeSolve").addEventListener("click", () => setMode("solve"));
+
+  /* ============ 자기 점검 & 배지 ============ */
+  const cboxes = document.querySelectorAll(".cbox");
+  function markCheck(i){
+    const b = cboxes[i];
+    if (b && b.getAttribute("aria-pressed") !== "true"){
+      b.setAttribute("aria-pressed", "true");
+      maybeBadge();
+    }
+  }
+  cboxes.forEach(b => {
+    b.addEventListener("click", () => {
+      const p = b.getAttribute("aria-pressed") === "true";
+      b.setAttribute("aria-pressed", p ? "false" : "true");
+      maybeBadge();
+    });
+  });
+  function maybeBadge(){
+    const all = [...cboxes].every(b => b.getAttribute("aria-pressed") === "true");
+    if (all) $("badge").classList.add("show");
+  }
+
+  // ── 초기화 ──
+  setRule("en");
+  setDir(1);
+  setKey(3);
+  setMode("play");
+});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신경망 뉴런 켜기 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:670px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  /* 미션 진행바 */
+  .progress{display:flex;align-items:center;gap:12px;margin:0 0 18px}
+  .pbar{flex:1;height:16px;background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;box-shadow:var(--hard-sm)}
+  .pfill{height:100%;width:0;background:var(--point);border-right:2.5px solid var(--ink);transition:width .3s}
+  .pcount{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .netgrid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+  @media(max-width:720px){.netgrid{grid-template-columns:1fr}}
+
+  /* 입력 스위치 + 가중치 */
+  .inputs{display:flex;flex-direction:column;gap:12px}
+  .inrow{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:12px 14px}
+  .inhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .inname{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:900}
+  .inname svg{flex-shrink:0}
+  .sw{position:relative;width:56px;height:32px;flex-shrink:0;cursor:pointer;background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:999px;padding:0;transition:background .15s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;
+    background:var(--ink);transition:left .15s}
+  .sw[aria-pressed=true]{background:var(--point-soft)}
+  .sw[aria-pressed=true]::after{left:28px;background:var(--point)}
+  .sw:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .wlab{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:800;color:var(--muted);margin:12px 0 3px}
+  .wlab b{color:var(--ink);font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:10px;background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:999px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;
+    background:var(--amber);border:2.5px solid var(--ink);cursor:pointer;box-shadow:var(--hard-sm)}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--amber);
+    border:2.5px solid var(--ink);cursor:pointer}
+  input[type=range]:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  /* 뉴런 + 합계 */
+  .neuronside{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;
+    background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:18px}
+  .bulb{width:118px;height:118px;position:relative;transition:transform .2s}
+  .bulb.fire{animation:pop .45s ease}
+  .neuronside .sumbox{width:100%}
+  .summeter{position:relative;height:38px;background:var(--surface);border:2.5px solid var(--ink);border-radius:10px;overflow:hidden}
+  .sumfill{height:100%;width:0;background:var(--point);transition:width .25s}
+  .sumfill.over{background:var(--green)}
+  .thline{position:absolute;top:-4px;bottom:-4px;width:4px;background:var(--red);border-radius:2px;transition:left .2s;z-index:2}
+  .thline::after{content:"임계";position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:900;color:var(--red);white-space:nowrap}
+  .summath{text-align:center;font-size:13px;font-weight:800;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+  .summath b{color:var(--ink)}
+  .verdict{font-size:20px;font-weight:900;text-align:center;letter-spacing:-.02em}
+  .verdict.on{color:var(--green)}
+  .verdict.off{color:var(--muted)}
+
+  /* 임계값 슬라이더(공용) */
+  .thwrap{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:12px 14px;margin-top:16px}
+
+  /* 미션 예시 카드 */
+  .examples{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:16px}
+  .exc{background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:12px}
+  .exc .exname{font-size:14px;font-weight:900;display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .exc .extags{font-size:12px;font-weight:800;color:var(--muted);line-height:1.5}
+  .exc .exres{margin-top:9px;font-size:13px;font-weight:900;display:flex;align-items:center;gap:6px}
+  .exc .exres svg{flex-shrink:0}
+  .exc.pass{background:var(--point-soft)}
+  .exc.pass .exres{color:var(--green)}
+  .exc.fail .exres{color:var(--red)}
+  .exc .want{font-size:11.5px;font-weight:800;color:var(--muted);margin-top:3px}
+
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-family:inherit;font-size:16px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:13px 20px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:var(--surface);font-size:14px;min-height:46px}
+  .btn svg{flex-shrink:0}
+
+  .missionmsg{margin-top:14px;display:none;gap:12px;align-items:flex-start;border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px 16px;font-size:14.5px;font-weight:800;line-height:1.5}
+  .missionmsg.show{display:flex;animation:pop .35s ease}
+  .missionmsg.ok{background:var(--point-soft)}
+  .missionmsg.no{background:var(--amber-soft)}
+  .missionmsg svg{flex-shrink:0;margin-top:1px}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .checks{display:grid;gap:12px}
+  .checkitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px}
+  .checkitem .ctxt{font-size:14.5px;font-weight:700;flex:1}
+  .cbox{width:34px;height:34px;flex-shrink:0;cursor:pointer;background:var(--paper);border:2.5px solid var(--ink);
+    border-radius:9px;display:grid;place-items:center;padding:0}
+  .cbox svg{opacity:0;transition:opacity .12s}
+  .cbox[aria-pressed=true]{background:var(--green)}
+  .cbox[aria-pressed=true] svg{opacity:1}
+  .cbox:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">개념 게임 · 뉴런</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 판단하는 가장 작은 단위</span>
+    <h1>신경망 <span class="u">뉴런 켜기</span></h1>
+    <p class="lead">인공 뉴런은 여러 <b>입력</b>에 <b>가중치</b>를 곱해 더해요. 그 합이 <b>임계값</b>을 넘으면 뉴런이 <b>켜져요(발화)</b>. 스위치·슬라이더를 움직여 뉴런을 켜 보고, 미션에서 로봇과 동물을 바르게 가려내요.</p>
+    <div class="chips">
+      <span class="chip pt">개념 · 인공 뉴런</span>
+      <span class="chip pt">개념 · 가중치</span>
+      <span class="chip pt">개념 · 임계값·발화</span>
+    </div>
+  </header>
+
+  <div class="cmp-head"><h2>뉴런을 켜 보자</h2><span class="bar" aria-hidden="true"></span></div>
+  <p class="lead" style="margin:-6px 0 14px;font-size:15px">특징 스위치를 켜고, <b>가중치</b>로 그 특징을 얼마나 중요하게 볼지 정해요. 아래 막대는 <b>가중합</b>이에요. 빨간 <b>임계선</b>을 넘으면 전구가 켜져요.</p>
+
+  <section class="panel">
+    <div class="netgrid">
+      <!-- 입력들 -->
+      <div class="inputs" id="inputs"></div>
+
+      <!-- 뉴런 -->
+      <div class="neuronside">
+        <div class="bulb" id="bulb" role="img" aria-label="뉴런 전구"></div>
+        <div class="verdict off" id="verdict" aria-live="polite">뉴런 꺼짐</div>
+        <div class="sumbox">
+          <div class="summeter">
+            <div class="sumfill" id="sumfill"></div>
+            <div class="thline" id="thline"></div>
+          </div>
+          <div class="summath" id="summath">가중합 <b>0.0</b> · 임계값 <b>2.0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="thwrap">
+      <div class="wlab"><span>임계값 (넘어야 켜져요)</span><span><b id="thval">2.0</b></span></div>
+      <input type="range" id="thresh" min="0" max="6" step="0.5" value="2" aria-label="임계값 슬라이더">
+    </div>
+  </section>
+
+  <div class="cmp-head"><h2>미션 · 로봇을 가려내라</h2><span class="bar" aria-hidden="true"></span></div>
+  <p class="lead" style="margin:-6px 0 14px;font-size:15px">아래 예시들이 있어요. 가중치와 임계값을 잘 맞춰서 <b>로봇은 켜지고, 동물은 꺼지도록</b> 만들어 봐요.</p>
+
+  <section class="panel">
+    <div class="progress">
+      <div class="pbar"><div class="pfill" id="mpfill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="미션 정답 진행"></div></div>
+      <span class="pcount"><span id="passN">0</span>/<span id="totN">0</span></span>
+    </div>
+    <div class="examples" id="examples"></div>
+    <div class="missionmsg" id="missionmsg" role="status" aria-live="polite">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" id="mmicon"></svg>
+      <span id="mmtext"></span>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="btnHint" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+        힌트</button>
+      <button class="btn ghost" id="btnReset" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M4 20v-5h5" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        처음으로</button>
+    </div>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>생각해 봐요</b> — <b>가중치가 클수록</b> 그 입력을 더 중요하게 봐요. ‘바퀴가 있나?’의 가중치를 크게 하면, 바퀴만 있어도 뉴런이 쉽게 켜지죠. <b>임계값</b>은 뉴런이 켜지는 기준선이에요. 낮추면 쉽게 켜지고, 높이면 웬만해선 안 켜져요. 진짜 AI는 이런 뉴런을 <b>아주 많이 연결</b>해서 복잡한 판단을 해요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks">
+    <div class="checkitem">
+      <span class="ctxt">입력×가중치를 더한 <b>가중합</b>이 <b>임계값</b>을 넘으면 뉴런이 켜진다는 걸 확인했어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 1 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt"><b>가중치가 클수록</b> 그 입력을 더 중요하게 본다는 걸 슬라이더로 느꼈어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 2 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt">가중치·임계값을 조절해 <b>모든 예시를 바르게</b> 판단하도록 만들었어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 3 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="badge" id="badge">
+    <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><path d="m17 20 4 4 10-10" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><div class="bt">뉴런 조련사 배지 획득!</div><div class="bd">가중치와 임계값으로 뉴런을 다뤘어요.</div></div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ── 입력 정의(특징) ──
+const INPUTS=[
+  {key:'wheel', name:'바퀴가 있나?', w:1.0, on:false, icon:'<circle cx="12" cy="12" r="8" stroke="var(--ink)" stroke-width="2.2"/><circle cx="12" cy="12" r="2.4" fill="var(--ink)"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3" stroke="var(--ink)" stroke-width="2"/>'},
+  {key:'metal', name:'금속·전선이 있나?', w:1.0, on:false, icon:'<path d="M7 4v6a5 5 0 0 0 10 0V4" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><path d="M9 14v3a3 3 0 0 0 6 0" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/>'},
+  {key:'legs',  name:'다리·털이 있나?', w:1.0, on:false, icon:'<path d="M6 6c4 2 8 2 12 0" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><path d="M8 8v10M12 8v11M16 8v10" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/>'}
+];
+const MAXW=3; // 가중치 슬라이더 최대
+
+let thresh=2.0;
+
+// ── 핵심 로직: 가중합과 발화 판정 ──
+function weightedSum(inputs){
+  let s=0;
+  for(const inp of inputs){ if(inp.on) s+=inp.w; }
+  return s;
+}
+function fires(inputs, th){
+  return weightedSum(inputs) >= th;
+}
+
+// ── 입력 UI 그리기 ──
+function renderInputs(){
+  const box=$('inputs'); box.innerHTML='';
+  INPUTS.forEach((inp,i)=>{
+    const row=document.createElement('div');
+    row.className='inrow';
+    row.innerHTML=
+      '<div class="inhead">'+
+        '<span class="inname"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">'+inp.icon+'</svg>'+inp.name+'</span>'+
+        '<button class="sw" type="button" aria-pressed="'+inp.on+'" aria-label="'+inp.name+' 스위치"></button>'+
+      '</div>'+
+      '<div class="wlab"><span>가중치 (중요도)</span><span><b class="wv">'+inp.w.toFixed(1)+'</b></span></div>'+
+      '<input type="range" class="wr" min="0" max="'+MAXW+'" step="0.5" value="'+inp.w+'" aria-label="'+inp.name+' 가중치 슬라이더">';
+    box.appendChild(row);
+
+    const sw=row.querySelector('.sw');
+    sw.addEventListener('click',()=>{
+      inp.on=!inp.on; sw.setAttribute('aria-pressed', inp.on); update();
+    });
+    const wr=row.querySelector('.wr');
+    wr.addEventListener('input',()=>{
+      inp.w=parseFloat(wr.value); row.querySelector('.wv').textContent=inp.w.toFixed(1); update();
+    });
+  });
+}
+
+// ── 전구 SVG ──
+function bulbHTML(on){
+  const glow=on?'var(--amber)':'var(--surface)';
+  const ray=on?'<g stroke="var(--amber)" stroke-width="3" stroke-linecap="round"><path d="M59 18l7-7M59 100l7 7M100 59l7 0M12 59l-7 0M100 30l6-4M12 30l-6-4"/></g>':'';
+  return '<svg viewBox="0 0 118 118" width="118" height="118" aria-hidden="true">'+ray+
+    '<path d="M59 20a26 26 0 0 0-16 46c4 3 6 6 6 12h20c0-6 2-9 6-12A26 26 0 0 0 59 20Z" fill="'+glow+'" stroke="var(--ink)" stroke-width="3.2"/>'+
+    (on?'<path d="M52 46l6 12 6-16" stroke="var(--ink)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>':'')+
+    '<rect x="47" y="82" width="24" height="8" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>'+
+    '<rect x="50" y="90" width="18" height="7" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>'+
+    '</svg>';
+}
+
+// ── 화면 갱신 ──
+let lastOn=false;
+function update(){
+  const s=weightedSum(INPUTS);
+  const on=fires(INPUTS, thresh);
+
+  // 막대
+  const scale=6; // 0~6 범위로 표시
+  const pct=Math.min(100, (s/scale)*100);
+  $('sumfill').style.width=pct+'%';
+  $('sumfill').classList.toggle('over', on);
+  $('thline').style.left=Math.min(100,(thresh/scale)*100)+'%';
+  $('summath').innerHTML='가중합 <b>'+s.toFixed(1)+'</b> · 임계값 <b>'+thresh.toFixed(1)+'</b>';
+
+  // 전구
+  $('bulb').innerHTML=bulbHTML(on);
+  if(on && !lastOn){ $('bulb').classList.remove('fire'); void $('bulb').offsetWidth; $('bulb').classList.add('fire'); }
+  lastOn=on;
+  const v=$('verdict');
+  v.className='verdict '+(on?'on':'off');
+  v.textContent=on?'뉴런 켜짐 — "로봇이다!"':'뉴런 꺼짐 — "로봇 아니다"';
+
+  checkMission();
+}
+
+// ── 임계값 슬라이더 ──
+$('thresh').addEventListener('input',()=>{
+  thresh=parseFloat($('thresh').value);
+  $('thval').textContent=thresh.toFixed(1);
+  update();
+});
+
+// ── 미션 예시 ──
+// features: 각 예시가 켜는 입력들, label: true=로봇(켜져야), false=동물(꺼져야)
+const EXAMPLES=[
+  {name:'청소 로봇', has:['wheel','metal'], robot:true, icon:'<rect x="4" y="9" width="16" height="8" rx="2" stroke="var(--ink)" stroke-width="2.2"/><circle cx="8" cy="19" r="2" stroke="var(--ink)" stroke-width="2"/><circle cx="16" cy="19" r="2" stroke="var(--ink)" stroke-width="2"/><path d="M12 9V6" stroke="var(--ink)" stroke-width="2.2"/>'},
+  {name:'로봇 팔', has:['metal'], robot:true, icon:'<path d="M6 20V9l6-4 6 4" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="5" r="2" stroke="var(--ink)" stroke-width="2"/>'},
+  {name:'강아지', has:['legs'], robot:false, icon:'<path d="M5 10c0-2 2-3 4-3l3 2 3-2c2 0 4 1 4 3v6H5z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><circle cx="9" cy="12" r="1" fill="var(--ink)"/><circle cx="15" cy="12" r="1" fill="var(--ink)"/>'},
+  {name:'고양이', has:['legs'], robot:false, icon:'<path d="M6 8l1 4M18 8l-1 4" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="14" r="6" stroke="var(--ink)" stroke-width="2.2"/>'},
+  {name:'장난감 자동차', has:['wheel'], robot:false, icon:'<path d="M4 14l2-4h12l2 4v3H4z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><circle cx="8" cy="18" r="1.6" stroke="var(--ink)" stroke-width="1.8"/><circle cx="16" cy="18" r="1.6" stroke="var(--ink)" stroke-width="1.8"/>'}
+];
+
+function evalExample(ex){
+  // 예시 특징으로 임시 입력 상태를 만들어 현재 가중치·임계값으로 판정
+  const tmp=INPUTS.map(inp=>({on:ex.has.includes(inp.key), w:inp.w}));
+  const fired=fires(tmp, thresh);
+  return fired; // 뉴런이 켜졌는가
+}
+
+function renderExamples(){
+  const box=$('examples'); box.innerHTML='';
+  $('totN').textContent=EXAMPLES.length;
+  EXAMPLES.forEach(ex=>{
+    const c=document.createElement('div');
+    c.className='exc'; c.dataset.name=ex.name;
+    const tagNames=ex.has.map(k=>({wheel:'바퀴',metal:'금속·전선',legs:'다리·털'}[k])).join(' · ')||'없음';
+    c.innerHTML=
+      '<div class="exname"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">'+ex.icon+'</svg>'+ex.name+'</div>'+
+      '<div class="extags">특징: '+tagNames+'</div>'+
+      '<div class="want">목표: '+(ex.robot?'뉴런 켜짐(로봇)':'뉴런 꺼짐(동물)')+'</div>'+
+      '<div class="exres"></div>';
+    box.appendChild(c);
+  });
+}
+
+let missionCleared=false;
+function checkMission(){
+  let pass=0;
+  EXAMPLES.forEach(ex=>{
+    const fired=evalExample(ex);
+    const correct = fired===ex.robot;
+    if(correct) pass++;
+    const card=[...$('examples').children].find(el=>el.dataset.name===ex.name);
+    if(!card) return;
+    card.classList.toggle('pass', correct);
+    card.classList.toggle('fail', !correct);
+    const res=card.querySelector('.exres');
+    if(correct){
+      res.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--green)"/><path d="m8 12 3 3 6-7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+(fired?'켜짐 ✓':'꺼짐 ✓');
+    }else{
+      res.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--red)"/><path d="M9 9l6 6M15 9l-6 6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>'+(fired?'켜짐(틀림)':'꺼짐(틀림)');
+    }
+  });
+  $('passN').textContent=pass;
+  const pct=Math.round((pass/EXAMPLES.length)*100);
+  $('mpfill').style.width=pct+'%';
+  $('mpfill').setAttribute('aria-valuenow',pct);
+
+  const mm=$('missionmsg');
+  if(pass===EXAMPLES.length){
+    mm.className='missionmsg show ok';
+    $('mmicon').innerHTML='<circle cx="12" cy="12" r="10" fill="var(--green)"/><path d="m8 12 3 3 6-7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    $('mmtext').innerHTML='<b>미션 성공!</b> 모든 예시를 바르게 판단했어요. 로봇은 켜지고 동물은 꺼졌죠.';
+    missionCleared=true; maybeBadge();
+  }else{
+    mm.className='missionmsg';
+  }
+}
+
+// ── 힌트 ──
+$('btnHint').addEventListener('click',()=>{
+  const mm=$('missionmsg');
+  mm.className='missionmsg show no';
+  $('mmicon').innerHTML='<circle cx="12" cy="11" r="8" stroke="var(--ink)" stroke-width="2.2"/><path d="M12 15v-4M12 8v.5" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>';
+  $('mmtext').innerHTML='<b>힌트</b> — 로봇의 확실한 특징은 <b>금속·전선</b>이에요. <b>금속·전선</b> 가중치를 크게(예: 2), <b>바퀴</b>는 작게(예: 0.5), <b>다리·털</b>은 0으로 두고, 임계값을 그 사이(예: 약 1.5)에 맞춰 보세요. 바퀴만 있는 장난감 자동차는 안 켜지고, 금속이 있는 로봇만 켜져요.';
+});
+
+// ── 처음으로 ──
+function resetAll(){
+  INPUTS.forEach(inp=>{ inp.w=1.0; inp.on=false; });
+  thresh=2.0; $('thresh').value=2; $('thval').textContent='2.0';
+  renderInputs(); update();
+  $('missionmsg').className='missionmsg';
+}
+$('btnReset').addEventListener('click',resetAll);
+
+// ── 자기 점검 & 배지 ──
+document.querySelectorAll('.cbox').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=b.getAttribute('aria-pressed')==='true';
+    b.setAttribute('aria-pressed', p?'false':'true');
+    maybeBadge();
+  });
+});
+function maybeBadge(){
+  const allChecked=[...document.querySelectorAll('.cbox')].every(b=>b.getAttribute('aria-pressed')==='true');
+  if(allChecked && missionCleared){ $('badge').classList.add('show'); }
+}
+
+// 초기화
+renderInputs();
+renderExamples();
+update();
+</script>
+</body>
+</html>
