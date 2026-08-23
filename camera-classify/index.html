@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미니 티처블 머신 · 카메라로 배우는 AI 분류</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#7C3AED; --point-soft:#EDE7FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:660px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  /* 단계 스테퍼 */
+  .flow{display:flex;align-items:stretch;gap:0;margin:0 0 24px;flex-wrap:nowrap}
+  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .fstep .snum{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:14px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .2s,color .2s;box-shadow:var(--hard-sm)}
+  .fstep .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .2s}
+  .fstep:not(:last-child)::after{content:"";position:absolute;top:14px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2.5px;background:var(--ink);opacity:.22}
+  .fstep.on .snum{background:var(--point);color:#fff}
+  .fstep.on .slab{color:var(--ink)}
+  .fstep.done .snum{background:var(--ink);color:#fff}
+  @media(max-width:560px){.fstep .slab{font-size:10.5px}}
+
+  /* panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:21px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 카메라 무대 */
+  .stage{position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:4/3;
+    border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard);overflow:hidden;background:var(--ink)}
+  .stage video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
+  .stage.env video{transform:none}
+  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:12px;color:var(--paper);text-align:center;padding:24px;background:var(--ink)}
+  .stage .placeholder .pmsg{font-size:14px;font-weight:700;max-width:280px;line-height:1.5}
+  .stage .placeholder .pmsg b{color:var(--amber);font-weight:900}
+  .stage.live .placeholder{display:none}
+  /* 실시간 예측 오버레이(분류 단계에서만) */
+  .live-badge{position:absolute;left:10px;top:10px;display:none;align-items:center;gap:8px;
+    background:var(--ink);color:var(--paper);border:2.5px solid var(--paper);border-radius:999px;
+    padding:6px 13px;font-weight:900;font-size:14px;box-shadow:2px 2px 0 rgba(0,0,0,.4)}
+  .stage.classifying .live-badge{display:inline-flex}
+  .live-badge .lbdot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+  .camrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+  .permwarn{display:none;margin-top:14px;background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    padding:12px 15px;font-size:13.5px;font-weight:700;line-height:1.5}
+  .permwarn.show{display:block}
+  .permwarn b{font-weight:900}
+
+  /* 클래스 트레이 */
+  .trays{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+  @media(max-width:640px){.trays{grid-template-columns:1fr}}
+  .tray{border:2.5px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:10px}
+  .tray .th{display:flex;align-items:center;gap:9px}
+  .tray .dot{width:20px;height:20px;border-radius:6px;border:2.5px solid var(--ink);flex-shrink:0}
+  .tray .tname{font-size:16px;font-weight:900;letter-spacing:-.02em}
+  .tray .tcount{margin-left:auto;font-size:13px;font-weight:900;background:var(--surface);border:2px solid var(--ink);
+    border-radius:999px;padding:2px 11px;min-width:38px;text-align:center}
+  .tray input.rn{width:100%;font-family:inherit;font-size:14px;font-weight:800;color:var(--ink);
+    border:2px solid var(--ink);border-radius:9px;padding:7px 10px;background:var(--surface)}
+  .tray input.rn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .binrow{display:flex;flex-wrap:wrap;gap:5px;min-height:34px;align-content:flex-start;
+    background:var(--surface);border:2px dashed var(--ink);border-radius:10px;padding:7px}
+  .chip{width:22px;height:22px;border-radius:5px;border:2px solid var(--ink)}
+  .addbtn{cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:800;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);
+    padding:10px 6px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .addbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .addbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .addbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .addbtn[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
+  .addbtn svg{flex-shrink:0}
+
+  .toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:9px 14px;min-height:44px;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .minibtn svg{flex-shrink:0}
+
+  /* 큰 액션 버튼 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn svg{flex-shrink:0}
+  .btn.rec{background:var(--red);color:#fff}
+
+  /* 분류 결과 */
+  .result-wrap{margin-top:4px}
+  .result-head{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .bars{display:flex;flex-direction:column;gap:10px}
+  .bar-row{display:flex;align-items:center;gap:10px}
+  .bar-row .bname{width:96px;flex-shrink:0;font-size:14px;font-weight:900;letter-spacing:-.02em;
+    display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-row .bdot{width:15px;height:15px;border-radius:5px;border:2px solid var(--ink);flex-shrink:0}
+  .bar-track{flex:1;height:22px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;width:0%;transition:width .18s linear}
+  .bar-row .bpct{width:46px;flex-shrink:0;text-align:right;font-size:14px;font-weight:900}
+  .bar-row.win .bname{text-decoration:3px underline var(--point);text-underline-offset:3px}
+  .verdict-big{margin-top:16px;text-align:center;font-size:15px;font-weight:800}
+  .verdict-big .tag{display:inline-block;background:var(--ink);color:var(--paper);border-radius:999px;padding:2px 13px;font-size:16px;margin:0 4px;font-weight:900}
+  .verdict-big .lowconf{color:var(--muted);font-weight:700;font-size:13.5px}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* quicklinks */
+  .quicklinks{margin-top:26px;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .ql-h{font-size:14px;font-weight:900;letter-spacing:-.01em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .ql-h svg{flex-shrink:0;color:var(--point)}
+  .ql{display:flex;align-items:center;gap:9px;text-decoration:none;font-size:14px;font-weight:800;color:var(--ink);
+    background:var(--point-soft);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:11px 15px;min-height:48px;transition:transform .1s,box-shadow .1s}
+  .ql:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .ql:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .ql:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .ql svg{flex-shrink:0;color:var(--point)}
+  .ql .arw{margin-left:auto;font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">체험 · 미니 티처블 머신</span>
+  </nav>
+
+  <header>
+    <span class="kicker">카메라로 배우는 AI</span>
+    <h1>미니 티처블 머신 — <span class="u">보여주고 가르쳐요</span></h1>
+    <p class="lead">카메라에 <b>물건을 보여 주고</b> "예시 담기"를 누르면, AI가 그 <b>색·밝기 특징</b>을 기억해요. 여러 물건을 가르친 뒤 카메라에 비추면 <b>가장 비슷한 것</b>을 실시간으로 맞혀요. 인터넷·특별한 프로그램 없이 휴대폰·웹캠만으로 해 봐요.</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>카메라 영상은 <b style="font-weight:900">이 기기 안에서만</b> 처리돼요. 인터넷으로 보내거나 저장하지 않아요.</span>
+  </div>
+
+  <!-- 큰 흐름 -->
+  <div class="flow" id="flow" aria-hidden="true">
+    <div class="fstep on" data-fstep="1"><span class="snum">1</span><span class="slab">카메라 켜기</span></div>
+    <div class="fstep" data-fstep="2"><span class="snum">2</span><span class="slab">예시 담기(학습)</span></div>
+    <div class="fstep" data-fstep="3"><span class="snum">3</span><span class="slab">분류하기</span></div>
+  </div>
+
+  <!-- STEP 1: 카메라 -->
+  <section class="panel" aria-labelledby="h1step">
+    <div class="phead"><span class="badge-n">1</span><div><div class="sub">Camera</div><h2 id="h1step">카메라 켜기</h2></div></div>
+    <p class="phint">아래 버튼을 누르면 카메라 사용을 물어봐요. <b>허용</b>을 눌러 주세요. 휴대폰은 <b>뒷면 카메라</b>가 켜져요.</p>
+
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="live-badge" id="liveBadge"><span class="lbdot"></span><span id="liveText">보는 중…</span></div>
+      <div class="placeholder" id="placeholder">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="var(--paper)" stroke-width="2"/><path d="M8 6l1.5-2.5h5L16 6" stroke="var(--paper)" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="var(--amber)" stroke-width="2"/></svg>
+        <div class="pmsg" id="phMsg">카메라를 켜면 여기에 영상이 나와요.<br>아래 <b>카메라 켜기</b>를 눌러 주세요.</div>
+      </div>
+    </div>
+
+    <div class="camrow">
+      <button class="btn" id="camBtn" style="max-width:260px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2.2"/><path d="M8 6l1.5-2.5h5L16 6" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.3" stroke="currentColor" stroke-width="2.2"/></svg>
+        <span id="camBtnLabel">카메라 켜기</span></button>
+      <button class="minibtn" id="stopBtn" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2.2"/></svg>
+        카메라 끄기</button>
+    </div>
+
+    <div class="permwarn" id="permWarn"></div>
+  </section>
+
+  <!-- STEP 2: 예시 담기 -->
+  <section class="panel" aria-labelledby="h2step" id="learnPanel" style="opacity:.5;pointer-events:none">
+    <div class="phead"><span class="badge-n">2</span><div><div class="sub">Teach</div><h2 id="h2step">예시 담기 (학습)</h2></div></div>
+    <p class="phint">물건을 카메라에 비추고 그 물건 상자의 <b>예시 담기</b>를 여러 번 눌러요. <b>많이·여러 각도로</b> 담을수록 잘 맞혀요. 이름도 바꿀 수 있어요.</p>
+
+    <div class="trays" id="trays"></div>
+
+    <div class="toolrow">
+      <button type="button" class="minibtn" id="resetBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M4 20v-5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        전부 지우고 다시 학습</button>
+      <span class="minibtn" id="totalPill" style="cursor:default">예시 합계 <b id="totalCount" style="margin-left:4px">0</b>장</span>
+    </div>
+  </section>
+
+  <!-- STEP 3: 분류하기 -->
+  <section class="panel" aria-labelledby="h3step" id="classPanel" style="opacity:.5;pointer-events:none">
+    <div class="phead"><span class="badge-n">3</span><div><div class="sub">Classify</div><h2 id="h3step">분류하기</h2></div></div>
+    <p class="phint">두 상자 이상에 예시가 있으면 시작할 수 있어요. 카메라에 물건을 비추면 <b>가장 가까운 상자</b>와 <b>신뢰도(%)</b>가 실시간으로 바뀌어요.</p>
+
+    <button class="btn" id="classifyBtn" style="margin-bottom:18px" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      <span id="classifyLabel">실시간 분류 시작</span></button>
+
+    <div class="result-wrap">
+      <div class="result-head">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10M12 20V4M20 20v-7" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg>
+        AI가 재는 비슷한 정도
+      </div>
+      <div class="bars" id="bars"></div>
+      <div class="verdict-big" id="verdictBig">분류를 시작하면 여기에 결과가 나와요.</div>
+    </div>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>관찰해요</b> — AI는 물건이 무엇인지 스스로 아는 게 아니라, 내가 담은 예시의 <b>색·밝기 특징</b>만 기억해요. 예시를 <b>많이·골고루</b> 담을수록, 그리고 각도·거리를 여러 가지로 담을수록 더 잘 맞혀요. 잘 못 맞히면 <b>예시를 더 담아</b> 보세요.</span>
+  </div>
+
+  <div class="quicklinks">
+    <div class="ql-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6v6M20 4l-9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>진짜로 만들어 보기</div>
+    <a class="ql" href="https://teachablemachine.withgoogle.com/" target="_blank" rel="noopener noreferrer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><path d="M8 21h8M12 18v3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><circle cx="15" cy="10" r="1.6" fill="currentColor"/></svg>
+      <span>티처블 머신 — 진짜 AI로 나만의 분류 모델 만들기</span>
+      <span class="arw" aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   미니 티처블 머신 — 순수 JS 특징 추출 + kNN(유클리드 거리) 분류
+   외부 라이브러리/CDN 없음. 카메라 프레임을 작은 캔버스로 줄여
+   색·밝기·대비·색히스토그램 특징 벡터를 뽑고, 저장된 예시들과
+   가장 가까운 이웃(kNN)으로 클래스를 정한다.
+   ─ 아래 순수 함수들(extractFeatures/euclid/knnClassify)은
+     카메라 없이 node로 단위 테스트할 수 있게 부수효과가 없다.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 특징 추출 ──────────────────────────────────────────────
+   입력: 다운스케일된 이미지의 RGBA 픽셀 배열(Uint8/일반 배열)과 폭·높이.
+   출력: 고정 길이 특징 벡터(정규화 0~1 근처).
+   구성:
+     0  평균 R,  1 평균 G,  2 평균 B         (전체 평균색)
+     3  평균 밝기
+     4  좌우 밝기 대비 (왼쪽-오른쪽, 0.5 중심)
+     5  상하 밝기 대비 (위-아래, 0.5 중심)
+     6~11 색상(Hue) 히스토그램 6빈 (빨강~보라 6구간 비율)
+   RGBA를 쓰지만 픽셀당 4바이트 가정. */
+function extractFeatures(px, w, h){
+  const n = w*h;
+  let sumR=0,sumG=0,sumB=0,sumL=0;
+  let lLeft=0,cntLeft=0,lRight=0,cntRight=0;
+  let lTop=0,cntTop=0,lBot=0,cntBot=0;
+  const hue=[0,0,0,0,0,0];
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      const r=px[i], g=px[i+1], b=px[i+2];
+      sumR+=r; sumG+=g; sumB+=b;
+      const lum=0.299*r+0.587*g+0.114*b;
+      sumL+=lum;
+      if(x<w/2){ lLeft+=lum; cntLeft++; } else { lRight+=lum; cntRight++; }
+      if(y<h/2){ lTop+=lum;  cntTop++;  } else { lBot+=lum;   cntBot++;  }
+      // Hue 6빈 (채도가 아주 낮으면 색 없음으로 무시)
+      const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+      if(d>18){
+        let hh;
+        if(mx===r)      hh=((g-b)/d)%6;
+        else if(mx===g) hh=(b-r)/d+2;
+        else            hh=(r-g)/d+4;
+        hh=(hh*60+360)%360;              // 0~360
+        const bin=Math.min(5, Math.floor(hh/60));
+        hue[bin]++;
+      }
+    }
+  }
+  const avgR=sumR/n/255, avgG=sumG/n/255, avgB=sumB/n/255;
+  const avgL=sumL/n/255;
+  const leftL=cntLeft?lLeft/cntLeft/255:0, rightL=cntRight?lRight/cntRight/255:0;
+  const topL =cntTop ?lTop /cntTop /255:0, botL =cntBot ?lBot /cntBot /255:0;
+  // 대비는 -1~1 → 0~1로 이동(0.5 중심)
+  const lrContrast=0.5+(leftL-rightL)/2;
+  const tbContrast=0.5+(topL-botL)/2;
+  const hueTotal=hue.reduce((a,c)=>a+c,0)||1;
+  const hueNorm=hue.map(c=>c/hueTotal);
+  return [avgR,avgG,avgB,avgL,lrContrast,tbContrast,
+          hueNorm[0],hueNorm[1],hueNorm[2],hueNorm[3],hueNorm[4],hueNorm[5]];
+}
+
+/* 특징별 가중치: 평균색·밝기를 색히스토그램보다 조금 크게 */
+const FEATURE_WEIGHTS=[1.3,1.3,1.3,1.0,0.8,0.8,0.6,0.6,0.6,0.6,0.6,0.6];
+
+/* ── 유클리드 거리(가중) ── */
+function euclid(a,b,weights){
+  let s=0;
+  for(let i=0;i<a.length;i++){
+    const w=weights?weights[i]:1;
+    const d=(a[i]-b[i])*w;
+    s+=d*d;
+  }
+  return Math.sqrt(s);
+}
+
+/* ── kNN 분류 ───────────────────────────────────────────────
+   samples: [{cls, feat:[...]}, ...] (모든 클래스 예시를 한 배열에)
+   query:   특징 벡터
+   k:       이웃 수
+   반환: { label, scores:{cls:확률}, best } — scores는 0~1로 정규화된 신뢰도.
+   거리를 유사도(가까울수록 큼)로 바꾼 뒤 클래스별 합산해 softmax 유사 정규화. */
+function knnClassify(samples, query, k, weights){
+  if(!samples || samples.length===0) return null;
+  const kk=Math.max(1, Math.min(k||3, samples.length));
+  // 모든 예시와의 거리
+  const dists=samples.map(s=>({cls:s.cls, d:euclid(query, s.feat, weights)}));
+  dists.sort((a,b)=>a.d-b.d);
+  const top=dists.slice(0,kk);
+  // 클래스별 가중 투표: 가까울수록 큰 가중치(1/(d+eps))
+  const vote={};
+  let voteSum=0;
+  top.forEach(t=>{
+    const wgt=1/(t.d+0.02);
+    vote[t.cls]=(vote[t.cls]||0)+wgt;
+    voteSum+=wgt;
+  });
+  // 존재하는 모든 클래스에 대해 점수(없으면 0)
+  const allCls=[...new Set(samples.map(s=>s.cls))];
+  const scores={};
+  allCls.forEach(c=>{ scores[c]=voteSum?((vote[c]||0)/voteSum):0; });
+  // 최다 득표 클래스
+  let best=null,bv=-1;
+  allCls.forEach(c=>{ if(scores[c]>bv){bv=scores[c];best=c;} });
+  return { label:best, scores, best, nearest:top[0] };
+}
+
+/* node 단위 테스트에서 쓰도록 export (브라우저에선 무시) */
+if(typeof module!=='undefined' && module.exports){
+  module.exports={extractFeatures, euclid, knnClassify, FEATURE_WEIGHTS};
+}
+
+/* ═══════════ 브라우저 전용 UI/카메라 (node 테스트 시 실행 안 함) ═══════════ */
+if(typeof document!=='undefined'){
+(function(){
+  const $=id=>document.getElementById(id);
+
+  const CLASS_COLORS=['#7C3AED','#F59E0B','#12B76A'];
+  const DEFAULT_NAMES=['물건 A','물건 B','배경'];
+  // 클래스 상태: id, 이름, 색, 예시(특징벡터 배열)
+  let classes=DEFAULT_NAMES.map((nm,i)=>({id:'c'+i, name:nm, color:CLASS_COLORS[i], samples:[]}));
+
+  let stream=null, facing='environment';
+  let classifying=false, classifyTimer=null;
+  const SMALL=32;                       // 다운스케일 캔버스 크기
+  const K=3;                            // kNN 이웃 수
+  const CLASSIFY_FPS=5;
+
+  // 오프스크린 작업 캔버스(미리보기와 분리)
+  const workCanvas=document.createElement('canvas');
+  workCanvas.width=SMALL; workCanvas.height=SMALL;
+  const workCtx=workCanvas.getContext('2d',{willReadFrequently:true});
+
+  const video=$('video'), stage=$('stage');
+
+  /* localStorage: 클래스 이름만 저장(모델 데이터는 메모리에만) */
+  function saveNames(){
+    try{
+      localStorage.setItem('mtm_names', JSON.stringify(classes.map(c=>c.name)));
+    }catch(e){/* 무시 */}
+  }
+  function loadNames(){
+    try{
+      const raw=localStorage.getItem('mtm_names');
+      if(raw){
+        const names=JSON.parse(raw);
+        if(Array.isArray(names)) names.forEach((nm,i)=>{ if(classes[i]&&typeof nm==='string'&&nm.trim()) classes[i].name=nm; });
+      }
+    }catch(e){/* 무시 */}
+  }
+
+  /* ── 현재 프레임 특징 뽑기 ── */
+  function grabFeatures(){
+    if(!stream || video.videoWidth===0) return null;
+    // 가운데를 정사각으로 잘라 다운스케일(비율 왜곡 줄이기)
+    const vw=video.videoWidth, vh=video.videoHeight;
+    const side=Math.min(vw,vh);
+    const sx=(vw-side)/2, sy=(vh-side)/2;
+    workCtx.drawImage(video, sx,sy,side,side, 0,0,SMALL,SMALL);
+    const img=workCtx.getImageData(0,0,SMALL,SMALL);
+    return extractFeatures(img.data, SMALL, SMALL);
+  }
+
+  /* ── 렌더: 트레이 ── */
+  function renderTrays(){
+    const wrap=$('trays'); wrap.innerHTML='';
+    classes.forEach((c,idx)=>{
+      const tray=document.createElement('div');
+      tray.className='tray';
+      tray.innerHTML=
+        '<div class="th"><span class="dot" style="background:'+c.color+'"></span>'
+        + '<input class="rn" type="text" value="'+escapeAttr(c.name)+'" aria-label="'+(idx+1)+'번 상자 이름" maxlength="10">'
+        + '<span class="tcount" id="cnt_'+c.id+'">'+c.samples.length+'</span></div>'
+        + '<div class="binrow" id="bin_'+c.id+'" aria-label="'+escapeAttr(c.name)+' 예시 모음"></div>'
+        + '<button type="button" class="addbtn" data-cls="'+c.id+'">'
+        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'
+        + '<span>예시 담기</span></button>';
+      wrap.appendChild(tray);
+      // 이름 편집
+      const input=tray.querySelector('.rn');
+      input.addEventListener('input',()=>{ c.name=input.value||('상자'+(idx+1)); saveNames(); renderBars(); });
+      // 예시 담기
+      const addBtn=tray.querySelector('.addbtn');
+      addBtn.addEventListener('click',()=>addSample(c.id, addBtn));
+    });
+    refreshTrayContents();
+    updateAddEnabled();
+  }
+  function refreshTrayContents(){
+    classes.forEach(c=>{
+      const cnt=$('cnt_'+c.id), bin=$('bin_'+c.id);
+      if(cnt) cnt.textContent=c.samples.length;
+      if(bin){
+        bin.innerHTML='';
+        // 최근 24개만 칩으로 표시(가벼움)
+        c.samples.slice(-24).forEach(s=>{
+          const chip=document.createElement('span');
+          chip.className='chip';
+          // 예시의 평균색으로 칩 색칠(특징 0,1,2)
+          const r=Math.round(s.feat[0]*255), g=Math.round(s.feat[1]*255), b=Math.round(s.feat[2]*255);
+          chip.style.background='rgb('+r+','+g+','+b+')';
+          chip.setAttribute('aria-hidden','true');
+          bin.appendChild(chip);
+        });
+      }
+    });
+    const total=classes.reduce((a,c)=>a+c.samples.length,0);
+    $('totalCount').textContent=total;
+  }
+  function updateAddEnabled(){
+    const on=!!stream;
+    document.querySelectorAll('.addbtn').forEach(b=>b.disabled=!on);
+  }
+
+  function addSample(clsId, btn){
+    const feat=grabFeatures();
+    if(!feat) return;
+    const c=classes.find(x=>x.id===clsId);
+    c.samples.push({cls:clsId, feat});
+    refreshTrayContents();
+    updateClassifyEnabled();
+    // 담기 피드백(짧은 눌림 애니메이션 대체: 카운트 강조)
+    if(btn){ btn.animate&&btn.animate([{transform:'scale(1)'},{transform:'scale(.94)'},{transform:'scale(1)'}],{duration:160}); }
+    setFlow(2);
+  }
+
+  /* 분류 가능 조건: 예시가 있는 클래스가 2개 이상 */
+  function classesWithData(){ return classes.filter(c=>c.samples.length>0).length; }
+  function updateClassifyEnabled(){
+    const ok=classesWithData()>=2;
+    $('classifyBtn').disabled=!ok;
+    if(!ok && classifying) stopClassify();
+  }
+
+  /* ── 결과 막대 렌더(뼈대) ── */
+  function renderBars(scores){
+    const wrap=$('bars'); wrap.innerHTML='';
+    let winner=null,wv=-1;
+    if(scores){ classes.forEach(c=>{ const v=scores[c.id]||0; if(v>wv){wv=v;winner=c.id;} }); }
+    classes.forEach(c=>{
+      const v=scores?(scores[c.id]||0):0;
+      const pct=Math.round(v*100);
+      const row=document.createElement('div');
+      row.className='bar-row'+(scores&&c.id===winner&&wv>0?' win':'');
+      row.innerHTML=
+        '<span class="bname"><span class="bdot" style="background:'+c.color+'"></span>'+escapeHtml(c.name)+'</span>'
+        + '<span class="bar-track"><span class="bar-fill" style="width:'+pct+'%;background:'+c.color+'"></span></span>'
+        + '<span class="bpct">'+pct+'%</span>';
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ── 실시간 분류 루프 ── */
+  function classifyTick(){
+    const feat=grabFeatures();
+    if(!feat) return;
+    const samples=[];
+    classes.forEach(c=>c.samples.forEach(s=>samples.push(s)));
+    const res=knnClassify(samples, feat, K, FEATURE_WEIGHTS);
+    if(!res){ return; }
+    renderBars(res.scores);
+    const c=classes.find(x=>x.id===res.label);
+    const conf=Math.round((res.scores[res.label]||0)*100);
+    const vb=$('verdictBig'), lt=$('liveText');
+    if(conf<45){
+      vb.innerHTML='<span class="tag">'+escapeHtml(c?c.name:'?')+'</span> 인 것 같아요 '
+        + '<span class="lowconf">(신뢰도 '+conf+'% — 애매해요. 예시를 더 담아 보세요)</span>';
+      lt.textContent=(c?c.name:'?')+' '+conf+'%';
+    }else{
+      vb.innerHTML='이건 <span class="tag">'+escapeHtml(c?c.name:'?')+'</span> 이에요! 신뢰도 <b>'+conf+'%</b>';
+      lt.textContent=(c?c.name:'?')+' '+conf+'%';
+    }
+  }
+  function startClassify(){
+    if(classifying || classesWithData()<2) return;
+    classifying=true;
+    stage.classList.add('classifying');
+    $('classifyLabel').textContent='분류 멈추기';
+    $('classifyBtn').classList.add('rec');
+    setFlow(3);
+    classifyTick();
+    classifyTimer=setInterval(classifyTick, Math.round(1000/CLASSIFY_FPS));
+  }
+  function stopClassify(){
+    classifying=false;
+    if(classifyTimer){ clearInterval(classifyTimer); classifyTimer=null; }
+    stage.classList.remove('classifying');
+    $('classifyLabel').textContent='실시간 분류 시작';
+    $('classifyBtn').classList.remove('rec');
+  }
+  $('classifyBtn').addEventListener('click',()=>{ classifying?stopClassify():startClassify(); });
+
+  /* ── 카메라 켜기/끄기 ── */
+  async function startCamera(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showPerm('이 브라우저는 카메라를 지원하지 않아요. <b>휴대폰이나 웹캠이 있는 PC의 최신 브라우저</b>에서 열어 주세요.');
+      return;
+    }
+    setBtnBusy(true);
+    let s=null;
+    try{
+      s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      facing='environment';
+    }catch(err1){
+      // environment 실패 → user(전면)로 폴백
+      try{
+        s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+        facing='user';
+      }catch(err2){
+        setBtnBusy(false);
+        handleCamError(err2);
+        return;
+      }
+    }
+    stream=s;
+    video.srcObject=s;
+    try{ await video.play(); }catch(e){/* autoplay 정책, 무시 */}
+    stage.classList.add('live');
+    stage.classList.toggle('env', facing==='environment');
+    hidePerm();
+    setBtnBusy(false);
+    $('camBtnLabel').textContent='카메라 다시 켜기';
+    $('stopBtn').style.display='';
+    // 학습 패널 열기
+    openPanel('learnPanel');
+    updateAddEnabled();
+    setFlow(2);
+  }
+  function stopCamera(){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    video.srcObject=null;
+    stage.classList.remove('live');
+    stopClassify();
+    updateAddEnabled();
+    $('stopBtn').style.display='none';
+    $('camBtnLabel').textContent='카메라 켜기';
+    $('phMsg').innerHTML='카메라를 껐어요.<br>다시 켜려면 <b>카메라 켜기</b>를 눌러 주세요.';
+    setFlow(1);
+  }
+  function handleCamError(err){
+    const name=err&&err.name?err.name:'';
+    if(name==='NotAllowedError'||name==='SecurityError'){
+      showPerm('카메라 사용이 <b>거부</b>됐어요. 주소창 옆 카메라 아이콘에서 <b>허용</b>으로 바꾼 뒤 다시 눌러 주세요. (안전을 위해 <b>https</b> 주소에서만 켜져요.)');
+    }else if(name==='NotFoundError'||name==='OverconstrainedError'||name==='DevicesNotFoundError'){
+      showPerm('카메라를 찾지 못했어요. <b>웹캠이 연결된 PC</b>나 <b>휴대폰</b>에서 열어 주세요.');
+    }else if(name==='NotReadableError'){
+      showPerm('다른 앱이 카메라를 쓰고 있어요. 그 앱을 닫고 다시 눌러 주세요.');
+    }else{
+      showPerm('카메라를 켤 수 없어요. <b>휴대폰이나 웹캠이 있는 PC</b>에서 열고, 카메라를 <b>허용</b>해 주세요.');
+    }
+  }
+  function setBtnBusy(b){
+    const btn=$('camBtn');
+    btn.disabled=b;
+    $('camBtnLabel').textContent=b?'카메라 여는 중…':(stream?'카메라 다시 켜기':'카메라 켜기');
+  }
+  function showPerm(html){ const w=$('permWarn'); w.innerHTML=html; w.classList.add('show'); }
+  function hidePerm(){ $('permWarn').classList.remove('show'); }
+
+  $('camBtn').addEventListener('click',startCamera);
+  $('stopBtn').addEventListener('click',stopCamera);
+
+  /* ── 초기화 ── */
+  $('resetBtn').addEventListener('click',()=>{
+    stopClassify();
+    classes.forEach(c=>c.samples=[]);
+    refreshTrayContents();
+    updateClassifyEnabled();
+    renderBars(null);
+    $('verdictBig').textContent='예시를 지웠어요. 다시 담아 학습해 보세요.';
+    setFlow(2);
+  });
+
+  /* ── 패널 열기/스텝 ── */
+  function openPanel(id){ const p=$(id); p.style.opacity='1'; p.style.pointerEvents='auto'; }
+  function setFlow(n){
+    document.querySelectorAll('#flow .fstep').forEach(el=>{
+      const s=+el.dataset.fstep;
+      el.classList.toggle('on', s===n);
+      el.classList.toggle('done', s<n);
+    });
+    if(n>=2) openPanel('classPanel');
+  }
+
+  /* ── 유틸: 이스케이프 ── */
+  function escapeHtml(s){ return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+  function escapeAttr(s){ return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+  /* 화면 나갈 때 카메라 정리 */
+  window.addEventListener('pagehide',()=>{ if(stream) stream.getTracks().forEach(t=>t.stop()); });
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopClassify(); });
+
+  // 초기 렌더
+  loadNames();
+  renderTrays();
+  renderBars(null);
+})();
+}
+</script>
+</body>
+</html>

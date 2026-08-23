@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물방울 수평계 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-user-select:none;user-select:none;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:20px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  /* stage */
+  .stage{display:grid;grid-template-columns:1fr .95fr;gap:20px}
+  @media(max-width:720px){.stage{grid-template-columns:1fr}}
+
+  .vialhint{font-size:12.5px;font-weight:800;color:var(--muted);text-align:center;margin-bottom:8px}
+  .vialbox{background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);padding:14px;touch-action:none}
+  .vialsvg{display:block;width:100%;height:auto;max-width:340px;margin:0 auto}
+  .bubble{transition:transform .1s linear;will-change:transform}
+
+  /* tube level (secondary) */
+  .tube{margin-top:14px}
+  .tubesvg{display:block;width:100%;height:auto}
+  .tbubble{transition:transform .1s linear;will-change:transform}
+
+  .vals{display:flex;gap:12px;margin-top:14px}
+  .valcard{flex:1;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:10px 12px;text-align:center}
+  .valcard .vk{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .valcard .vv{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .valcard .vu{font-size:12px;font-weight:800;color:var(--muted)}
+  .valcard.x .vv{color:var(--point)}
+  .valcard.y .vv{color:var(--amber)}
+
+  .levelstate{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;
+    font-size:15px;font-weight:900;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 14px;min-height:48px}
+  .levelstate .dot{width:16px;height:16px;border-radius:50%;background:var(--muted);border:2px solid var(--ink);flex-shrink:0;transition:background .1s}
+  .levelstate.ok{background:var(--green);color:#fff}
+  .levelstate.ok .dot{background:#fff}
+
+  .sliders{margin-top:16px;display:grid;gap:12px}
+  .srow{display:flex;align-items:center;gap:10px}
+  .srow label{font-size:13px;font-weight:900;width:76px;flex-shrink:0}
+  .srow input[type=range]{flex:1;height:44px;-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer}
+  .srow input[type=range]:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .srow input[type=range]::-webkit-slider-runnable-track{height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px}
+  .srow input[type=range]::-moz-range-track{height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px}
+  .srow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;margin-top:-13px;
+    background:var(--point);border:2.5px solid var(--ink);border-radius:50%;box-shadow:var(--hard-sm)}
+  .srow input[type=range]::-moz-range-thumb{width:30px;height:30px;background:var(--point);border:2.5px solid var(--ink);border-radius:50%;box-shadow:var(--hard-sm)}
+  .sliders{display:none}
+  .sliders.show{display:grid}
+
+  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;flex:1;min-width:130px;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:12px 14px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn.on{background:var(--point);color:#fff}
+  .btn svg{flex-shrink:0}
+
+  /* mini game panel */
+  .game{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .ringwrap{position:relative;width:170px;height:170px}
+  .ringwrap svg{display:block}
+  .ringwrap .rlabel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .ringwrap .rnum{font-size:44px;font-weight:900;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+  .ringwrap .rcap{font-size:12px;font-weight:800;color:var(--muted);margin-top:4px}
+  .gamedesc{font-size:14px;font-weight:700;color:var(--muted);text-align:center}
+  .gamedesc b{color:var(--ink)}
+
+  .fallback{display:none;background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);padding:12px 16px;font-size:13.5px;font-weight:700;margin:18px 0 0}
+  .fallback.show{display:block}
+  .fallback b{color:var(--ink)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">센서 놀이 · 수평계</span>
+  </nav>
+
+  <header>
+    <span class="kicker">폰 센서로 수평 맞히기</span>
+    <h1>물방울 <span class="u">수평계</span></h1>
+    <p class="lead">휴대폰을 손으로 살짝 기울여 봐요. 폰 속 <b>기울기 센서</b>가 앞뒤·좌우 각도를 읽어 <b>물방울</b>을 움직여요. 물방울을 한가운데 동그라미 안에 <b>3초 동안</b> 딱 멈춰 놓으면 성공이에요.</p>
+    <div class="chips">
+      <span class="chip pt">센서 · 기울기(각도)</span>
+      <span class="chip pt">개념 · 수평(±3°)</span>
+      <span class="chip">도전 · 3초 유지</span>
+    </div>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>센서는 버튼을 눌러 <b>내가 허락할 때만</b> 켜져요. 폰이 없거나 센서를 못 쓰면 아래 <b>슬라이더</b>로도 똑같이 놀 수 있어요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>① 폰을 기울여 물방울을 움직여요</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <section class="panel">
+    <div class="stage">
+      <!-- 왼쪽: 원형 수평계 + 값 + 컨트롤 -->
+      <div>
+        <div class="vialhint">물방울을 한가운데 동그라미 안으로 옮겨 봐요</div>
+        <div class="vialbox">
+          <svg class="vialsvg" id="vial" viewBox="0 0 220 220" role="img" aria-label="물방울 수평계. 폰을 기울이면 물방울이 움직여요.">
+            <!-- 유리병 바깥 원 -->
+            <circle cx="110" cy="110" r="98" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+            <!-- 눈금 십자선 -->
+            <line x1="110" y1="18" x2="110" y2="202" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.3"/>
+            <line x1="18" y1="110" x2="202" y2="110" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.3"/>
+            <!-- 중간 눈금 원 -->
+            <circle cx="110" cy="110" r="60" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.3"/>
+            <!-- 목표 링(±3°) -->
+            <circle id="targetRing" cx="110" cy="110" r="26" fill="none" stroke="var(--point)" stroke-width="3"/>
+            <!-- 물방울 -->
+            <g class="bubble" id="bubble">
+              <circle cx="110" cy="110" r="20" fill="var(--green)" stroke="var(--ink)" stroke-width="3" opacity="0.92"/>
+              <circle cx="103" cy="103" r="5" fill="#fff" opacity="0.85"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- 보조: 가로 튜브형 수평계 -->
+        <div class="tube">
+          <svg class="tubesvg" id="tube" viewBox="0 0 340 46" role="img" aria-label="가로 수평계. 좌우 기울기를 보여줘요.">
+            <rect x="4" y="10" width="332" height="26" rx="13" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+            <rect x="150" y="6" width="40" height="34" rx="8" fill="none" stroke="var(--point)" stroke-width="2.5"/>
+            <g class="tbubble" id="tbubble">
+              <circle cx="170" cy="23" r="11" fill="var(--green)" stroke="var(--ink)" stroke-width="3" opacity="0.92"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="vals" aria-live="polite" id="valsLive">
+          <div class="valcard x">
+            <div class="vk">좌우 기울기</div>
+            <div class="vv"><span id="valG">0</span><span style="font-size:16px">°</span></div>
+            <div class="vu">gamma · 왼쪽(-) ~ 오른쪽(+)</div>
+          </div>
+          <div class="valcard y">
+            <div class="vk">앞뒤 기울기</div>
+            <div class="vv"><span id="valB">0</span><span style="font-size:16px">°</span></div>
+            <div class="vu">beta · 앞(-) ~ 뒤(+)</div>
+          </div>
+        </div>
+
+        <div class="levelstate" id="levelstate" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="levelstatetxt">아직 기울어져 있어요 — 수평을 맞춰 봐요</span>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn ghost" id="btnReset" type="button" aria-label="물방울과 도전 다시 시작">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M4 20v-5h5" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            다시 도전</button>
+          <button class="btn" id="btnSensor" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="3" stroke="var(--ink)" stroke-width="2.2"/><circle cx="12" cy="17" r="1.6" fill="var(--ink)"/></svg>
+            <span id="sensorLabel">센서 켜기</span></button>
+        </div>
+
+        <div class="fallback" id="fallback">이 기기에서는 폰 센서를 쓸 수 없어요. 휴대폰(HTTPS)에서 열어 주세요. 아래 <b>슬라이더</b>로도 똑같이 체험할 수 있어요.</div>
+
+        <div class="sliders" id="sliders">
+          <div class="srow">
+            <label for="sldG">좌우(gamma)</label>
+            <input type="range" id="sldG" min="-45" max="45" value="0" step="1" aria-label="좌우 기울기 조절">
+          </div>
+          <div class="srow">
+            <label for="sldB">앞뒤(beta)</label>
+            <input type="range" id="sldB" min="-45" max="45" value="0" step="1" aria-label="앞뒤 기울기 조절">
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 미니게임 3초 유지 -->
+      <div>
+        <div class="cmp-head" style="margin:0 0 12px"><h2 style="font-size:18px">② 3초 유지 도전</h2><span class="bar" aria-hidden="true"></span></div>
+        <div class="game">
+          <div class="ringwrap" role="progressbar" id="progress" aria-label="수평 유지 시간" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0">
+            <svg viewBox="0 0 170 170" width="170" height="170" aria-hidden="true">
+              <circle cx="85" cy="85" r="72" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+              <circle cx="85" cy="85" r="72" fill="none" stroke="var(--point-soft)" stroke-width="12"/>
+              <circle id="progArc" cx="85" cy="85" r="72" fill="none" stroke="var(--green)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4"
+                transform="rotate(-90 85 85)"/>
+            </svg>
+            <div class="rlabel">
+              <div class="rnum"><span id="cd">0.0</span></div>
+              <div class="rcap">초 유지 중</div>
+            </div>
+          </div>
+          <div class="gamedesc">물방울이 <b>파란 링(±3°)</b> 안에 있으면 시간이 차올라요. 벗어나면 <b>0으로</b> 되돌아가요.</div>
+        </div>
+
+        <div class="badge" id="badge" aria-live="polite">
+          <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><path d="m17 20 4 4 10-10" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+          <div><div class="bt">수평 유지 성공!</div><div class="bd">물방울을 3초 동안 한가운데에 딱 멈춰 놓았어요.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="obs" id="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>관찰해 봐요</b> — 진짜 수평계도 이렇게 <b>물방울</b>이 가운데 오면 수평이에요. 폰 센서는 기울기를 <b>각도(°) 숫자</b>로 알려 줘요. 앞뒤(beta)와 좌우(gamma) 두 값이 모두 <b>0에 가까울(±3°)</b> 때만 수평이 돼요. 로봇도 이 센서로 <b>넘어지지 않게</b> 자기 자세를 지킨답니다.</span>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ── 상태 ──
+let gammaV=0, betaV=0;        // 도 단위
+let sensorOn=false;
+let sawEvent=false;           // 실제 orientation 이벤트가 온 적 있는지
+let sensorWatchTimer=null;    // 데스크톱 감지용 2초 타이머
+let holdMs=0;                 // 수평 유지 누적(ms)
+let lastTick=0;               // rAF 시각
+let rafId=null;
+let succeeded=false;
+const TOL=3;                  // 허용 오차(도)
+const GOAL_MS=3000;           // 3초
+const MAX_DEG=45;             // 물방울이 끝에 닿는 각도
+const MAX_PX_ROUND=70;        // 원형 물방울 최대 이동(px, viewBox 기준)
+const MAX_PX_TUBE=150;        // 튜브 물방울 최대 이동(px)
+const ARC_LEN=452.4;          // 2πr, r=72
+
+// ── 순수 함수(node로 검증 가능) ──
+function withinLevel(g,b,tol){return Math.abs(g)<=tol && Math.abs(b)<=tol;}
+function bubbleOffset(deg,maxDeg,maxPx){return Math.max(-maxPx,Math.min(maxPx, deg/maxDeg*maxPx));}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+// ── 렌더 ──
+function setTilt(g,b){
+  gammaV=g;
+  betaV=b;
+  render();
+}
+function render(){
+  const gr=Math.round(gammaV);
+  const br=Math.round(betaV);
+  $('valG').textContent=gr;
+  $('valB').textContent=br;
+
+  // 원형 물방울 위치: gamma → x, beta → y
+  const bx=bubbleOffset(gammaV,MAX_DEG,MAX_PX_ROUND);
+  const by=bubbleOffset(betaV,MAX_DEG,MAX_PX_ROUND);
+  $('bubble').setAttribute('transform','translate('+bx.toFixed(1)+','+by.toFixed(1)+')');
+
+  // 튜브 물방울: 좌우(gamma)만
+  const tx=bubbleOffset(gammaV,MAX_DEG,MAX_PX_TUBE);
+  $('tbubble').setAttribute('transform','translate('+tx.toFixed(1)+',0)');
+
+  // 수평 판정 표시
+  const ok=withinLevel(gammaV,betaV,TOL);
+  const ls=$('levelstate');
+  if(ok){
+    ls.classList.add('ok');
+    $('levelstatetxt').textContent='수평이에요! 이대로 3초 유지해 봐요';
+  }else{
+    ls.classList.remove('ok');
+    $('levelstatetxt').textContent='아직 기울어져 있어요 — 수평을 맞춰 봐요';
+  }
+  // 물방울 색: 수평이면 초록 강조 유지, 아니면 살짝 앰버
+  $('bubble').querySelector('circle').setAttribute('fill', ok?'var(--green)':'var(--amber)');
+  $('tbubble').querySelector('circle').setAttribute('fill', ok?'var(--green)':'var(--amber)');
+}
+
+// ── 미니게임 루프 ──
+function gameLoop(ts){
+  if(lastTick===0) lastTick=ts;
+  const dt=ts-lastTick;
+  lastTick=ts;
+  if(withinLevel(gammaV,betaV,TOL)){
+    holdMs=Math.min(GOAL_MS, holdMs+dt);
+  }else{
+    holdMs=0;
+  }
+  updateProgress();
+  if(holdMs>=GOAL_MS && !succeeded){
+    succeeded=true;
+    $('badge').classList.add('show');
+  }
+  rafId=requestAnimationFrame(gameLoop);
+}
+function updateProgress(){
+  const sec=holdMs/1000;
+  $('cd').textContent=sec.toFixed(1);
+  const frac=holdMs/GOAL_MS;
+  $('progArc').setAttribute('stroke-dashoffset', (ARC_LEN*(1-frac)).toFixed(1));
+  $('progress').setAttribute('aria-valuenow', sec.toFixed(1));
+}
+function startLoop(){
+  if(rafId!=null) return;
+  lastTick=0;
+  rafId=requestAnimationFrame(gameLoop);
+}
+function stopLoop(){
+  if(rafId!=null){ cancelAnimationFrame(rafId); rafId=null; }
+}
+
+// ── 다시 도전 ──
+function resetGame(){
+  holdMs=0; succeeded=false;
+  $('badge').classList.remove('show');
+  updateProgress();
+}
+$('btnReset').addEventListener('click',resetGame);
+
+// ── 슬라이더(폴백/보조) ──
+function showSliders(){ $('sliders').classList.add('show'); }
+$('sldG').addEventListener('input',e=>{ setTilt(+e.target.value, betaV); });
+$('sldB').addEventListener('input',e=>{ setTilt(gammaV, +e.target.value); });
+// 슬라이더는 값도 되돌려 줘야 하므로 render에서 직접 세팅하지 않고 여기서 동기화
+function syncSliders(){ $('sldG').value=Math.round(gammaV); $('sldB').value=Math.round(betaV); }
+
+// ── 기기 센서 ──
+function handleOrientation(e){
+  sawEvent=true;
+  if(sensorWatchTimer){ clearTimeout(sensorWatchTimer); sensorWatchTimer=null; }
+  const g=(e.gamma==null)?0:e.gamma;   // 좌우 -90~90
+  let b=(e.beta==null)?0:e.beta;       // 앞뒤 -180~180
+  b=clamp(b,-90,90);
+  setTilt(clamp(g,-90,90), b);
+}
+function showFallback(){
+  $('fallback').classList.add('show');
+  showSliders();
+}
+async function turnOn(btn){
+  const hasDO = typeof DeviceOrientationEvent!=='undefined';
+  if(!hasDO){ showFallback(); return; }
+  try{
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      const res=await DeviceOrientationEvent.requestPermission();
+      if(res!=='granted'){ showFallback(); return; }
+    }
+    sawEvent=false;
+    window.addEventListener('deviceorientation',handleOrientation);
+    sensorOn=true; btn.classList.add('on'); $('sensorLabel').textContent='센서 끄기';
+    // 데스크톱 크롬 등: 2초 안에 이벤트 하나도 없으면 폴백
+    if(sensorWatchTimer){ clearTimeout(sensorWatchTimer); }
+    sensorWatchTimer=setTimeout(()=>{
+      if(!sawEvent){ showFallback(); }
+    },2000);
+  }catch(err){ showFallback(); }
+}
+function turnOff(btn){
+  window.removeEventListener('deviceorientation',handleOrientation);
+  if(sensorWatchTimer){ clearTimeout(sensorWatchTimer); sensorWatchTimer=null; }
+  sensorOn=false; btn.classList.remove('on'); $('sensorLabel').textContent='센서 켜기';
+}
+$('btnSensor').addEventListener('click',function(){
+  if(sensorOn){ turnOff(this); }
+  else { turnOn(this); }
+});
+
+// ── 정리(누수 방지) ──
+function cleanup(){
+  window.removeEventListener('deviceorientation',handleOrientation);
+  if(sensorWatchTimer){ clearTimeout(sensorWatchTimer); sensorWatchTimer=null; }
+  stopLoop();
+}
+window.addEventListener('pagehide',cleanup);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ cleanup(); }
+  else { startLoop(); }
+});
+
+// 슬라이더 값 동기화를 render 뒤에 붙이기
+const _origRender=render;
+render=function(){ _origRender(); syncSliders(); };
+
+// 시작
+resetGame();
+render();
+startLoop();
+</script>
+</body>
+</html>

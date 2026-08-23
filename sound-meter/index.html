@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>소리 크기 측정기 · 신나는 로봇 창작랩</title>
+<style>
+:root{
+  --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+  --point:#7C3AED; --point-soft:#EDE7FF;
+  --amber:#FFB800; --amber-soft:#FFF0C7;
+  --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+  --r:20px; --r-sm:13px;
+  --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:17px; color:var(--ink); background:var(--paper);
+  background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+  background-size:22px 22px; background-position:-11px -11px;
+  line-height:1.5; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:640px;margin:0 auto;padding:16px 16px 60px;}
+a{color:inherit;}
+
+/* Nav */
+.nav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px;}
+.back,.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  border:2.5px solid var(--ink);border-radius:999px;
+  padding:9px 16px;font-weight:700;text-decoration:none;
+  background:var(--surface);box-shadow:var(--hard-sm);min-height:44px;
+}
+.pill.point{background:var(--point);color:#fff;}
+
+/* Hero */
+.kicker{color:var(--amber);text-transform:uppercase;font-weight:800;letter-spacing:.08em;font-size:14px;
+  -webkit-text-stroke:.4px var(--ink);}
+h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;margin:6px 0 8px;line-height:1.05;}
+.lead{color:var(--muted);margin:0 0 8px;font-weight:600;}
+
+.card{
+  background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);
+  box-shadow:var(--hard);padding:18px;margin:18px 0;
+}
+.card h2{margin:0 0 12px;font-size:22px;font-weight:900;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;}
+
+/* Buttons */
+button{
+  font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;
+  border:2.5px solid var(--ink);border-radius:var(--r-sm);
+  background:var(--surface);color:var(--ink);
+  padding:12px 18px;box-shadow:var(--hard-sm);min-height:44px;
+  transition:transform .08s ease, box-shadow .08s ease;
+}
+button:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink);}
+button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
+button.primary{background:var(--amber);}
+button.point{background:var(--point);color:#fff;}
+button.rec{background:var(--red);color:#fff;}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--hard-sm);}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;}
+
+:focus-visible{outline:3px solid var(--point);outline-offset:3px;}
+
+/* Meter */
+.meterwrap{margin:8px 0 4px;}
+.meterlabel{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;margin-bottom:8px;}
+.meterlabel .num{font-size:38px;font-weight:900;letter-spacing:-.03em;}
+.meter{
+  height:44px;border:3px solid var(--ink);border-radius:var(--r-sm);
+  background:var(--point-soft);overflow:hidden;position:relative;
+}
+.meter .fill{
+  height:100%;width:0%;background:var(--green);
+  transition:width .06s linear, background-color .12s linear;
+}
+.ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:700;margin-top:4px;}
+
+/* Mode toggle */
+.modetabs{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.modetabs button{flex:1;min-width:150px;}
+.modetabs button[aria-selected="true"]{background:var(--point);color:#fff;}
+
+.status{
+  background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+  padding:12px 14px;font-weight:700;margin:12px 0;min-height:52px;display:flex;align-items:center;
+}
+.badge{
+  display:inline-block;background:var(--amber);border:2.5px solid var(--ink);border-radius:999px;
+  padding:6px 14px;font-weight:900;box-shadow:var(--hard-sm);margin-left:8px;
+  animation:pop .35s ease;
+}
+@keyframes pop{0%{transform:scale(.5);}70%{transform:scale(1.12);}100%{transform:scale(1);}}
+
+.best{font-weight:800;}
+.best b{font-size:26px;color:var(--point);}
+
+/* quiet progress */
+.qprog{height:26px;border:3px solid var(--ink);border-radius:var(--r-sm);background:var(--amber-soft);overflow:hidden;margin:10px 0;}
+.qprog .qfill{height:100%;width:0%;background:var(--green);transition:width .08s linear;}
+
+/* fallback / notice */
+.notice{
+  background:var(--amber-soft);border:3px solid var(--ink);border-radius:var(--r);
+  box-shadow:var(--hard);padding:16px;margin:16px 0;
+}
+.notice h3{margin:0 0 8px;font-weight:900;display:flex;gap:8px;align-items:center;}
+.notice.hidden{display:none;}
+.demo{margin-top:12px;}
+.demo label{font-weight:800;display:block;margin-bottom:6px;}
+input[type=range]{width:100%;height:44px;accent-color:var(--point);}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;}
+input[type=range]::-webkit-slider-runnable-track{height:12px;background:var(--point-soft);border:2.5px solid var(--ink);border-radius:999px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:44px;height:44px;margin-top:-19px;background:var(--point);border:3px solid var(--ink);border-radius:50%;box-shadow:var(--hard-sm);cursor:pointer;}
+input[type=range]::-moz-range-track{height:12px;background:var(--point-soft);border:2.5px solid var(--ink);border-radius:999px;}
+input[type=range]::-moz-range-thumb{width:40px;height:40px;background:var(--point);border:3px solid var(--ink);border-radius:50%;cursor:pointer;}
+
+.privacy{color:var(--muted);font-size:14px;font-weight:600;margin-top:6px;border-left:4px solid var(--point);padding-left:10px;}
+.hint{color:var(--muted);font-size:14px;font-weight:600;}
+
+footer{margin-top:36px;text-align:center;}
+footer a{
+  display:inline-flex;align-items:center;gap:6px;
+  border:2.5px solid var(--ink);border-radius:999px;padding:10px 20px;
+  font-weight:800;text-decoration:none;background:var(--surface);box-shadow:var(--hard-sm);min-height:44px;
+}
+.hidden{display:none;}
+svg{flex:none;}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="pill point">센서 놀이 · 소리</span>
+  </nav>
+
+  <header>
+    <div class="kicker">신나는 로봇 창작랩</div>
+    <h1>소리 크기 측정기</h1>
+    <p class="lead">폰 마이크로 우리 목소리가 얼마나 큰지 재 보고, 두 가지 소리 게임에 도전해요!</p>
+  </header>
+
+  <!-- Fallback / demo notice -->
+  <div class="notice hidden" id="notice" role="alert">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v9" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/><path d="M6 11a6 6 0 0012 0" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/><path d="M12 18v3" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/><path d="M4 4l16 16" stroke="#FF4D4D" stroke-width="2.5" stroke-linecap="round"/></svg>
+      마이크를 쓸 수 없어요
+    </h3>
+    <p id="noticeMsg">마이크 권한을 허용하고, 휴대폰(HTTPS)에서 열어 주세요.</p>
+    <div class="demo">
+      <label for="demoSlider">체험용 소리 조절 (마이크 없이 게임 연습하기)</label>
+      <input type="range" id="demoSlider" min="0" max="100" value="0" aria-label="체험용 소리 크기 조절">
+      <p class="hint">손잡이를 움직이면 아래 측정기와 게임이 똑같이 움직여요.</p>
+    </div>
+  </div>
+
+  <!-- Mic control -->
+  <div class="card">
+    <div class="btnrow">
+      <button id="micBtn" class="primary" type="button" aria-pressed="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" stroke="#141414" stroke-width="2.5"/><path d="M6 11a6 6 0 0012 0" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/><path d="M12 17v3" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <span id="micLabel">마이크 켜기</span>
+      </button>
+    </div>
+    <p class="privacy">마이크 소리는 이 폰 안에서만 크기를 재고, 어디에도 저장·전송하지 않아요.</p>
+
+    <div class="meterwrap">
+      <div class="meterlabel"><span>지금 소리 크기</span><span class="num" id="levelNum">0</span></div>
+      <div class="meter" role="meter" aria-label="소리 크기 측정기" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter">
+        <div class="fill" id="meterFill"></div>
+      </div>
+      <div class="ticks"><span>조용</span><span>보통</span><span>시끌</span></div>
+    </div>
+  </div>
+
+  <!-- Games -->
+  <div class="card">
+    <div class="modetabs" role="tablist" aria-label="게임 고르기">
+      <button id="tabLoud" role="tab" aria-selected="true" type="button">누가 제일 크게?</button>
+      <button id="tabQuiet" role="tab" aria-selected="false" type="button">3초 정적 유지</button>
+    </div>
+
+    <!-- Loud game -->
+    <section id="modeLoud">
+      <h2>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z" stroke="#141414" stroke-width="2.5" stroke-linejoin="round"/><path d="M16 8c1.5 1.2 1.5 6.8 0 8" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round"/><path d="M19 6c2.5 2 2.5 10 0 12" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/></svg>
+        누가 제일 크게?
+      </h2>
+      <p class="hint">3초 동안 가장 크게 소리 내 보세요! 제일 컸던 순간을 기록해요.</p>
+      <div class="btnrow">
+        <button id="loudStart" class="point" type="button">시작</button>
+        <button id="loudReset" type="button">다시 도전</button>
+      </div>
+      <div class="status" id="loudStatus" aria-live="polite">시작을 눌러 3초 도전!</div>
+      <p class="best">이번 최고: <b id="loudPeak">0</b> · 나의 최고 기록: <b id="loudBest">0</b></p>
+    </section>
+
+    <!-- Quiet game -->
+    <section id="modeQuiet" class="hidden">
+      <h2>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z" stroke="#141414" stroke-width="2.5" stroke-linejoin="round"/><path d="M15 9l6 6M21 9l-6 6" stroke="#FF4D4D" stroke-width="2.5" stroke-linecap="round"/></svg>
+        3초 정적 유지
+      </h2>
+      <p class="hint">소리를 아주 작게(15 미만) 3초 동안 계속 유지하면 성공! 시끄러우면 다시 0부터예요.</p>
+      <div class="btnrow">
+        <button id="quietStart" class="point" type="button">시작</button>
+        <button id="quietReset" type="button">다시 도전</button>
+      </div>
+      <div class="qprog"><div class="qfill" id="quietFill"></div></div>
+      <div class="status" id="quietStatus" aria-live="polite">시작을 눌러 조용히 버텨요!</div>
+    </section>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+/* ===== Pure math (node-checkable) ===== */
+function rms(buf){let s=0;for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v;}return Math.sqrt(s/buf.length);}
+function toLevel(rmsVal){const db=20*Math.log10(rmsVal||1e-8); return Math.max(0,Math.min(100,(db+60)/60*100));}
+
+/* ===== Elements ===== */
+var micBtn=document.getElementById('micBtn');
+var micLabel=document.getElementById('micLabel');
+var meter=document.getElementById('meter');
+var meterFill=document.getElementById('meterFill');
+var levelNum=document.getElementById('levelNum');
+var notice=document.getElementById('notice');
+var noticeMsg=document.getElementById('noticeMsg');
+var demoSlider=document.getElementById('demoSlider');
+
+var tabLoud=document.getElementById('tabLoud');
+var tabQuiet=document.getElementById('tabQuiet');
+var modeLoud=document.getElementById('modeLoud');
+var modeQuiet=document.getElementById('modeQuiet');
+
+var loudStart=document.getElementById('loudStart');
+var loudReset=document.getElementById('loudReset');
+var loudStatus=document.getElementById('loudStatus');
+var loudPeakEl=document.getElementById('loudPeak');
+var loudBestEl=document.getElementById('loudBest');
+
+var quietStart=document.getElementById('quietStart');
+var quietReset=document.getElementById('quietReset');
+var quietStatus=document.getElementById('quietStatus');
+var quietFill=document.getElementById('quietFill');
+
+/* ===== Audio state ===== */
+var stream=null, audioCtx=null, source=null, analyser=null, dataArr=null;
+var rafId=null, micOn=false, starting=false, demoMode=false;
+
+var LS_KEY='soundmeter_loud_best';
+
+/* ===== localStorage helpers ===== */
+function readBest(){
+  try{ var v=localStorage.getItem(LS_KEY); var n=v?parseFloat(v):0; return isFinite(n)?n:0; }
+  catch(e){ return 0; }
+}
+function writeBest(n){
+  try{ localStorage.setItem(LS_KEY, String(n)); }catch(e){}
+}
+
+/* ===== Game state ===== */
+var currentMode='loud';
+var loud={running:false, peak:0, best:readBest(), endTime:0};
+var quiet={running:false, held:0, lastT:0, done:false};
+var QUIET_THRESHOLD=15;
+var QUIET_TARGET=3000; // ms
+
+loudBestEl.textContent=Math.round(loud.best);
+
+/* ===== Meter render ===== */
+function levelColor(lv){
+  if(lv<40) return getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#12B76A';
+  if(lv<70) return getComputedStyle(document.documentElement).getPropertyValue('--amber').trim()||'#FFB800';
+  return getComputedStyle(document.documentElement).getPropertyValue('--red').trim()||'#FF4D4D';
+}
+function renderMeter(lv){
+  var v=Math.max(0,Math.min(100,lv));
+  meterFill.style.width=v+'%';
+  meterFill.style.background=levelColor(v);
+  levelNum.textContent=Math.round(v);
+  meter.setAttribute('aria-valuenow', Math.round(v));
+}
+
+/* ===== Read current level (mic or demo) ===== */
+function currentLevel(){
+  if(demoMode){
+    return parseFloat(demoSlider.value)||0;
+  }
+  if(analyser && dataArr){
+    analyser.getFloatTimeDomainData(dataArr);
+    return toLevel(rms(dataArr));
+  }
+  return 0;
+}
+
+/* ===== Game judging per frame ===== */
+function judge(lv, now){
+  if(currentMode==='loud' && loud.running){
+    if(lv>loud.peak){ loud.peak=lv; loudPeakEl.textContent=Math.round(loud.peak); }
+    if(now>=loud.endTime){
+      loud.running=false;
+      finishLoud();
+    } else {
+      var remain=Math.ceil((loud.endTime-now)/1000);
+      loudStatus.textContent='크게 소리 내요! '+remain+'초 남음 (지금 최고 '+Math.round(loud.peak)+')';
+    }
+  }
+  if(currentMode==='quiet' && quiet.running && !quiet.done){
+    var dt=now-quiet.lastT; quiet.lastT=now;
+    if(lv<QUIET_THRESHOLD){
+      quiet.held+=dt;
+    } else {
+      if(quiet.held>0) quietStatus.textContent='앗, 시끄러웠어요! 다시 조용히…';
+      quiet.held=0;
+    }
+    var pct=Math.min(100, quiet.held/QUIET_TARGET*100);
+    quietFill.style.width=pct+'%';
+    if(quiet.held>=QUIET_TARGET){
+      quiet.done=true; quiet.running=false;
+      quietFill.style.width='100%';
+      quietStatus.innerHTML='조용히 잘 버텼어요! <span class="badge">고요 성공!</span>';
+    } else if(lv<QUIET_THRESHOLD){
+      quietStatus.textContent='좋아요, 조용해요… '+ (quiet.held/1000).toFixed(1) +'초 유지 중';
+    }
+  }
+}
+
+function finishLoud(){
+  loudPeakEl.textContent=Math.round(loud.peak);
+  if(loud.peak>loud.best){
+    loud.best=loud.peak; writeBest(loud.best);
+    loudBestEl.textContent=Math.round(loud.best);
+    loudStatus.innerHTML='최고 '+Math.round(loud.peak)+'! <span class="badge">최고 성량!</span>';
+  } else {
+    loudStatus.textContent='끝! 이번 최고는 '+Math.round(loud.peak)+' 이에요.';
+  }
+  loudStart.disabled=false;
+}
+
+/* ===== RAF loop ===== */
+function loop(){
+  var now=(typeof performance!=='undefined'?performance.now():Date.now());
+  var lv=currentLevel();
+  renderMeter(lv);
+  judge(lv, now);
+  rafId=requestAnimationFrame(loop);
+}
+function startLoop(){ if(rafId===null) rafId=requestAnimationFrame(loop); }
+function stopLoop(){ if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; } }
+
+/* ===== Mic on/off ===== */
+function setMicUI(on){
+  micOn=on;
+  if(on){
+    micBtn.classList.remove('primary'); micBtn.classList.add('rec');
+    micLabel.textContent='마이크 끄기'; micBtn.setAttribute('aria-pressed','true');
+  } else {
+    micBtn.classList.add('primary'); micBtn.classList.remove('rec');
+    micLabel.textContent='마이크 켜기'; micBtn.setAttribute('aria-pressed','false');
+  }
+}
+
+async function startMic(){
+  if(starting || micOn) return;
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    showFallback('unsupported'); return;
+  }
+  starting=true;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    var AC=window.AudioContext||window.webkitAudioContext;
+    audioCtx=new AC();
+    if(audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch(e){} }
+    source=audioCtx.createMediaStreamSource(stream);
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=512;
+    dataArr=new Float32Array(analyser.fftSize);
+    source.connect(analyser);
+    demoMode=false;
+    notice.classList.add('hidden');
+    setMicUI(true);
+    startLoop();
+  }catch(err){
+    showFallback('denied', err);
+  }finally{
+    starting=false;
+  }
+}
+
+function stopMic(){
+  stopLoop();
+  if(stream){ try{ stream.getTracks().forEach(function(t){t.stop();}); }catch(e){} stream=null; }
+  if(source){ try{ source.disconnect(); }catch(e){} source=null; }
+  if(analyser){ try{ analyser.disconnect(); }catch(e){} analyser=null; }
+  if(audioCtx){ try{ if(audioCtx.state!=='closed') audioCtx.close(); }catch(e){} audioCtx=null; }
+  dataArr=null;
+  setMicUI(false);
+  if(!demoMode){ renderMeter(0); }
+}
+
+/* ===== Fallback / demo ===== */
+function showFallback(kind, err){
+  notice.classList.remove('hidden');
+  if(kind==='unsupported'){
+    noticeMsg.textContent='이 브라우저에서는 마이크를 쓸 수 없어요. 휴대폰(HTTPS 주소)에서 최신 브라우저로 열어 주세요. 아래 손잡이로 게임을 연습할 수 있어요.';
+  } else if(err && (err.name==='NotAllowedError'||err.name==='SecurityError')){
+    noticeMsg.textContent='마이크 권한이 거부됐어요. 브라우저 주소창의 자물쇠에서 마이크를 "허용"으로 바꾸고 다시 켜 주세요. 아래 손잡이로도 게임을 해 볼 수 있어요.';
+  } else if(err && err.name==='NotFoundError'){
+    noticeMsg.textContent='마이크를 찾을 수 없어요. 마이크가 연결됐는지 확인해 주세요. 아래 손잡이로 게임을 연습할 수 있어요.';
+  } else {
+    noticeMsg.textContent='마이크를 쓸 수 없어요. 브라우저에서 마이크 권한을 허용하고, 휴대폰(HTTPS)에서 열어 주세요. 아래 손잡이로 게임을 연습할 수 있어요.';
+  }
+  demoMode=true;
+  setMicUI(false);
+  startLoop(); // demo drives meter via slider
+}
+
+/* ===== Mic button ===== */
+micBtn.addEventListener('click', function(){
+  if(micOn){ stopMic(); }
+  else { startMic(); }
+});
+
+/* ===== Mode switching ===== */
+function selectMode(mode){
+  currentMode=mode;
+  var loudOn=(mode==='loud');
+  tabLoud.setAttribute('aria-selected', loudOn?'true':'false');
+  tabQuiet.setAttribute('aria-selected', loudOn?'false':'true');
+  modeLoud.classList.toggle('hidden', !loudOn);
+  modeQuiet.classList.toggle('hidden', loudOn);
+  if(loudOn){ resetLoud(); } else { resetQuiet(); }
+}
+tabLoud.addEventListener('click', function(){ selectMode('loud'); });
+tabQuiet.addEventListener('click', function(){ selectMode('quiet'); });
+
+/* ===== Loud game controls ===== */
+function resetLoud(){
+  loud.running=false; loud.peak=0; loud.endTime=0;
+  loudPeakEl.textContent='0';
+  loudStatus.textContent='시작을 눌러 3초 도전!';
+  loudStart.disabled=false;
+}
+loudStart.addEventListener('click', function(){
+  if(loud.running) return;
+  if(!micOn && !demoMode){ loudStatus.textContent='먼저 위에서 "마이크 켜기"를 눌러 주세요.'; return; }
+  loud.peak=0; loudPeakEl.textContent='0'; loud.done=false;
+  loud.running=true;
+  loud.endTime=(typeof performance!=='undefined'?performance.now():Date.now())+3000;
+  loudStart.disabled=true;
+  loudStatus.textContent='크게 소리 내요! 3초 남음';
+});
+loudReset.addEventListener('click', resetLoud);
+
+/* ===== Quiet game controls ===== */
+function resetQuiet(){
+  quiet.running=false; quiet.held=0; quiet.done=false;
+  quietFill.style.width='0%';
+  quietStatus.textContent='시작을 눌러 조용히 버텨요!';
+  quietStart.disabled=false;
+}
+quietStart.addEventListener('click', function(){
+  if(quiet.running) return;
+  if(!micOn && !demoMode){ quietStatus.textContent='먼저 위에서 "마이크 켜기"를 눌러 주세요.'; return; }
+  quiet.running=true; quiet.held=0; quiet.done=false;
+  quiet.lastT=(typeof performance!=='undefined'?performance.now():Date.now());
+  quietFill.style.width='0%';
+  quietStatus.textContent='조용히! 소리를 아주 작게 유지하세요.';
+});
+quietReset.addEventListener('click', resetQuiet);
+
+/* ===== Cleanup on leave ===== */
+function fullCleanup(){ stopMic(); }
+window.addEventListener('pagehide', fullCleanup);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='hidden'){ fullCleanup(); }
+});
+
+/* ===== Init ===== */
+selectMode('loud');
+renderMeter(0);
+</script>
+</body>
+</html>

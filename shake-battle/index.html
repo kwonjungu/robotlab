@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>흔들기 대결 · 신나는 로봇 창작랩</title>
+<style>
+:root{
+  --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+  --point:#FF5A5F; --point-soft:#FFE3E4;
+  --amber:#FFB800; --amber-soft:#FFF0C7;
+  --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+  --r:20px; --r-sm:13px;
+  --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink)}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:17px; line-height:1.5;
+  background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+  background-size:22px 22px; background-position:-11px -11px;
+  min-height:100vh;
+  padding:16px; padding-bottom:40px;
+}
+.wrap{max-width:640px;margin:0 auto}
+
+/* top nav */
+.topnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  border:2.5px solid var(--ink);border-radius:999px;
+  padding:9px 16px;font-weight:800;font-size:15px;text-decoration:none;color:var(--ink);
+  background:var(--surface);box-shadow:var(--hard-sm);min-height:44px;
+  transition:transform .08s,box-shadow .08s;
+}
+.pill.back:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.pill.back:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.pill.tag{background:var(--point-soft);border-color:var(--point);color:var(--ink);box-shadow:3px 3px 0 var(--point)}
+
+/* hero */
+.hero{margin-bottom:24px}
+.kicker{color:var(--amber);text-transform:uppercase;font-weight:900;letter-spacing:.06em;font-size:14px;margin-bottom:8px}
+h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.05;margin-bottom:10px}
+.lead{color:var(--muted);font-size:18px;max-width:34ch}
+
+/* panels */
+.panel{
+  background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);
+  box-shadow:var(--hard);padding:22px;margin-bottom:20px;
+}
+
+/* count display */
+.countbox{text-align:center;padding:10px 0 6px}
+.count-label{font-weight:800;color:var(--muted);font-size:15px;letter-spacing:.02em}
+.count-num{
+  font-size:clamp(72px,26vw,150px);font-weight:900;line-height:1;
+  font-variant-numeric:tabular-nums;letter-spacing:-.04em;
+  color:var(--point);
+}
+.count-unit{font-size:22px;font-weight:800;color:var(--ink)}
+
+/* timer + progress */
+.timerrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.timer-txt{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums}
+.progress{
+  height:20px;border:2.5px solid var(--ink);border-radius:999px;background:var(--amber-soft);
+  overflow:hidden;box-shadow:var(--hard-sm);
+}
+.progress > i{display:block;height:100%;width:100%;background:var(--amber);
+  transition:width .25s linear;border-radius:999px}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  border:3px solid var(--ink);border-radius:var(--r-sm);
+  background:var(--surface);color:var(--ink);
+  font-family:inherit;font-weight:900;font-size:19px;cursor:pointer;
+  padding:14px 22px;min-height:52px;box-shadow:var(--hard-sm);
+  transition:transform .08s,box-shadow .08s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.btn.primary{background:var(--amber)}
+.btn.point{background:var(--point);color:#fff}
+.btn.point svg{stroke:#fff}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--hard-sm)}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.btn-row .btn{flex:1;min-width:140px}
+
+/* tap fallback big button */
+.tapbtn{
+  width:100%;min-height:120px;font-size:32px;background:var(--point);color:#fff;
+  border:4px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);
+}
+.tapbtn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+.tapbtn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+
+/* best record */
+.best{
+  display:flex;align-items:center;gap:10px;justify-content:center;
+  font-weight:900;font-size:19px;margin-top:4px;
+}
+.best .num{color:var(--point);font-variant-numeric:tabular-nums}
+
+/* fallback notice */
+.notice{
+  background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+  box-shadow:var(--hard-sm);padding:16px;margin-bottom:16px;font-weight:600;font-size:16px;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.notice svg{flex:0 0 auto;margin-top:2px}
+
+/* new best badge */
+.badge{
+  display:none;align-items:center;gap:10px;justify-content:center;
+  background:var(--green);color:#fff;border:3px solid var(--ink);border-radius:999px;
+  box-shadow:var(--hard-sm);padding:12px 22px;font-weight:900;font-size:20px;
+  margin:0 auto 16px;width:max-content;
+}
+.badge.show{display:flex;animation:pop .5s ease}
+.badge svg{stroke:#fff}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+.hint{color:var(--muted);font-size:15px;text-align:center;margin-top:10px}
+.hidden{display:none !important}
+
+/* result */
+.result{text-align:center}
+.result h2{font-size:26px;font-weight:900;margin-bottom:6px;letter-spacing:-.02em}
+
+/* footer */
+footer{text-align:center;margin-top:28px}
+footer a{
+  display:inline-flex;align-items:center;gap:7px;
+  border:2.5px solid var(--ink);border-radius:999px;
+  padding:11px 20px;font-weight:800;text-decoration:none;color:var(--ink);
+  background:var(--surface);box-shadow:var(--hard-sm);min-height:44px;
+  transition:transform .08s,box-shadow .08s;
+}
+footer a:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+footer a:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="topnav">
+    <a class="pill back" href="../">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      수업터 홈
+    </a>
+    <span class="pill tag">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      센서 놀이 · 흔들기
+    </span>
+  </nav>
+
+  <header class="hero">
+    <div class="kicker">SHAKE BATTLE</div>
+    <h1>흔들기 대결</h1>
+    <p class="lead">폰을 손에 꼭 쥐고 10초 동안 힘차게 흔들어요! 몇 번 흔들었는지 세어 볼까요?</p>
+  </header>
+
+  <!-- Fallback notice (hidden by default) -->
+  <div class="notice hidden" id="fallbackNotice" role="alert">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    <span>이 기기에서는 폰 흔들기 센서를 쓸 수 없어요. 휴대폰(HTTPS)에서 열어 주세요. 아래 <b>흔들기!</b> 버튼을 빠르게 눌러 대신 체험할 수 있어요.</span>
+  </div>
+
+  <!-- New best badge -->
+  <div class="badge" id="bestBadge" role="status">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M9 14.5L7 22l5-3 5 3-2-7.5"/></svg>
+    신기록 달성!
+  </div>
+
+  <!-- Main panel -->
+  <section class="panel" aria-label="흔들기 게임">
+    <!-- timer + progress -->
+    <div class="timerrow" id="timerRow">
+      <span class="timer-txt" id="timerTxt" aria-live="polite">10초</span>
+      <span class="best" id="bestReady"><span>최고 기록:</span> <span class="num" id="bestReadyNum">0</span><span>번</span></span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="남은 시간" aria-valuemin="0" aria-valuemax="10" aria-valuenow="10" id="progWrap">
+      <i id="progBar"></i>
+    </div>
+
+    <!-- count display -->
+    <div class="countbox">
+      <div class="count-label">지금까지</div>
+      <div class="count-num" id="countNum" aria-live="polite" aria-label="흔든 횟수 0번">0</div>
+      <div class="count-unit">번 흔들었어요</div>
+    </div>
+
+    <!-- fallback tap button (hidden by default) -->
+    <button class="btn tapbtn hidden" id="tapBtn" aria-label="흔들기 대신 누르기">
+      흔들기!
+    </button>
+
+    <!-- controls -->
+    <div class="btn-row" id="controls">
+      <button class="btn primary wide" id="startBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        센서 켜고 시작!
+      </button>
+    </div>
+
+    <!-- result (hidden until round over) -->
+    <div class="result hidden" id="resultBox" role="status">
+      <h2 id="resultTitle">끝!</h2>
+      <div class="best"><span>이번 기록:</span> <span class="num" id="resultNum">0</span><span>번</span></div>
+      <div class="best"><span>최고 기록:</span> <span class="num" id="resultBest">0</span><span>번</span></div>
+      <div class="btn-row">
+        <button class="btn point" id="retryBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          다시 도전
+        </button>
+      </div>
+    </div>
+
+    <p class="hint" id="hint">준비되면 버튼을 눌러요. 폰을 잘 잡고 팔을 크게 흔들어요!</p>
+  </section>
+
+  <footer>
+    <a href="../">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      수업터 홈으로
+    </a>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ===== pure helpers (node-checkable) ===== */
+function magnitude(x,y,z){return Math.sqrt(x*x+y*y+z*z);}
+function isShake(delta,threshold,now,lastTime,debounceMs){return delta>threshold && (now-lastTime)>debounceMs;}
+
+/* ===== config ===== */
+var THRESHOLD = 15;      // delta magnitude to count as a shake
+var DEBOUNCE_MS = 150;   // min gap between counted shakes
+var ROUND_SEC = 10;
+var BEST_KEY = "robotlab_shake_best";
+
+/* ===== state ===== */
+var count = 0;
+var running = false;
+var lastMag = null;
+var lastShakeTime = 0;
+var roundTimer = null;      // setInterval for countdown
+var motionCheckTimer = null; // detect "no motion" on desktop
+var motionSeen = false;
+var listenerAttached = false;
+
+/* ===== dom ===== */
+var countNum = document.getElementById("countNum");
+var timerTxt = document.getElementById("timerTxt");
+var progBar = document.getElementById("progBar");
+var progWrap = document.getElementById("progWrap");
+var startBtn = document.getElementById("startBtn");
+var retryBtn = document.getElementById("retryBtn");
+var tapBtn = document.getElementById("tapBtn");
+var controls = document.getElementById("controls");
+var resultBox = document.getElementById("resultBox");
+var resultNum = document.getElementById("resultNum");
+var resultBest = document.getElementById("resultBest");
+var resultTitle = document.getElementById("resultTitle");
+var bestBadge = document.getElementById("bestBadge");
+var fallbackNotice = document.getElementById("fallbackNotice");
+var bestReadyNum = document.getElementById("bestReadyNum");
+var hint = document.getElementById("hint");
+
+/* ===== best record (localStorage, try/catch both ways) ===== */
+function readBest(){
+  try{
+    var v = window.localStorage.getItem(BEST_KEY);
+    var n = parseInt(v,10);
+    return isNaN(n) ? 0 : n;
+  }catch(e){ return 0; }
+}
+function writeBest(n){
+  try{ window.localStorage.setItem(BEST_KEY, String(n)); }catch(e){ /* ignore */ }
+}
+
+/* ===== count display ===== */
+function updateCount(){
+  countNum.textContent = String(count);
+  countNum.setAttribute("aria-label", "흔든 횟수 " + count + "번");
+}
+
+/* ===== motion handler ===== */
+function handleMotion(e){
+  motionSeen = true;
+  var a = e.accelerationIncludingGravity || e.acceleration;
+  if(!a) return;
+  var x = a.x || 0, y = a.y || 0, z = a.z || 0;
+  var mag = magnitude(x,y,z);
+  if(lastMag === null){ lastMag = mag; return; }
+  var delta = Math.abs(mag - lastMag);
+  var now = Date.now();
+  if(running && isShake(delta, THRESHOLD, now, lastShakeTime, DEBOUNCE_MS)){
+    count++;
+    lastShakeTime = now;
+    updateCount();
+  }
+  lastMag = mag;
+}
+
+function attachMotion(){
+  if(!listenerAttached){
+    window.addEventListener("devicemotion", handleMotion);
+    listenerAttached = true;
+  }
+}
+function detachMotion(){
+  if(listenerAttached){
+    window.removeEventListener("devicemotion", handleMotion);
+    listenerAttached = false;
+  }
+}
+
+/* ===== fallback ===== */
+function showFallback(){
+  fallbackNotice.classList.remove("hidden");
+  tapBtn.classList.remove("hidden");
+}
+
+/* ===== permission + sensor ===== */
+async function enableSensor(){
+  try{
+    if(typeof DeviceMotionEvent !== "undefined" &&
+       typeof DeviceMotionEvent.requestPermission === "function"){
+      var res = await DeviceMotionEvent.requestPermission();
+      if(res !== "granted"){ showFallback(); return true; } // still let them play by tapping
+    }
+    if(typeof DeviceMotionEvent === "undefined"){
+      showFallback();
+      return true;
+    }
+    attachMotion();
+    // desktop safety: if no motion event fires within ~2s, offer tap fallback
+    motionSeen = false;
+    clearTimeout(motionCheckTimer);
+    motionCheckTimer = setTimeout(function(){
+      if(!motionSeen){ showFallback(); }
+    }, 2000);
+    return true;
+  }catch(err){
+    showFallback();
+    return true;
+  }
+}
+
+/* ===== round flow ===== */
+function startRound(){
+  count = 0;
+  lastMag = null;
+  lastShakeTime = 0;
+  updateCount();
+  resultBox.classList.add("hidden");
+  bestBadge.classList.remove("show");
+  running = true;
+
+  var remaining = ROUND_SEC;
+  timerTxt.textContent = remaining + "초";
+  progBar.style.width = "100%";
+  progWrap.setAttribute("aria-valuenow", String(remaining));
+
+  clearInterval(roundTimer);
+  roundTimer = setInterval(function(){
+    remaining--;
+    if(remaining < 0) remaining = 0;
+    timerTxt.textContent = remaining + "초";
+    progBar.style.width = (remaining / ROUND_SEC * 100) + "%";
+    progWrap.setAttribute("aria-valuenow", String(remaining));
+    if(remaining <= 0){
+      endRound();
+    }
+  }, 1000);
+
+  startBtn.disabled = true;
+  controls.classList.add("hidden");
+  hint.textContent = "지금이에요! 힘차게 흔들어요!";
+}
+
+function endRound(){
+  running = false;
+  clearInterval(roundTimer);
+  roundTimer = null;
+  clearTimeout(motionCheckTimer);
+
+  var best = readBest();
+  var isNew = count > best;
+  if(isNew){
+    best = count;
+    writeBest(best);
+    bestBadge.classList.add("show");
+  }
+
+  resultTitle.textContent = isNew ? "우와, 최고예요!" : "끝! 잘했어요";
+  resultNum.textContent = String(count);
+  resultBest.textContent = String(best);
+  bestReadyNum.textContent = String(best);
+  resultBox.classList.remove("hidden");
+  controls.classList.add("hidden");
+  hint.textContent = "다시 도전해서 신기록에 도전해요!";
+}
+
+function resetToReady(){
+  running = false;
+  count = 0;
+  updateCount();
+  timerTxt.textContent = ROUND_SEC + "초";
+  progBar.style.width = "100%";
+  progWrap.setAttribute("aria-valuenow", String(ROUND_SEC));
+  resultBox.classList.add("hidden");
+  bestBadge.classList.remove("show");
+  bestReadyNum.textContent = String(readBest());
+}
+
+/* ===== events ===== */
+startBtn.addEventListener("click", async function(){
+  await enableSensor();
+  startRound();
+});
+
+retryBtn.addEventListener("click", function(){
+  resetToReady();
+  startRound();
+});
+
+tapBtn.addEventListener("click", function(){
+  if(running){
+    count++;
+    updateCount();
+  }
+});
+
+/* ===== cleanup ===== */
+function cleanup(){
+  detachMotion();
+  clearInterval(roundTimer);
+  roundTimer = null;
+  clearTimeout(motionCheckTimer);
+  running = false;
+}
+window.addEventListener("pagehide", cleanup);
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden"){ cleanup(); }
+});
+
+/* ===== init ===== */
+(function init(){
+  var best = readBest();
+  bestReadyNum.textContent = String(best);
+  updateCount();
+})();
+</script>
+</body>
+</html>

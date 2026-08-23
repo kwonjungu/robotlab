@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>나침반 찾기 · 신나는 로봇 창작랩</title>
+<style>
+:root{
+  --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+  --point:#12B76A; --point-soft:#D6F5E6;
+  --amber:#FFB800; --amber-soft:#FFF0C7;
+  --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+  --r:20px; --r-sm:13px;
+  --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:17px; color:var(--ink); background:var(--paper);
+  background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+  background-size:22px 22px; background-position:-11px -11px;
+  line-height:1.5; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:640px;margin:0 auto;padding:16px 16px 48px;}
+/* nav */
+nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  border:2.5px solid var(--ink);border-radius:999px;
+  padding:9px 16px;font-weight:800;font-size:15px;text-decoration:none;color:var(--ink);
+  background:var(--surface);box-shadow:var(--hard-sm);min-height:44px;
+}
+.back{background:var(--surface);}
+.pill-point{background:var(--point-soft);border-color:var(--ink);}
+a.pill{transition:transform .12s,box-shadow .12s;}
+a.pill:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink);}
+a.pill:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
+/* hero */
+.kicker{color:var(--ink);background:var(--amber);display:inline-block;
+  font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:13px;
+  padding:5px 12px;border:2.5px solid var(--ink);border-radius:999px;box-shadow:var(--hard-sm);}
+h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.05;margin:14px 0 8px;}
+.lead{color:var(--muted);font-size:18px;margin:0 0 20px;max-width:52ch;}
+/* card */
+.card{
+  background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);
+  box-shadow:var(--hard);padding:20px;margin:0 0 20px;
+}
+.card h2{margin:0 0 10px;font-size:20px;font-weight:900;letter-spacing:-.02em;}
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;
+  border:2.5px solid var(--ink);border-radius:var(--r-sm);
+  padding:12px 20px;background:var(--surface);color:var(--ink);
+  box-shadow:var(--hard-sm);min-height:44px;
+  transition:transform .12s,box-shadow .12s;
+}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink);}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
+.btn-amber{background:var(--amber);}
+.btn-point{background:var(--point);color:#fff;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+/* compass */
+.compass-box{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.dial-wrap{position:relative;width:min(84vw,320px);height:min(84vw,320px);}
+svg.dial{width:100%;height:100%;display:block;}
+.readout{text-align:center;}
+.deg{font-size:44px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";line-height:1;}
+.cardname{font-size:22px;font-weight:800;color:var(--point);margin-top:2px;}
+/* game */
+.game-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.round-tag{background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:999px;
+  padding:6px 14px;font-weight:800;font-size:15px;box-shadow:var(--hard-sm);}
+.target-txt{font-size:19px;font-weight:800;}
+.hint{
+  text-align:center;font-size:22px;font-weight:900;letter-spacing:-.01em;
+  border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:12px;
+  background:var(--surface);box-shadow:var(--hard-sm);margin-top:12px;
+}
+.hint.near{background:var(--amber-soft);}
+.hint.far{background:var(--point-soft);}
+.hint.hit{background:var(--green);color:#fff;}
+/* fallback */
+.fallback{display:none;background:var(--amber-soft);border:3px solid var(--ink);border-radius:var(--r);
+  box-shadow:var(--hard);padding:18px;margin:0 0 20px;}
+.fallback.show{display:block;}
+.fallback p{margin:0 0 12px;font-weight:600;}
+.slider-row{display:flex;align-items:center;gap:12px;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:14px;
+  background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:44px;height:44px;border-radius:50%;background:var(--amber);border:3px solid var(--ink);
+  box-shadow:var(--hard-sm);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:44px;height:44px;border-radius:50%;background:var(--amber);
+  border:3px solid var(--ink);box-shadow:var(--hard-sm);cursor:pointer;}
+.slider-val{font-weight:800;font-variant-numeric:tabular-nums;min-width:56px;text-align:right;}
+.small-hint{font-size:14px;color:var(--muted);margin-top:10px;}
+/* badge */
+.badge{display:none;text-align:center;background:var(--point-soft);border:3px solid var(--ink);
+  border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin:0 0 20px;}
+.badge.show{display:block;animation:pop .4s ease;}
+@keyframes pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.badge h2{font-size:26px;margin:12px 0 6px;}
+.badge svg{width:88px;height:88px;}
+/* footer */
+footer{text-align:center;margin-top:8px;}
+footer a{display:inline-flex;align-items:center;gap:6px;
+  border:2.5px solid var(--ink);border-radius:999px;padding:10px 18px;
+  font-weight:800;text-decoration:none;color:var(--ink);background:var(--surface);
+  box-shadow:var(--hard-sm);min-height:44px;transition:transform .12s,box-shadow .12s;}
+footer a:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink);}
+footer a:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+:focus-visible{outline:3px solid var(--point);outline-offset:3px;}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="pill back" href="../">← 수업터 홈</a>
+    <span class="pill pill-point">센서 놀이 · 나침반</span>
+  </nav>
+
+  <header>
+    <span class="kicker">SENSOR PLAY</span>
+    <h1>나침반 찾기</h1>
+    <p class="lead">휴대폰을 손에 들고 빙글빙글 돌려 봐요. 화면의 나침반 바늘이 진짜 방향을 가리켜요. 목표 방향을 정확히 찾으면 적중!</p>
+  </header>
+
+  <!-- 시작 카드 -->
+  <div class="card">
+    <h2>준비하기</h2>
+    <p style="margin:0 0 14px;color:var(--muted);">아래 버튼을 누르면 나침반 센서가 켜져요. (아이폰은 허락을 물어봐요.)</p>
+    <div class="btn-row">
+      <button id="toggleBtn" class="btn btn-amber" aria-pressed="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="16 8 10 10 8 16 14 14 16 8"/></svg>
+        센서 켜기
+      </button>
+      <span id="stateTxt" style="font-weight:700;color:var(--muted);">꺼짐</span>
+    </div>
+  </div>
+
+  <!-- 폴백 -->
+  <div class="fallback" id="fallback">
+    <p>이 기기에서는 나침반 센서를 쓸 수 없어요. 휴대폰(HTTPS·야외)에서 열어 주세요. 아래 슬라이더로 방향을 돌려 체험할 수 있어요.</p>
+    <div class="slider-row">
+      <label for="dirSlider" class="sr-only">방향 슬라이더 (0도부터 359도)</label>
+      <input type="range" id="dirSlider" min="0" max="359" value="0" step="1" aria-label="방향 슬라이더">
+      <span class="slider-val" id="sliderVal">0°</span>
+    </div>
+    <p class="small-hint">건물 안이나 쇠붙이 근처에서는 나침반이 흔들릴 수 있어요.</p>
+  </div>
+
+  <!-- 나침반 카드 -->
+  <div class="card">
+    <div class="compass-box">
+      <div class="dial-wrap">
+        <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
+          <!-- 바깥 링 -->
+          <circle cx="100" cy="100" r="94" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".35"/>
+          <!-- 회전하는 판(방위 글자 + 눈금) -->
+          <g id="dialRot">
+            <!-- 눈금 -->
+            <g stroke="var(--ink)" stroke-width="1.5">
+              <line x1="100" y1="10" x2="100" y2="22"/>
+              <line x1="190" y1="100" x2="178" y2="100"/>
+              <line x1="100" y1="190" x2="100" y2="178"/>
+              <line x1="10" y1="100" x2="22" y2="100"/>
+            </g>
+            <text x="100" y="34" text-anchor="middle" font-size="18" font-weight="900" fill="var(--red)" font-family="sans-serif">북</text>
+            <text x="168" y="106" text-anchor="middle" font-size="18" font-weight="900" fill="var(--ink)" font-family="sans-serif">동</text>
+            <text x="100" y="180" text-anchor="middle" font-size="18" font-weight="900" fill="var(--ink)" font-family="sans-serif">남</text>
+            <text x="32" y="106" text-anchor="middle" font-size="18" font-weight="900" fill="var(--ink)" font-family="sans-serif">서</text>
+            <!-- 목표 마커 -->
+            <g id="targetMarker" opacity="0">
+              <circle cx="100" cy="20" r="8" fill="var(--point)" stroke="var(--ink)" stroke-width="2.5"/>
+            </g>
+          </g>
+          <!-- 바늘 (고정, 위쪽이 현재 향하는 곳) -->
+          <g id="needleRot">
+            <polygon points="100,26 108,100 100,116 92,100" fill="var(--red)" stroke="var(--ink)" stroke-width="2"/>
+            <polygon points="100,174 92,100 100,84 108,100" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+          </g>
+          <circle cx="100" cy="100" r="7" fill="var(--ink)"/>
+          <circle cx="100" cy="100" r="3" fill="var(--surface)"/>
+        </svg>
+      </div>
+      <div class="readout">
+        <div class="deg" id="degOut" aria-live="polite">--°</div>
+        <div class="cardname" id="cardOut">센서를 켜 주세요</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 게임 카드 -->
+  <div class="card">
+    <div class="game-head">
+      <h2 style="margin:0;">나침반 미션</h2>
+      <span class="round-tag" id="roundTag" aria-live="polite">라운드 1/4</span>
+    </div>
+    <p class="target-txt" id="targetTxt" aria-live="polite">목표: 준비 중…</p>
+    <div class="hint far" id="hintBox" aria-live="polite">센서를 켜거나 슬라이더를 움직여요</div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button id="resetBtn" class="btn btn-point">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg>
+        다시 하기
+      </button>
+    </div>
+  </div>
+
+  <!-- 배지 -->
+  <div class="badge" id="badge" role="status">
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" fill="var(--amber)"/><path d="M8.2 13.5 6 22l6-3 6 3-2.2-8.5" fill="var(--point-soft)"/></svg>
+    <h2>나침반 마스터!</h2>
+    <p style="margin:0;font-weight:700;">모든 라운드를 성공했어요. 다시 도전해 볼까요?</p>
+  </div>
+
+  <footer>
+    <a href="../">← 수업터 홈으로</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- 순수 함수 (검증용) ---------- */
+function normHeading(h){return ((h%360)+360)%360;}
+function headingFromAlpha(alpha){return (360 - alpha) % 360;}
+function angleDiff(a,b){let d=Math.abs(normHeading(a)-normHeading(b))%360; return d>180?360-d:d;}
+function isHit(cur,target,tol){return angleDiff(cur,target)<=tol;}
+
+/* ---------- 방위 이름 ---------- */
+function cardinalName(h){
+  h=normHeading(h);
+  var names=["북","북동","동","남동","남","남서","서","북서"];
+  var idx=Math.round(h/45)%8;
+  return names[idx];
+}
+
+/* ---------- 상태 ---------- */
+var TOL=10;
+var ROUNDS=4;
+var listening=false;
+var gotEvent=false;
+var startTimer=null;
+var currentHeading=0;
+var roundIdx=0;      // 0-based
+var targets=[];
+var done=false;
+
+var toggleBtn=document.getElementById('toggleBtn');
+var stateTxt=document.getElementById('stateTxt');
+var fallback=document.getElementById('fallback');
+var slider=document.getElementById('dirSlider');
+var sliderVal=document.getElementById('sliderVal');
+var degOut=document.getElementById('degOut');
+var cardOut=document.getElementById('cardOut');
+var dialRot=document.getElementById('dialRot');
+var needleRot=document.getElementById('needleRot');
+var targetMarker=document.getElementById('targetMarker');
+var roundTag=document.getElementById('roundTag');
+var targetTxt=document.getElementById('targetTxt');
+var hintBox=document.getElementById('hintBox');
+var resetBtn=document.getElementById('resetBtn');
+var badge=document.getElementById('badge');
+
+/* ---------- 라운드 목표 만들기 ---------- */
+function buildRounds(){
+  targets=[0]; // 라운드1 = 북
+  for(var i=1;i<ROUNDS;i++){
+    // 30도 단위 예쁜 값 중 랜덤
+    targets.push((Math.floor(Math.random()*12))*30);
+  }
+}
+function startGame(){
+  buildRounds();
+  roundIdx=0;
+  done=false;
+  badge.classList.remove('show');
+  showRound();
+  render();
+}
+function showRound(){
+  roundTag.textContent="라운드 "+(roundIdx+1)+"/"+ROUNDS;
+  var t=targets[roundIdx];
+  targetTxt.textContent="목표: "+cardinalName(t)+"쪽 ("+t+"°)";
+  targetMarker.setAttribute('opacity','1');
+}
+
+/* ---------- 화면 그리기 ---------- */
+function setHeading(h){
+  currentHeading=normHeading(h);
+  render();
+  judge();
+}
+function render(){
+  var h=currentHeading;
+  // 판을 반대로 돌려서 북이 진짜 북을 가리키게. 바늘은 위(현재 향하는 곳) 고정.
+  dialRot.setAttribute('transform','rotate('+(-h)+' 100 100)');
+  // 목표 마커는 판 위에 있으므로, 판 로컬 좌표에서 목표 각도 위치로 배치
+  if(targets.length){
+    var t=targets[roundIdx];
+    targetMarker.setAttribute('transform','rotate('+t+' 100 100)');
+  }
+  degOut.textContent=Math.round(h)+"°";
+  cardOut.textContent=cardinalName(h);
+}
+
+/* ---------- 게임 판정 ---------- */
+function judge(){
+  if(done || !targets.length){return;}
+  var t=targets[roundIdx];
+  var diff=angleDiff(currentHeading,t);
+  hintBox.classList.remove('near','far','hit');
+  if(diff<=TOL){
+    hintBox.textContent="적중!";
+    hintBox.classList.add('hit');
+    nextRound();
+  }else if(diff<=45){
+    hintBox.textContent="가까워요";
+    hintBox.classList.add('near');
+  }else{
+    hintBox.textContent="멀어요";
+    hintBox.classList.add('far');
+  }
+}
+function nextRound(){
+  roundIdx++;
+  if(roundIdx>=ROUNDS){
+    done=true;
+    targetMarker.setAttribute('opacity','0');
+    targetTxt.textContent="모든 라운드 성공!";
+    roundTag.textContent="완료 "+ROUNDS+"/"+ROUNDS;
+    badge.classList.add('show');
+  }else{
+    // 다음 라운드로 (즉시 적중 방지: 바로 판정하지 않고 다음 이벤트에서)
+    showRound();
+  }
+}
+
+/* ---------- 센서 ---------- */
+function handleOrientation(e){
+  var h=null;
+  if(typeof e.webkitCompassHeading==='number' && !isNaN(e.webkitCompassHeading)){
+    h=e.webkitCompassHeading; // 0=북, 시계방향 증가
+  }else if(typeof e.alpha==='number' && e.alpha!==null){
+    h=headingFromAlpha(e.alpha);
+  }
+  if(h===null){return;}
+  if(!gotEvent){
+    gotEvent=true;
+    if(startTimer){clearTimeout(startTimer);startTimer=null;}
+    fallback.classList.remove('show');
+  }
+  setHeading(h);
+}
+
+function addListeners(){
+  window.addEventListener('deviceorientationabsolute',handleOrientation,true);
+  window.addEventListener('deviceorientation',handleOrientation,true);
+}
+function removeListeners(){
+  window.removeEventListener('deviceorientationabsolute',handleOrientation,true);
+  window.removeEventListener('deviceorientation',handleOrientation,true);
+}
+
+async function turnOn(){
+  gotEvent=false;
+  try{
+    if(typeof DeviceOrientationEvent==='undefined'){
+      showFallback();
+      return;
+    }
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      var res=await DeviceOrientationEvent.requestPermission();
+      if(res!=='granted'){ showFallback(); return; }
+    }
+    addListeners();
+    listening=true;
+    toggleBtn.setAttribute('aria-pressed','true');
+    toggleBtn.querySelector('svg').nextSibling; // noop
+    setBtnLabel(true);
+    stateTxt.textContent="켜짐";
+    // 2.5초 안에 이벤트 없으면 폴백
+    startTimer=setTimeout(function(){
+      if(!gotEvent){ showFallback(); }
+    },2500);
+  }catch(err){
+    showFallback();
+  }
+}
+function turnOff(){
+  removeListeners();
+  listening=false;
+  if(startTimer){clearTimeout(startTimer);startTimer=null;}
+  toggleBtn.setAttribute('aria-pressed','false');
+  setBtnLabel(false);
+  stateTxt.textContent="꺼짐";
+}
+function setBtnLabel(on){
+  toggleBtn.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="16 8 10 10 8 16 14 14 16 8"/></svg> '+(on?'센서 끄기':'센서 켜기');
+}
+
+function showFallback(){
+  // 센서 못 씀: 폴백 + 슬라이더
+  turnOffQuiet();
+  fallback.classList.add('show');
+  stateTxt.textContent="슬라이더 체험";
+  // 현재 슬라이더 값으로 화면 반영
+  setHeading(parseInt(slider.value,10)||0);
+}
+function turnOffQuiet(){
+  removeListeners();
+  listening=false;
+  if(startTimer){clearTimeout(startTimer);startTimer=null;}
+  toggleBtn.setAttribute('aria-pressed','false');
+  setBtnLabel(false);
+}
+
+/* ---------- 이벤트 ---------- */
+toggleBtn.addEventListener('click',function(){
+  if(listening){ turnOff(); }
+  else{ turnOn(); }
+});
+slider.addEventListener('input',function(){
+  var v=parseInt(slider.value,10)||0;
+  sliderVal.textContent=v+"°";
+  setHeading(v);
+});
+resetBtn.addEventListener('click',function(){
+  startGame();
+  hintBox.classList.remove('near','hit');
+  hintBox.classList.add('far');
+  hintBox.textContent="목표 방향으로 돌려 봐요";
+});
+
+/* ---------- 정리 ---------- */
+function cleanup(){
+  removeListeners();
+  if(startTimer){clearTimeout(startTimer);startTimer=null;}
+}
+window.addEventListener('pagehide',cleanup);
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'){ cleanup(); }
+});
+
+/* ---------- 시작 ---------- */
+startGame();
+</script>
+</body>
+</html>
