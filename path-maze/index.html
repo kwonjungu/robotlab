@@ -76,15 +76,18 @@
   .goaltxt b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px;font-weight:900}
 
   .boardwrap{display:flex;justify-content:center;margin-bottom:8px}
-  .board{display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
-    background:var(--paper);touch-action:manipulation}
-  .cell{position:relative;background:var(--surface);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
+  .board{position:relative;display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
+    background:var(--paper);touch-action:manipulation;
+    grid-template-columns:repeat(var(--n,6),var(--cell,48px));
+    grid-auto-rows:var(--cell,48px);
+    width:calc(var(--n,6) * var(--cell,48px))}
+  .cell{position:relative;width:var(--cell,48px);height:var(--cell,48px);background:var(--surface);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
   .cell.wall{background:var(--ink);background-image:repeating-linear-gradient(45deg,#000,#000 4px,#2a2a2a 4px,#2a2a2a 8px)}
   .cell.dust::after{content:"";position:absolute;left:50%;top:50%;width:38%;height:38%;transform:translate(-50%,-50%);
     border-radius:50%;background:#B9A67A;border:2px solid var(--ink);box-shadow:1px 1px 0 rgba(20,20,20,.3)}
   .cell.clean::after{background:var(--point);border-color:var(--ink);transform:translate(-50%,-50%) scale(.55);transition:background .2s,transform .2s}
   .cell.visited{background:var(--point-soft)}
-  .robot{position:absolute;inset:0;display:grid;place-items:center;transition:left .25s ease,top .25s ease,transform .25s ease;z-index:5;pointer-events:none}
+  .robot{position:absolute;left:0;top:0;width:var(--cell,48px);height:var(--cell,48px);display:grid;place-items:center;transition:transform .25s ease;z-index:5;pointer-events:none;will-change:transform}
   .robot svg{width:74%;height:74%;filter:drop-shadow(2px 2px 0 rgba(20,20,20,.25))}
   @media(prefers-reduced-motion:reduce){.robot,.cell.clean::after{transition:none}}
 
@@ -359,6 +362,7 @@ const OPINFO={
 function stage(){return STAGES[stageIdx];}
 function isWall(s,x,y){return s.walls.some(w=>w.x===x&&w.y===y);}
 
+let robotPose={x:0,y:0,dir:1};
 function computeCell(size){
   const wrap=$('board').parentElement;
   const avail=wrap && wrap.clientWidth ? wrap.clientWidth : 340;
@@ -367,15 +371,20 @@ function computeCell(size){
   px=Math.max(30, px);
   return px;
 }
+function applyCell(){
+  const s=stage(), board=$('board');
+  const px=computeCell(s.size);
+  board.style.setProperty('--n', s.size);
+  board.style.setProperty('--cell', px+'px');
+  board.dataset.px=px;
+}
 function buildBoard(){
   const s=stage();
   const board=$('board'); board.innerHTML='';
-  board.style.gridTemplateColumns=`repeat(${s.size},1fr)`;
-  const px=computeCell(s.size);
+  applyCell();
   for(let y=0;y<s.size;y++)for(let x=0;x<s.size;x++){
     const c=document.createElement('div');
     c.className='cell'; c.dataset.x=x; c.dataset.y=y;
-    c.style.width=px+'px'; c.style.height=px+'px';
     if(isWall(s,x,y)) c.classList.add('wall');
     if(s.dust.some(d=>d.x===x&&d.y===y)) c.classList.add('dust');
     board.appendChild(c);
@@ -384,15 +393,18 @@ function buildBoard(){
   r.className='robot'; r.id='robot';
   r.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="8" width="16" height="10" rx="5" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><circle cx="9" cy="13" r="1.5" fill="#fff"/><circle cx="15" cy="13" r="1.5" fill="#fff"/><path d="M12 8V4M9 4h6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M17.5 11.5l3 1.5-3 1.5z" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>';
   board.appendChild(r);
-  board.dataset.px=px;
   placeRobot(s.start.x,s.start.y,s.start.dir,false);
 }
 function cellAt(x,y){return $('board').querySelector('.cell[data-x="'+x+'"][data-y="'+y+'"]');}
 function placeRobot(x,y,dir,anim){
-  const board=$('board'), px=+board.dataset.px, r=$('robot');
+  const s=stage();
+  x=Math.max(0,Math.min(s.size-1,x));
+  y=Math.max(0,Math.min(s.size-1,y));
+  robotPose={x,y,dir};
+  const board=$('board'), px=+board.dataset.px||48, r=$('robot');
+  if(!r) return;
   if(!anim){ r.style.transition='none'; requestAnimationFrame(()=>{r.style.transition='';}); }
-  r.style.left=(x*px)+'px'; r.style.top=(y*px)+'px'; r.style.width=px+'px'; r.style.height=px+'px';
-  r.style.transform='rotate('+(dir*90)+'deg)';
+  r.style.transform='translate('+(x*px)+'px,'+(y*px)+'px) rotate('+(dir*90)+'deg)';
 }
 
 /* ── 반복 전개: 반복은 바로 앞 명령 1개를 count회 ── */
@@ -573,8 +585,11 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 let resizeRAF=0;
 function onResize(){
-  if(resizeRAF||running) return;
-  resizeRAF=requestAnimationFrame(()=>{ resizeRAF=0; if(!running) buildBoard(); });
+  if(resizeRAF) return;
+  resizeRAF=requestAnimationFrame(()=>{
+    resizeRAF=0; applyCell();
+    placeRobot(robotPose.x,robotPose.y,robotPose.dir,false);
+  });
 }
 window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',onResize);
