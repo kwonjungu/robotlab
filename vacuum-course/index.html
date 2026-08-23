@@ -114,9 +114,10 @@
 <a class="home" href="../">← 수업터 홈</a>
 
 <div class="hud">
-  <div class="chip">스테이지 <b id="hudStage">1</b>/3</div>
+  <div class="chip">맵 <b id="hudStage">1</b>/<span id="hudStageTotal">8</span></div>
   <div class="chip">먼지 <b id="hudDust">0</b></div>
-  <div class="chip">시간 <b id="hudTime">0.0</b></div>
+  <div class="chip">누적 <b id="hudTime">0.0</b></div>
+  <div class="chip">최고 <b id="hudBest">-</b></div>
 </div>
 
 <div class="stage-wrap">
@@ -126,7 +127,7 @@
     <div class="card">
       <span class="kicker">청소 로봇 챌린지</span>
       <h1>로봇청소기 코스 조종</h1>
-      <p class="sub">방향키로 청소기를 움직여<br>먼지를 <b>모두</b> 빨아들여요.<br>벽에 세게 부딪히면 잠깐 튕겨요!</p>
+      <p class="sub">방향키로 청소기를 움직여<br>먼지를 <b>모두</b> 빨아들여요.<br>맵 8개를 <b>이어서</b> 청소하고<br>총 시간으로 최고 기록에 도전!</p>
       <div class="keyrow">
         <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span>
       </div>
@@ -164,8 +165,10 @@
   var W = cv.width, H = cv.height;
 
   var hudStage = document.getElementById("hudStage");
+  var hudStageTotal = document.getElementById("hudStageTotal");
   var hudDust = document.getElementById("hudDust");
   var hudTime = document.getElementById("hudTime");
+  var hudBest = document.getElementById("hudBest");
   var startPanel = document.getElementById("startPanel");
   var clearPanel = document.getElementById("clearPanel");
   var startBtn = document.getElementById("startBtn");
@@ -180,13 +183,36 @@
   var STATE_START=0, STATE_PLAY=1, STATE_CLEAR=2, STATE_DONE=3;
   var state = STATE_START;
 
-  // ---- 스테이지 정의 ----
-  // walls: 사각형 장애물 {x,y,w,h}. 바깥 테두리는 자동.
-  // start: 청소기 시작 위치. dust: 먼지 좌표 배열(그리드로 생성).
+  // ---- 스테이지(맵) 정의 ----
+  // walls: 사각형 장애물 {x,y,w,h}. 바깥 테두리는 자동으로 막혀 있음.
+  // startX/startY: 청소기 시작 위치. 먼지는 buildDust()가 격자로 자동 생성.
+  // 난이도가 뒤로 갈수록 올라가도록 벽/통로/방을 점점 복잡하게 배치.
+  // 모든 통로는 청소기(반지름 18)가 지나갈 수 있게 충분히(>=48px) 넓게 둔다.
+  // 각 맵의 클리어 가능성(모든 먼지가 열린 공간에 있고 도달 가능)은
+  // 별도 검증 스크립트(vacuum-course.validate.js)로 flood-fill 검사한다.
   var STAGES = [
+    // 1) 튜토리얼: 텅 빈 방
     { walls: [], startX:70, startY:70 },
-    { walls: [ {x:200,y:0,w:40,h:320}, {x:280,y:200,w:40,h:320} ], startX:70, startY:70 },
-    { walls: [ {x:150,y:120,w:220,h:40}, {x:150,y:360,w:220,h:40}, {x:240,y:160,w:40,h:200} ], startX:60, startY:60 }
+    // 2) 기둥 두 개
+    { walls: [ {x:180,y:180,w:60,h:60}, {x:300,y:300,w:60,h:60} ], startX:70, startY:70 },
+    // 3) 지그재그 벽(위/아래로 통로)
+    { walls: [ {x:180,y:0,w:44,h:320}, {x:300,y:200,w:44,h:320} ], startX:70, startY:70 },
+    // 4) 방을 가르는 십자 통로
+    { walls: [ {x:130,y:130,w:120,h:44}, {x:130,y:346,w:120,h:44},
+               {x:346,y:130,w:44,h:120}, {x:346,y:346,w:44,h:120} ], startX:70, startY:70 },
+    // 5) 빗살(위에서 내려오는 벽 3개) — 아래쪽으로 우회
+    { walls: [ {x:120,y:0,w:44,h:360}, {x:240,y:160,w:44,h:360}, {x:360,y:0,w:44,h:360} ], startX:60, startY:440 },
+    // 6) 미로형 방(ㄷ자 두 개)
+    { walls: [ {x:110,y:110,w:180,h:44}, {x:110,y:154,w:44,h:180},
+               {x:280,y:230,w:180,h:44}, {x:416,y:274,w:44,h:150} ], startX:70, startY:70 },
+    // 7) 좁은 나선 통로
+    { walls: [ {x:100,y:100,w:320,h:44}, {x:100,y:144,w:44,h:230},
+               {x:200,y:230,w:220,h:44}, {x:200,y:274,w:44,h:120},
+               {x:376,y:374,w:44,h:46} ], startX:70, startY:70 },
+    // 8) 최종: 복합 미로(가장 좁고 복잡, 뱀처럼 이어지는 통로)
+    //    각 가로벽은 좌우 번갈아 통로를 열어 S자로 지나가게 한다(통로 폭 >=56px).
+    { walls: [ {x:0,y:120,w:360,h:40}, {x:160,y:240,w:360,h:40},
+               {x:0,y:360,w:360,h:40}, {x:220,y:400,w:40,h:60} ], startX:66, startY:66 }
   ];
 
   var R = 18;          // 청소기 반지름
@@ -201,18 +227,22 @@
   var walls = [];
   var startTime = 0;
   var elapsed = 0;
-  var totalTime = 0; // 3스테이지 누적
+  var totalTime = 0; // 클리어한 맵들의 누적 시간(전체 완주 총 시간)
   var raf = null;
   var lastTs = 0;
 
   var keys = {up:false,down:false,left:false,right:false};
 
   // ---- 최고기록 (try/catch) ----
+  // 전체 완주 총 시간의 최단 기록. 매 프레임 localStorage를 읽지 않도록 캐시.
+  var bestCache = null;
   function loadBest(){
-    try { var v = Number(localStorage.getItem(BEST_KEY)); return (v>0)?v:0; }
-    catch(e){ return 0; }
+    if(bestCache!==null) return bestCache;
+    try { var v = Number(localStorage.getItem(BEST_KEY)); bestCache = (v>0)?v:0; }
+    catch(e){ bestCache = 0; }
+    return bestCache;
   }
-  function saveBest(v){ try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){} }
+  function saveBest(v){ bestCache = v; try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){} }
 
   // ---- 충돌 판정 (순수 함수, 테스트 대상) ----
   // 원(cx,cy,r)과 사각형(rect) 충돌 시 밀어내고 반사. 반환: 부딪혔으면 true.
@@ -275,6 +305,8 @@
   function updateHud(){
     hudDust.textContent = dust.length;
     hudTime.textContent = (totalTime + elapsed).toFixed(1);
+    var best = loadBest();
+    hudBest.textContent = best>0 ? best.toFixed(1) : "-";
   }
 
   // ---- 업데이트 ----
@@ -443,25 +475,27 @@
     totalTime += elapsed;
     state = STATE_CLEAR;
     if(stageIdx < STAGES.length-1){
-      clearKicker.textContent = "스테이지 클리어";
-      clearMsg.textContent = "스테이지 " + (stageIdx+1) + " 완료!";
-      clearSub.textContent = "여기까지 " + totalTime.toFixed(1) + "초. 다음 방으로!";
+      clearKicker.textContent = "맵 클리어";
+      clearMsg.textContent = "맵 " + (stageIdx+1) + "/" + STAGES.length + " 완료!";
+      clearSub.textContent = "누적 " + totalTime.toFixed(1) + "초. 다음 맵으로!";
       clearBest.textContent = "";
-      clearBtn.textContent = "다음";
+      clearBtn.textContent = "다음 맵";
     } else {
-      // 전체 완료
+      // 전체 완주
       state = STATE_DONE;
-      clearKicker.textContent = "모두 클리어";
-      clearMsg.textContent = "모든 방을 청소했어요! 🎉";
+      clearKicker.textContent = "완주!";
       var best = loadBest();
       var t = totalTime;
-      if(best===0 || t < best){
+      var isNew = (best===0 || t < best);
+      if(isNew){
         best = t; saveBest(best);
-        clearBest.textContent = "새 최단 기록! 🏆 " + best.toFixed(1) + "초";
+        clearMsg.textContent = "완주! 총 " + t.toFixed(1) + "초, 신기록! 🏆";
+        clearBest.textContent = "새 최고 기록 " + best.toFixed(1) + "초 달성!";
       } else {
-        clearBest.textContent = "최단 기록: " + best.toFixed(1) + "초";
+        clearMsg.textContent = "완주! 총 " + t.toFixed(1) + "초 🎉";
+        clearBest.textContent = "최고 기록: " + best.toFixed(1) + "초";
       }
-      clearSub.textContent = "총 걸린 시간 " + t.toFixed(1) + "초";
+      clearSub.textContent = STAGES.length + "개 맵을 모두 청소했어요!";
       clearBtn.textContent = "다시 처음부터";
     }
     clearPanel.classList.add("show");
@@ -492,8 +526,10 @@
 
   function showStart(){
     state=STATE_START;
+    hudStageTotal.textContent = STAGES.length;
     var best=loadBest();
-    startBest.textContent = best>0 ? ("최단 기록: " + best.toFixed(1) + "초") : "";
+    hudBest.textContent = best>0 ? best.toFixed(1) : "-";
+    startBest.textContent = best>0 ? ("최고 기록(총 시간): " + best.toFixed(1) + "초") : "";
     startPanel.classList.add("show");
     // 첫 화면 배경으로 스테이지1 미리 그려두기
     loadStagePreview(0);

@@ -10,6 +10,7 @@
     --point:#3D5AFE; --point-soft:#E4E8FF;
     --amber:#FFB800; --amber-soft:#FFF0C7;
     --green:#12B76A; --green-soft:#D6F5E6; --red:#FF4D4D; --muted:#6B6B6B;
+    --loop:#12B76A; --loop-soft:#D6F5E6; --if:#FF4D4D; --if-soft:#FFE3E4;
     --r:20px; --r-sm:13px;
     --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
   }
@@ -45,6 +46,41 @@
   .chasi span{font-weight:800;font-size:12.5px;background:var(--surface);border:2px solid var(--ink);
     border-radius:999px;padding:4px 12px;box-shadow:var(--hard-sm)}
 
+  /* help toggle */
+  .helpbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px;
+    color:var(--ink);background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:999px;padding:8px 16px;
+    box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;margin-bottom:16px}
+  .helpbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .helpbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .helpbtn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  /* help panel */
+  .help{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);
+    padding:20px 22px;margin-bottom:22px}
+  .help[hidden]{display:none}
+  .help h2{font-size:19px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+  .help .sub{font-size:13.5px;color:var(--muted);font-weight:700;margin-bottom:16px}
+  .help .step{border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:14px;background:var(--paper)}
+  .help .step h3{font-size:15.5px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .help .step .num{width:26px;height:26px;flex-shrink:0;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:8px;font-size:13px}
+  .help .step p{font-size:14px;font-weight:600;line-height:1.55;margin-bottom:8px}
+  .help .step p b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 2px;font-weight:900}
+  /* mini block diagram */
+  .diagram{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+  .drow{display:flex;align-items:center;gap:6px}
+  .dchip{display:inline-flex;align-items:center;gap:5px;font-weight:900;font-size:12.5px;color:#fff;
+    border:2.5px solid var(--ink);border-radius:9px;padding:5px 10px}
+  .dchip.fwd{background:var(--point)}
+  .dchip.left{background:#7C3AED}
+  .dchip.right{background:#F59E0B;color:var(--ink)}
+  .dchip.loop{background:var(--loop)}
+  .dchip.if{background:var(--if)}
+  .dchip.plain{background:var(--surface);color:var(--ink)}
+  .dindent{width:18px;flex-shrink:0;display:inline-block;border-left:3px solid var(--ink);margin-left:9px;align-self:stretch}
+  .help .callout{background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:11px 14px;
+    font-size:13.5px;font-weight:700;line-height:1.5}
+  .help .callout b{font-weight:900}
+
   /* stage bar */
   .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
   .stagebar .lbl{font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -72,13 +108,15 @@
   .phead h2{font-size:18px;font-weight:900;letter-spacing:-.02em}
   .phead .bar{height:3px;background:var(--ink);flex:1;border-radius:2px;opacity:.25}
 
-  .goaltxt{font-size:13.5px;font-weight:700;color:#333;margin-bottom:12px;background:var(--point-soft);
+  .goaltxt{font-size:13.5px;font-weight:700;color:#333;margin-bottom:10px;background:var(--point-soft);
     border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:10px 13px;line-height:1.45}
   .goaltxt b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px;font-weight:900}
+  .stagehint{font-size:12.5px;font-weight:700;color:#333;margin-bottom:12px;background:var(--amber-soft);
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:8px 12px;line-height:1.4;display:flex;gap:7px;align-items:flex-start}
+  .stagehint svg{flex-shrink:0;margin-top:1px}
 
   /* grid board */
   .boardwrap{display:flex;justify-content:center;margin-bottom:8px;width:100%}
-  /* --cell: 셀 한 변 픽셀 (JS가 컨테이너 폭에 맞춰 설정) --n: 격자 크기 */
   .board{position:relative;display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
     background:var(--paper);touch-action:manipulation;
     grid-template-columns:repeat(var(--n,6),var(--cell,48px));
@@ -89,7 +127,6 @@
   .cell.wall{background:var(--ink);background-image:repeating-linear-gradient(45deg,#000,#000 4px,#2a2a2a 4px,#2a2a2a 8px)}
   .cell .star,.cell .flag{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
   .cell .star svg{width:64%;height:64%}
-  /* 로봇: 좌상단(0,0) 셀에 고정 크기로 두고 transform으로 셀 단위 이동 → 격자와 항상 정렬 */
   .robot{position:absolute;left:0;top:0;width:var(--cell,48px);height:var(--cell,48px);
     display:grid;place-items:center;transition:transform .28s ease;z-index:5;pointer-events:none;will-change:transform}
   .robot svg{width:70%;height:70%;filter:drop-shadow(2px 2px 0 rgba(20,20,20,.25))}
@@ -113,7 +150,7 @@
   .state.bad{color:var(--red)}
 
   /* palette */
-  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
   .blk{display:inline-flex;align-items:center;gap:7px;cursor:grab;user-select:none;
     font-family:inherit;font-weight:900;font-size:13.5px;color:#fff;border:2.5px solid var(--ink);
     border-radius:11px;padding:9px 12px;min-height:44px;box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s;
@@ -125,15 +162,16 @@
   .blk.fwd{background:var(--point)}
   .blk.left{background:#7C3AED}
   .blk.right{background:#F59E0B;color:var(--ink)}
-  .blk.loop{background:var(--green)}
-  .blk.ifw{background:var(--red)}
+  .blk.loop{background:var(--loop)}
+  .blk.ifb{background:var(--if)}
   .blk .cnt{display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,.28);border-radius:7px;padding:1px 5px;font-size:12px}
   .paletitle{font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 
   /* program list */
   .progtitle{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px}
   .progtitle .count{background:var(--ink);color:var(--paper);border-radius:999px;padding:2px 9px;font-size:11px}
-  .prog-list{list-style:none;min-height:120px;background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);padding:10px;display:flex;flex-direction:column;gap:7px}
+  .progtitle .count.over{background:var(--red)}
+  .prog-list{list-style:none;min-height:130px;background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);padding:10px;display:flex;flex-direction:column;gap:6px}
   .prog-list.drag{background:var(--point-soft);border-style:solid}
   .prog-list .empty{color:var(--muted);font-size:13.5px;font-weight:700;text-align:center;padding:22px 8px}
   .pitem{display:flex;align-items:center;gap:8px;background:var(--surface);border:2.5px solid var(--ink);border-radius:11px;
@@ -147,9 +185,27 @@
     border:2px solid var(--ink);border-radius:8px;background:var(--paper);color:var(--ink)}
   .pitem .mini:hover{background:var(--amber-soft)}
   .pitem .mini:focus-visible{outline:2.5px solid var(--point);outline-offset:1px}
+  .pitem .mini:disabled{opacity:.35;cursor:not-allowed}
   .pitem .mini.del{background:#FFE3E4}
+  /* structural bracket items */
+  .pitem.brk{background:var(--loop-soft);border-style:solid}
+  .pitem.brk-if{background:var(--if-soft)}
+  .pitem.inner{margin-left:22px;position:relative}
+  .pitem.inner::before{content:"";position:absolute;left:-13px;top:-3px;bottom:-3px;width:3px;background:var(--loop);border-radius:2px}
+  .pitem.inner.in-if::before{background:var(--if)}
+  .pitem.inner2{margin-left:44px}
+  .pitem.inner2::after{content:"";position:absolute;left:-24px;top:-3px;bottom:-3px;width:3px;background:var(--loop);border-radius:2px;opacity:.55}
+  .pitem.bad{outline:3px solid var(--red);outline-offset:1px}
+  /* insertion caret */
+  .caret{list-style:none;display:flex;align-items:center;min-height:14px;cursor:pointer;padding:0 4px}
+  .caret .dot{font-size:11px;font-weight:900;color:var(--muted);opacity:.4;line-height:1}
+  .caret.on{min-height:24px}
+  .caret.on .dot{opacity:1;color:#fff;background:var(--point);border:2px solid var(--ink);border-radius:7px;padding:2px 9px;box-shadow:var(--hard-sm)}
+  .caret:hover .dot{opacity:.85}
+  .caret:focus-visible{outline:2.5px solid var(--point);outline-offset:2px;border-radius:6px}
 
   .hint{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:10px;line-height:1.45}
+  .hint b{color:var(--ink)}
 
   /* observation box */
   .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
@@ -192,7 +248,6 @@
 
   .drag-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.9;transform:translate(-50%,-50%)}
 
-  /* 반응형: 좁은 화면에서 여백을 줄여 격자/팔레트/프로그램이 넘치지 않게 */
   @media(max-width:560px){
     .wrap{padding:12px 12px 48px}
     .panel{padding:14px}
@@ -221,22 +276,68 @@
   <header>
     <span class="kicker">개념 게임 · 프로그래밍의 뼈대</span>
     <h1>코딩 <span class="u">3구조</span> 놀이터</h1>
-    <p class="lead">블록을 쌓아 로봇을 별까지 옮겨요. <b>순차</b>로 늘어놓고, 똑같은 동작은 <b>반복</b>으로 줄이고, 벽 앞에서는 <b>선택</b>으로 길을 바꿔요.</p>
+    <p class="lead">블록을 쌓아 로봇을 별까지 옮겨요. <b>순차</b>로 늘어놓고, 똑같은 동작은 <b>반복 시작–끝</b> 사이에 넣어 줄이고, 벽 앞에서는 <b>만약(조건)</b>으로 길을 바꿔요.</p>
     <div class="chasi">
       <span>관련 차시 · 3-4 오토카</span><span>9-10 청소</span><span>23-24 미로</span><span>27-28 도형</span>
     </div>
   </header>
 
+  <button class="helpbtn" id="helpBtn" type="button" aria-expanded="false" aria-controls="helpPanel">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/><path d="M9.5 9a2.5 2.5 0 1 1 3.2 2.4c-.8.3-1.2.8-1.2 1.6v.5" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><circle cx="11.5" cy="16.5" r="1.1" fill="var(--ink)"/></svg>
+    어떻게 쓰나요? (사용법 열기)
+  </button>
+
+  <!-- HELP PANEL -->
+  <section class="help" id="helpPanel" hidden aria-label="사용법 도움말">
+    <h2>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H13l-4 3v-3H4z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="var(--point)" stroke-width="2.2" stroke-linecap="round"/></svg>
+      블록으로 로봇을 움직이는 법
+    </h2>
+    <p class="sub">블록을 <b>클릭</b>하거나 아래 「내 프로그램」으로 <b>끌어다</b> 놓으면 순서대로 쌓여요. 위에서 아래로 차례차례 실행돼요.</p>
+
+    <div class="step">
+      <h3><span class="num">1</span> 순차 — 순서대로 놓기</h3>
+      <p>블록은 놓은 <b>순서대로</b> 하나씩 실행돼요. 「앞으로」는 로봇이 보는 쪽으로 한 칸, 「왼쪽/오른쪽 90°」는 제자리에서 방향만 돌려요.</p>
+      <div class="diagram" aria-hidden="true">
+        <div class="drow"><span class="dchip fwd">앞으로</span><span class="dchip fwd">앞으로</span><span class="dchip right">오른쪽 90°</span><span class="dchip fwd">앞으로</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="num">2</span> 반복 — 시작과 끝 괄호로 감싸기</h3>
+      <p><b>[반복 시작 N번]</b> 블록과 <b>[반복 끝]</b> 블록을 놓고, 그 <b>사이</b>에 반복할 동작 블록을 넣어요. 사이에 넣은 블록들이 N번 되풀이돼요. 시작 항목의 <b>+ / −</b>로 횟수를 바꿔요.</p>
+      <div class="diagram" aria-hidden="true">
+        <div class="drow"><span class="dchip loop">🔁 반복 시작 4번</span></div>
+        <div class="drow"><span class="dindent"></span><span class="dchip fwd">앞으로</span></div>
+        <div class="drow"><span class="dchip loop">반복 끝</span></div>
+      </div>
+      <p style="margin-top:10px">위 예시는 「앞으로」를 <b>4번</b> 한 것과 같아요. 「앞으로·앞으로·앞으로·앞으로」를 짧게 쓴 거예요.</p>
+    </div>
+
+    <div class="step">
+      <h3><span class="num">3</span> 만약(조건) — 앞이 막혔는지 보고 길 정하기</h3>
+      <p><b>[만약 앞이 막혔다면]</b> … <b>[아니면]</b> … <b>[만약 끝]</b> 으로 감싸요. 로봇이 그 자리에서 <b>바로 앞 칸이 벽인지</b> 살펴본 뒤, 막혔으면 위쪽 블록을, 뚫렸으면 <b>아니면</b> 아래 블록을 실행해요.</p>
+      <div class="diagram" aria-hidden="true">
+        <div class="drow"><span class="dchip if">❓ 만약 앞이 막혔다면</span></div>
+        <div class="drow"><span class="dindent" style="border-color:var(--if)"></span><span class="dchip right">오른쪽 90°</span></div>
+        <div class="drow"><span class="dchip if plain">아니면</span></div>
+        <div class="drow"><span class="dindent" style="border-color:var(--if)"></span><span class="dchip fwd">앞으로</span></div>
+        <div class="drow"><span class="dchip if">만약 끝</span></div>
+      </div>
+      <p style="margin-top:10px">벽에 막히면 오른쪽으로 돌고, 길이 뚫려 있으면 앞으로 가요. 이걸 <b>반복 안에</b> 넣으면 벽을 만날 때마다 알아서 꺾어요.</p>
+    </div>
+
+    <div class="callout">
+      <b>꿀팁</b> · 반복이나 만약 블록은 안에 다른 반복/만약을 <b>1단계까지만</b> 넣을 수 있어요. 짝(시작–끝)이 맞아야 실행돼요. 「아니면」이 필요 없으면 비워 두어도 괜찮아요.
+    </div>
+  </section>
+
   <div class="stagebar">
     <span class="lbl">스테이지</span>
-    <button class="schip" data-stage="0" type="button">1</button>
-    <button class="schip" data-stage="1" type="button">2</button>
-    <button class="schip" data-stage="2" type="button">3</button>
-    <button class="schip" data-stage="3" type="button">4</button>
   </div>
 
   <div class="prog">
-    <div class="progtrack" role="progressbar" aria-label="스테이지 진행" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+    <div class="progtrack" role="progressbar" aria-label="스테이지 진행" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0">
       <div class="progfill" id="progfill"></div>
     </div>
     <span class="xpwrap" aria-label="획득 경험치">
@@ -250,6 +351,10 @@
     <section class="panel">
       <div class="phead"><h2 id="stageName">스테이지 1</h2><span class="bar" aria-hidden="true"></span></div>
       <p class="goaltxt" id="goalTxt"></p>
+      <p class="stagehint" id="stageHint">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.3 1 2.1h6c0-.8.4-1.5 1-2.1A6 6 0 0 0 12 3z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+        <span id="stageHintTxt"></span>
+      </p>
       <div class="boardwrap"><div class="board" id="board" aria-label="로봇 이동 격자"></div></div>
       <div class="runctl">
         <button class="btn" id="runBtn" type="button">
@@ -282,18 +387,18 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 7H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4h8" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4l3 3-3 3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           오른쪽 90°
         </button>
-        <button class="blk loop" type="button" data-op="loop" aria-label="반복 블록 추가">
+        <button class="blk loop" type="button" data-op="loop" aria-label="반복 시작-끝 블록 한 쌍 추가">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9a6 6 0 0 1 6-6h6M20 15a6 6 0 0 1-6 6H8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 1l3 2-3 2M11 23l-3-2 3-2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="cnt" id="loopCntPreview">2회</span> 반복
+          <span class="cnt">🔁</span> 반복(시작–끝)
         </button>
-        <button class="blk ifw" type="button" data-op="ifw" aria-label="만약 벽이면 회전 블록 추가">
+        <button class="blk ifb" type="button" data-op="if" aria-label="만약 조건 블록 한 쌍 추가">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
-          만약 벽이면↻
+          만약(막힘?)
         </button>
       </div>
-      <p class="hint" id="loopHint">반복 블록은 바로 <b>앞의 블록 1개</b>를 정한 횟수만큼 반복해요. 반복 항목의 <b>+ / −</b>로 횟수를 바꿔요. 「만약 벽이면」은 앞이 벽일 때만 오른쪽으로 돌아요(선택).</p>
+      <p class="hint" id="loopHint"><b>반복</b>·<b>만약</b> 블록은 <b>시작–(아니면)–끝</b> 한 벌이 한꺼번에 들어와요. 사이의 <b>＋안에 넣기</b> 자리에 동작 블록을 넣으세요. 「반복 시작」의 <b>+ / −</b>로 횟수를 바꿔요.</p>
 
-      <div class="progtitle"><span>내 프로그램</span><span class="count"><span id="blkCount">0</span> / <span id="blkMax">–</span></span></div>
+      <div class="progtitle"><span>내 프로그램</span><span class="count" id="countPill"><span id="blkCount">0</span> / <span id="blkMax">–</span></span></div>
       <ul class="prog-list" id="progList" aria-label="쌓은 블록 프로그램">
         <li class="empty" id="emptyMsg">여기에 블록이 쌓여요</li>
       </ul>
@@ -304,13 +409,13 @@
           모두 비우기
         </button>
       </div>
-      <p class="hint">블록 수를 줄이려면 같은 동작을 <b>반복</b>으로 묶고, 벽 앞 갈림길은 <b>만약 벽이면</b>으로 처리해요.</p>
+      <p class="hint">블록 수 제한을 넘기지 않으려면 같은 동작은 <b>반복</b>으로 묶고, 벽 앞 갈림길은 <b>만약(막힘?)</b>으로 처리해요.</p>
     </section>
   </div>
 
   <div class="obs">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
-    <span><b>생각해 봐요</b> — 「앞으로 · 앞으로 · 앞으로」는 「앞으로를 3회 반복」과 결과가 같아요. 반복은 <b>같은 명령을 짧게</b> 쓰는 방법이에요. 벽이 어디 있을지 모를 때는 「만약 벽이면 돌기」 같은 <b>선택</b>으로 그때그때 길을 정해요.</span>
+    <span><b>생각해 봐요</b> — 「앞으로·앞으로·앞으로」는 「반복 시작 3번 … 앞으로 … 반복 끝」과 결과가 같아요. 반복은 <b>같은 명령을 짧게</b> 쓰는 방법이에요. 벽이 어디 있을지 모를 때는 「만약 앞이 막혔다면 돌기」 같은 <b>선택</b>으로 그때그때 길을 정해요.</span>
   </div>
 
   <div class="cmp-head"><h2>모은 배지</h2><span class="bar" aria-hidden="true"></span></div>
@@ -321,11 +426,11 @@
     </div>
     <div class="badge" id="badge-loop">
       <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10a6 6 0 0 1 6-6h5M20 14a6 6 0 0 1-6 6H9" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1l3 3-3 3M12 23l-3-3 3-3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="bt">반복 달인</div><div class="bd">반복 블록을 써서 스테이지를 통과하면</div>
+      <div class="bt">반복 달인</div><div class="bd">반복 시작–끝 블록으로 스테이지를 통과하면</div>
     </div>
     <div class="badge" id="badge-if">
       <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 9v4M12 16h.01" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
-      <div class="bt">선택 탐정</div><div class="bd">「만약 벽이면」으로 갈림길을 통과하면</div>
+      <div class="bt">선택 탐정</div><div class="bd">「만약(막힘?)」으로 갈림길을 통과하면</div>
     </div>
   </div>
 
@@ -336,374 +441,14 @@
     </h2>
     <ul>
       <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="순차 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 블록을 <b>순서대로</b> 놓으면 로봇이 그 순서로 움직인다는 것을 안다.</li>
-      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="반복 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 같은 동작이 여러 번 나올 때 <b>반복</b>으로 짧게 만들 수 있다.</li>
-      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="선택 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 상황(벽)이 다를 때 <b>선택(조건)</b>으로 다르게 움직이게 할 수 있다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="반복 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 같은 동작이 여러 번 나올 때 <b>반복 시작–끝</b> 사이에 넣어 짧게 만들 수 있다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="선택 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 앞이 막혔는지에 따라 <b>만약(조건)</b>으로 다르게 움직이게 할 수 있다.</li>
     </ul>
   </div>
 
   <footer><a href="../">← 신나는 로봇 창작랩 수업터 홈</a></footer>
 </div>
 
-<script>
-"use strict";
-const $=id=>document.getElementById(id);
-
-/* ── 방향: 0=위,1=오른,2=아래,3=왼 ── */
-const DIRS=[{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
-
-/* ── 스테이지 정의 ──
-   grid: n×n, 좌표 {x,y} 0-index, start.dir 방향
-   walls: [{x,y}] 벽 칸, star: 목표
-   need: 통과에 요구되는 구조 힌트 (배지/힌트용)
-*/
-const STAGES=[
-  { name:"스테이지 1 · 순차",
-    goal:"블록을 <b>순서대로</b> 놓아 로봇(오른쪽 향함)을 별까지 옮겨요. 앞으로만으로도 풀려요.",
-    size:6, start:{x:1,y:4,dir:1}, star:{x:4,y:4}, walls:[], blkMax:8, tag:"seq" },
-
-  { name:"스테이지 2 · 반복",
-    goal:"별이 <b>멀리</b> 있어요. 「앞으로」를 여러 번 놓아도 되지만, <b>반복 블록</b>으로 줄여서 6칸을 가 봐요.",
-    size:8, start:{x:1,y:6,dir:1}, star:{x:7,y:6}, walls:[], blkMax:10, tag:"loop", minLoop:1 },
-
-  { name:"스테이지 3 · 선택(벽)",
-    goal:"앞에 <b>벽</b>이 있어요. 「만약 벽이면 오른쪽으로」를 넣으면 벽 앞에서만 방향을 틀어 돌아가요.",
-    size:7, start:{x:1,y:1,dir:1},
-    walls:[{x:4,y:1},{x:4,y:2}], star:{x:5,y:4}, blkMax:12, tag:"if", needIf:true },
-
-  { name:"스테이지 4 · 3구조 종합",
-    goal:"긴 복도와 모퉁이, 벽이 섞여 있어요. <b>순차·반복·선택</b>을 모두 써서 가장 짧은 코드로 별을 찾아요.",
-    size:8, start:{x:1,y:1,dir:1},
-    walls:[{x:5,y:1},{x:5,y:2},{x:5,y:3},{x:2,y:5},{x:3,y:5}],
-    star:{x:6,y:6}, blkMax:16, tag:"all", minLoop:1, needIf:false }
-];
-
-/* ── 상태 ── */
-let stageIdx=0;
-let program=[];      // [{op, count?}]
-let xp=0;
-const cleared=new Set();
-const badges={seq:false,loop:false,if:false};
-let running=false;
-
-const OPINFO={
-  fwd:{lab:"앞으로",color:"#3D5AFE"},
-  left:{lab:"왼쪽 90°",color:"#7C3AED"},
-  right:{lab:"오른쪽 90°",color:"#F59E0B"},
-  loop:{lab:"반복",color:"#12B76A"},
-  ifw:{lab:"만약 벽이면 오른쪽",color:"#FF4D4D"}
-};
-
-/* ── 격자 렌더 ── */
-function stage(){return STAGES[stageIdx];}
-function isWall(s,x,y){ return s.walls.some(w=>w.x===x&&w.y===y); }
-
-/* 현재 로봇 위치를 기억(리사이즈 시 재배치용) */
-let robotPose={x:0,y:0,dir:1};
-
-/* 컨테이너 폭에 맞춰 정사각형 셀 크기(px)를 계산.
-   격자 전체 폭 = size*cell + 6(테두리 3px×2). 보드는 .boardwrap(패널 안) 폭을 넘지 않게. */
-function computeCell(size){
-  const wrap=$('board').parentElement;      // .boardwrap
-  const avail=wrap ? wrap.clientWidth : 360;
-  const usable=Math.max(0, avail-6);        // 좌우 테두리 제외
-  // 화면이 넓어도 셀은 최대 52px, 좁으면 컨테이너에 맞춰 축소(최소 26px 보장)
-  let cell=Math.floor(usable/size);
-  cell=Math.min(52, cell);
-  cell=Math.max(26, cell);
-  return cell;
-}
-
-function applyCell(){
-  const s=stage();
-  const board=$('board');
-  const cell=computeCell(s.size);
-  board.style.setProperty('--n', s.size);
-  board.style.setProperty('--cell', cell+'px');
-  board.dataset.cell=cell;
-}
-
-function buildBoard(){
-  const s=stage();
-  const board=$('board');
-  board.innerHTML='';
-  applyCell();
-  for(let y=0;y<s.size;y++){
-    for(let x=0;x<s.size;x++){
-      const c=document.createElement('div');
-      c.className='cell';
-      if(isWall(s,x,y)) c.classList.add('wall');
-      if(s.star.x===x&&s.star.y===y){
-        c.innerHTML='<span class="star"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg></span>';
-      }
-      board.appendChild(c);
-    }
-  }
-  // robot element
-  const r=document.createElement('div');
-  r.className='robot'; r.id='robot';
-  r.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="7" width="14" height="11" rx="3" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><circle cx="9.5" cy="12" r="1.6" fill="#fff"/><circle cx="14.5" cy="12" r="1.6" fill="#fff"/><path d="M12 7V3M9 3h6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M12 18v2" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M20 12l2 0" stroke="var(--point)" stroke-width="0"/><path d="M17.5 10.5l3 1.5-3 1.5z" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>';
-  board.appendChild(r);
-  placeRobot(s.start.x,s.start.y,s.start.dir,false);
-}
-
-/* 셀→픽셀 변환은 오직 transform으로. 셀 (x,y)의 좌상단 = (x*cell, y*cell).
-   경계(0~size-1) 클램프 후 배치 → 항상 셀 중앙 정렬 유지. */
-function placeRobot(x,y,dir,anim){
-  const s=stage();
-  x=Math.max(0,Math.min(s.size-1,x));
-  y=Math.max(0,Math.min(s.size-1,y));
-  robotPose={x,y,dir};
-  const board=$('board');
-  const cell=+board.dataset.cell||48;
-  const r=$('robot');
-  if(!r) return;
-  if(!anim){ r.style.transition='none'; requestAnimationFrame(()=>{r.style.transition='';}); }
-  r.style.transform='translate('+(x*cell)+'px,'+(y*cell)+'px) rotate('+(dir*90)+'deg)';
-}
-
-/* 리사이즈: 셀 크기만 다시 계산하고 로봇을 현재 논리 위치에 재배치(애니메이션 없이) */
-let resizeRAF=0;
-function onResize(){
-  if(resizeRAF) return;
-  resizeRAF=requestAnimationFrame(()=>{
-    resizeRAF=0;
-    applyCell();
-    placeRobot(robotPose.x,robotPose.y,robotPose.dir,false);
-  });
-}
-window.addEventListener('resize',onResize);
-window.addEventListener('orientationchange',onResize);
-
-/* ── 프로그램 → 실행 명령 펼치기 (반복 전개) ──
-   반복(loop)은 "바로 앞 블록 1개"를 count회 실행.
-   결과: 원자 명령 리스트 [{op}] (op in fwd/left/right/ifw)
-*/
-function expand(prog){
-  const out=[];
-  for(let i=0;i<prog.length;i++){
-    const b=prog[i];
-    if(b.op==='loop'){
-      // 앞 블록(직전에 out에 넣은 마지막 원자 그룹) 대신, 소스상 직전 블록을 count회
-      const prev=prog[i-1];
-      if(!prev||prev.op==='loop') continue; // 앞이 없거나 반복이면 무시
-      // 직전 블록은 이미 1회 out에 들어감 → count-1회 더
-      const times=Math.max(1,b.count||1);
-      for(let k=0;k<times-1;k++) out.push({op:prev.op});
-    } else {
-      out.push({op:b.op});
-    }
-  }
-  return out;
-}
-
-/* ── 시뮬레이션 (순수 로직) ──
-   반환: {states:[{x,y,dir,blocked?}], win, usedIf, hitWall, outOfBounds}
-*/
-function simulate(atoms, s){
-  let x=s.start.x, y=s.start.y, dir=s.start.dir;
-  const states=[{x,y,dir}];
-  let win=(x===s.star.x&&y===s.star.y);
-  let usedIf=false, crash=false;
-  for(const a of atoms){
-    if(a.op==='left'){ dir=(dir+3)%4; states.push({x,y,dir}); }
-    else if(a.op==='right'){ dir=(dir+1)%4; states.push({x,y,dir}); }
-    else if(a.op==='fwd'){
-      const nx=x+DIRS[dir].dx, ny=y+DIRS[dir].dy;
-      if(nx<0||ny<0||nx>=s.size||ny>=s.size||isWall(s,nx,ny)){
-        crash=true; states.push({x,y,dir,blocked:true}); break;
-      }
-      x=nx; y=ny; states.push({x,y,dir});
-    }
-    else if(a.op==='ifw'){
-      usedIf=true;
-      const nx=x+DIRS[dir].dx, ny=y+DIRS[dir].dy;
-      const wall=(nx<0||ny<0||nx>=s.size||ny>=s.size||isWall(s,nx,ny));
-      if(wall){ dir=(dir+1)%4; states.push({x,y,dir,turned:true}); }
-      // 벽 아니면 아무 것도 안 함(선택)
-    }
-    if(x===s.star.x&&y===s.star.y){ win=true; break; }
-  }
-  return {states, win, usedIf, crash};
-}
-
-/* ── 프로그램 리스트 렌더 ── */
-function renderProg(){
-  const list=$('progList');
-  list.querySelectorAll('.pitem').forEach(n=>n.remove());
-  const empty=$('emptyMsg');
-  empty.style.display=program.length?'none':'block';
-  program.forEach((b,i)=>{
-    const li=document.createElement('li');
-    li.className='pitem'; li.dataset.i=i;
-    const info=OPINFO[b.op];
-    let extra='';
-    if(b.op==='loop'){
-      extra=`<span style="font-weight:900">${b.count}회</span>`;
-    }
-    li.innerHTML=`<span class="idx">${i+1}</span>
-      <span class="swatch" style="background:${info.color}"></span>
-      <span class="lab">${info.lab} ${extra}</span>
-      <span class="stepbtns"></span>`;
-    const btns=li.querySelector('.stepbtns');
-    if(b.op==='loop'){
-      const minus=mkMini('−','반복 횟수 줄이기',()=>{ if(b.count>2){b.count--; renderProg();} });
-      const plus=mkMini('+','반복 횟수 늘리기',()=>{ if(b.count<9){b.count++; renderProg();} });
-      btns.appendChild(minus); btns.appendChild(plus);
-    }
-    const up=mkMini('▲','위로 옮기기',()=>move(i,-1)); up.disabled=i===0;
-    const del=mkMini('✕','블록 삭제',()=>{ program.splice(i,1); renderProg(); });
-    del.classList.add('del');
-    btns.appendChild(up); btns.appendChild(del);
-    list.appendChild(li);
-  });
-  $('blkCount').textContent=program.length;
-  $('blkMax').textContent=stage().blkMax;
-}
-function mkMini(txt,label,fn){
-  const b=document.createElement('button');
-  b.type='button'; b.className='mini'; b.textContent=txt; b.setAttribute('aria-label',label);
-  b.onclick=fn; return b;
-}
-function move(i,d){
-  const j=i+d; if(j<0||j>=program.length) return;
-  const t=program[i]; program[i]=program[j]; program[j]=t; renderProg();
-}
-
-/* ── 블록 추가 ── */
-function addBlock(op){
-  if(running) return;
-  if(program.length>=stage().blkMax){ setState('블록이 가득 찼어요. 반복으로 줄여 봐요!','bad'); return; }
-  if(op==='loop') program.push({op:'loop',count:2});
-  else program.push({op});
-  renderProg();
-}
-
-/* ── 팔레트 클릭 & 드래그 ── */
-$('palette').querySelectorAll('.blk').forEach(b=>{
-  b.addEventListener('click',()=>addBlock(b.dataset.op));
-});
-
-/* pointer 기반 드래그 (마우스+터치 공통) */
-let dragOp=null, ghost=null;
-$('palette').querySelectorAll('.blk').forEach(b=>{
-  b.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='mouse'&&e.button!==0) return;
-    dragOp=b.dataset.op;
-    startGhost(b,e);
-    const move=ev=>{ if(ghost){ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px';} overList(ev);};
-    const up=ev=>{
-      document.removeEventListener('pointermove',move);
-      document.removeEventListener('pointerup',up);
-      $('progList').classList.remove('drag');
-      if(ghost){ghost.remove();ghost=null;}
-      const el=document.elementFromPoint(ev.clientX,ev.clientY);
-      if(el&&$('progList').contains(el)||el===$('progList')){ addBlock(dragOp); }
-      else if(el){ const l=el.closest&&el.closest('#progList'); if(l) addBlock(dragOp); }
-      dragOp=null;
-    };
-    document.addEventListener('pointermove',move);
-    document.addEventListener('pointerup',up);
-  });
-});
-function startGhost(b,e){
-  ghost=b.cloneNode(true);
-  ghost.classList.add('drag-ghost');
-  ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
-  document.body.appendChild(ghost);
-}
-function overList(ev){
-  const el=document.elementFromPoint(ev.clientX,ev.clientY);
-  const over=el&&(el===$('progList')||(el.closest&&el.closest('#progList')));
-  $('progList').classList.toggle('drag',!!over);
-}
-
-/* ── 실행 ── */
-$('runBtn').onclick=runProgram;
-$('resetBtn').onclick=()=>{ if(running)return; const s=stage(); placeRobot(s.start.x,s.start.y,s.start.dir,false); setState('처음 위치로 돌아왔어요.'); };
-$('clearBtn').onclick=()=>{ if(running)return; program=[]; renderProg(); setState('프로그램을 비웠어요.'); };
-
-function setState(msg,kind){
-  const el=$('state'); el.className='state'+(kind?' '+kind:''); el.innerHTML=msg;
-}
-
-async function runProgram(){
-  if(running) return;
-  if(program.length===0){ setState('먼저 블록을 쌓아요!','bad'); return; }
-  const s=stage();
-  const atoms=expand(program);
-  const sim=simulate(atoms,s);
-  running=true; $('runBtn').disabled=true; $('resetBtn').disabled=true;
-  setState('로봇이 움직여요…');
-  placeRobot(s.start.x,s.start.y,s.start.dir,false);
-  const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const delay=reduce?60:300;
-  for(let i=1;i<sim.states.length;i++){
-    await sleep(delay);
-    const st=sim.states[i];
-    placeRobot(st.x,st.y,st.dir,true);
-    if(st.blocked){ setState('앞이 <b>벽</b>이라 더 못 가요. 「만약 벽이면」이나 회전을 넣어 봐요.','bad'); }
-  }
-  running=false; $('runBtn').disabled=false; $('resetBtn').disabled=false;
-  if(sim.win){ onWin(sim); }
-  else if(!sim.crash){ setState('별에 닿지 못했어요. 블록 순서를 살펴봐요.','bad'); }
-}
-
-function onWin(sim){
-  const s=stage();
-  const usedLoop=program.some(b=>b.op==='loop');
-  const usedIf=program.some(b=>b.op==='ifw');
-  setState('별 도착! <b>성공</b> 🎉 — 블록 '+program.length+'개로 풀었어요.','ok');
-  // 배지
-  if(!badges.seq){ badges.seq=true; gotBadge('seq'); }
-  if(usedLoop&&!badges.loop){ badges.loop=true; gotBadge('loop'); }
-  if(usedIf&&!badges.if){ badges.if=true; gotBadge('if'); }
-  // XP & clear
-  if(!cleared.has(stageIdx)){
-    cleared.add(stageIdx);
-    let gain=20; if(usedLoop)gain+=10; if(usedIf)gain+=10;
-    xp+=gain; $('xp').textContent=xp;
-    updateProgress();
-    document.querySelector('.schip[data-stage="'+stageIdx+'"]').classList.add('cleared');
-  }
-}
-function gotBadge(k){ $('badge-'+({seq:'seq',loop:'loop',if:'if'}[k])).classList.add('got'); }
-
-function updateProgress(){
-  const n=cleared.size;
-  $('progfill').style.width=(n/STAGES.length*100)+'%';
-  document.querySelector('.progtrack').setAttribute('aria-valuenow',n);
-}
-
-/* ── 스테이지 전환 ── */
-function loadStage(i){
-  stageIdx=i; program=[]; running=false;
-  document.querySelectorAll('.schip').forEach(c=>c.classList.toggle('on',+c.dataset.stage===i));
-  $('stageName').textContent=stage().name;
-  $('goalTxt').innerHTML=stage().goal;
-  buildBoard(); renderProg();
-  setState('블록을 쌓고 실행을 눌러요.');
-}
-document.querySelectorAll('.schip').forEach(c=>{
-  c.addEventListener('click',()=>loadStage(+c.dataset.stage));
-});
-
-/* ── 자기 점검 체크박스 ── */
-document.querySelectorAll('.selfcheck .cbx').forEach(cb=>{
-  const toggle=()=>cb.setAttribute('aria-checked', cb.getAttribute('aria-checked')==='true'?'false':'true');
-  cb.addEventListener('click',toggle);
-  cb.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
-});
-
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-
-/* ── 시작 ── */
-loadStage(0);
-updateProgress();
-
-/* ── 테스트 훅 (node 단위 확인용) ── */
-if(typeof module!=='undefined'&&module.exports){
-  module.exports={STAGES,DIRS,expand,simulate,isWall};
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>

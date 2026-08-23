@@ -283,7 +283,7 @@
 
   // ---- game state ----
   var state="start"; // start | play | over
-  var notes, score, combo, maxCombo, judged, hits, perfects, goods, misses, total, songEndT, songT, laneFlash, popTexts;
+  var notes=[], score=0, combo=0, maxCombo=0, judged=0, hits, perfects=0, goods=0, misses=0, total=0, songEndT=0, songT=0, laneFlash=[0,0,0,0], popTexts=[];
   var speed=SCROLL, endTimeout;
 
   function startGame(){

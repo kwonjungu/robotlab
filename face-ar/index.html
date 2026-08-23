@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>얼굴 따라 로봇 안테나 · 얼굴 탐지 AR 체험</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .acc{-webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  /* safe */
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+  .safe b{font-weight:900}
+
+  /* main panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px}
+
+  /* 스티커 종류 전환 */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}
+  .seg button{border:2.5px solid var(--ink);background:var(--surface);font-family:inherit;font-size:15px;
+    font-weight:800;color:var(--ink);padding:10px 6px;min-height:44px;border-radius:999px;cursor:pointer;
+    box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .seg button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .seg button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .seg button.on{background:var(--point);color:#fff}
+  .seg button:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .seg button svg{flex-shrink:0}
+
+  /* 무대 */
+  .stage{position:relative;width:100%;aspect-ratio:4/3;background:#10182B;
+    border:3px solid var(--ink);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--hard)}
+  .stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%}
+  .stage .idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:10px;color:#CBD5E1;font-size:14.5px;text-align:center;padding:20px;line-height:1.5}
+  .stage .idle svg{opacity:.6}
+  .stage .idle b{color:var(--amber);font-weight:900}
+  /* lock 배지 */
+  .lock{position:absolute;top:8px;left:8px;background:rgba(20,20,20,.78);color:#FBF7EC;
+    font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;z-index:3;
+    border:1.5px solid rgba(255,255,255,.18);font-family:'Courier New',monospace;letter-spacing:.02em}
+  /* 점수/미션 배지 */
+  .missionbar{position:absolute;top:8px;right:8px;display:none;align-items:center;gap:6px;z-index:3;
+    background:rgba(20,20,20,.78);color:#FBF7EC;border:1.5px solid rgba(255,255,255,.18);
+    border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:900}
+  .missionbar.show{display:inline-flex}
+  .missionbar .mdot{width:9px;height:9px;border-radius:50%;background:var(--amber);flex-shrink:0}
+  .missionbar .mdot.hit{background:var(--green)}
+
+  /* 좌표 HUD */
+  .coords{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 4px}
+  .coords .cbox{background:var(--ink);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    text-align:center;padding:10px 4px 12px;box-shadow:var(--hard-sm)}
+  .coords .lab{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#a0a0a0}
+  .coords .val{font-size:30px;font-weight:900;color:var(--point-soft);
+    font-family:'Courier New','Consolas',monospace;letter-spacing:.05em;line-height:1.2}
+
+  .stateline{text-align:center;font-size:13.5px;min-height:24px;color:var(--muted);font-weight:700;margin:12px 0}
+  .stateline b{color:var(--ink)}
+
+  /* 스티커 전환 */
+  .stick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:14px 0 2px}
+  .stick button{border:2.5px solid var(--ink);background:var(--surface);font-family:inherit;font-size:13.5px;
+    font-weight:800;color:var(--ink);padding:9px 4px;min-height:44px;border-radius:12px;cursor:pointer;
+    box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s}
+  .stick button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .stick button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .stick button.on{background:var(--point);color:#fff}
+  .stick button:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  /* 버튼 */
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-family:inherit;font-size:15.5px;font-weight:900;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    padding:13px 10px;min-height:50px;transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .btn.coral{background:var(--red);color:#fff}
+  .btn svg{flex-shrink:0}
+
+  /* 권한/폴백 안내 */
+  .permwarn{display:none;margin-top:16px;background:var(--amber-soft);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px 16px;font-size:14px;font-weight:700;line-height:1.55}
+  .permwarn.show{display:block}
+  .permwarn b{font-weight:900}
+  .permwarn a{display:inline-flex;align-items:center;gap:7px;margin-top:12px;text-decoration:none;
+    font-weight:900;color:var(--ink);background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:12px;box-shadow:var(--hard-sm);padding:10px 15px;min-height:44px}
+  .permwarn a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .permwarn a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .permwarn a svg{flex-shrink:0;color:var(--point)}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* 탐지 vs 식별 정의 한 줄 */
+  .define{display:flex;gap:10px;align-items:center;background:var(--point-soft);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:14px;font-weight:700;margin:14px 0 0}
+  .define svg{flex-shrink:0}
+  .define b{color:var(--point)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;
+    box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  :focus-visible{outline:3px solid var(--point);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">체험 · 얼굴 탐지 AR</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 얼굴 위치를 숫자로 바꿔요</span>
+    <h1>얼굴 따라 <span class="acc">로봇 안테나</span></h1>
+    <p class="lead">AI가 카메라 속 얼굴의 <b>위치</b>를 찾아 X·Y 좌표로 바꾸면, 로봇 안테나가 그 숫자를 따라 실시간으로 움직여요. 얼굴을 <b>가운데 원 안에</b> 맞추는 미션도 도전해 봐요.</p>
+    <div class="define">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="var(--ink)" stroke-width="2"/><path d="M8 12h1.5M14.5 12H16M12 9v6" stroke="var(--point)" stroke-width="2" stroke-linecap="round"/></svg>
+      <span><b>탐지 = 어디에 있나</b> 찾기예요. 이 체험은 얼굴이 <b>누구인지</b>는 알아내지 않아요(그건 '식별').</span>
+    </div>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>얼굴 영상은 <b>이 기기 화면에서만</b> 처리돼요. 저장하거나 인터넷으로 보내지 않아요. 친구 얼굴을 함부로 비추지 않아요.</span>
+  </div>
+
+  <div class="panel">
+    <!-- 스티커 종류 전환 -->
+    <div class="stick" role="group" aria-label="스티커 종류 선택">
+      <button id="skAntenna" class="on" aria-pressed="true">📡 로봇 안테나</button>
+      <button id="skEar" aria-pressed="false">🐱 고양이 귀</button>
+      <button id="skPing" aria-pressed="false">🏓 핑퐁공</button>
+    </div>
+
+    <!-- 카메라 무대 -->
+    <div class="stage" id="stage" role="img" aria-label="카메라 얼굴 탐지 화면">
+      <span class="lock" aria-hidden="true">LOCK · 화면에만 · 저장 안 해요</span>
+      <span class="missionbar" id="missionbar" aria-hidden="true">
+        <span class="mdot" id="mdot"></span><span id="missionText">가운데 원에 맞춰요</span>
+      </span>
+      <video id="video" playsinline muted aria-hidden="true"></video>
+      <canvas id="canvas" aria-hidden="true"></canvas>
+      <div class="idle" id="idle">
+        <svg width="52" height="52" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="4" y="12" width="56" height="40" rx="6" stroke="#CBD5E1" stroke-width="3"/><circle cx="32" cy="32" r="11" stroke="#3D5AFE" stroke-width="2.5"/><circle cx="32" cy="32" r="4" fill="#3D5AFE"/><rect x="24" y="6" width="16" height="7" rx="3" fill="#CBD5E1"/></svg>
+        아래 <b>[얼굴 찾기 시작]</b> 버튼을 누르면<br>카메라가 켜지고 AI가 얼굴을 찾아요.
+      </div>
+    </div>
+
+    <!-- 좌표 HUD -->
+    <div class="coords" id="coords">
+      <div class="cbox">
+        <span class="lab">얼굴 중심 X (가로)</span><br>
+        <span class="val" id="vx">—</span>
+      </div>
+      <div class="cbox">
+        <span class="lab">얼굴 중심 Y (세로)</span><br>
+        <span class="val" id="vy">—</span>
+      </div>
+    </div>
+
+    <p class="stateline" id="state">버튼을 누르면 카메라가 켜지고 얼굴을 찾아요</p>
+
+    <div class="btnrow">
+      <button class="btn" id="btnStart" aria-label="얼굴 찾기 시작">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="5" width="16" height="14" rx="3" stroke="currentColor" stroke-width="2"/><path d="m18 9 4-3v12l-4-3V9Z" fill="currentColor"/></svg>
+        얼굴 찾기 시작
+      </button>
+      <button class="btn" id="btnMission" aria-label="가운데 맞추기 미션" style="background:var(--surface)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>
+        미션 시작
+      </button>
+    </div>
+
+    <div class="permwarn" id="permWarn"></div>
+  </div>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>관찰해 봐요</b> — 고개를 왼쪽·오른쪽으로 움직이면 <b>X</b>가, 위·아래로 움직이면 <b>Y</b>가 바뀌어요. AI는 얼굴이 <b>어디에</b> 있는지(탐지)만 찾을 뿐, <b>누구인지</b>(식별)는 알아내지 않아요. 얼굴을 손으로 반쯤 가리면? AI가 얼굴을 놓쳐서 안테나도 사라져요.</span>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   얼굴 따라 로봇 안테나 — 얼굴 탐지 AR 체험 (robotlab)
+   · 얼굴 탐지: @mediapipe/tasks-vision (jsdelivr CDN) FaceLandmarker
+     - EBS 16강과 동일 계열(로컬 vision_bundle.mjs)의 CDN 배포판.
+   · 그 외 라이브러리 없음. 좌표 매핑·미션 판정은 순수 함수로 분리해
+     카메라 없이 node로 단위 테스트할 수 있게 부수효과가 없다.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 순수 로직 (node 검증용) ─────────────────────────────────
+   거울(전면) 화면이므로 X는 좌우 반전한다.
+   landmark.x/y 는 0~1 정규화값 → 캔버스 픽셀로 변환. */
+function mapPoint(lm, W, H){
+  // 거울 반전: 화면상 X = W - lm.x*W
+  return { x: W - lm.x * W, y: lm.y * H };
+}
+
+/* 얼굴 중심이 목표 원(cx,cy,radius) 안에 들어왔는지 판정.
+   반환: { inside, dist } — dist는 중심까지 픽셀 거리. */
+function checkInCircle(faceX, faceY, cx, cy, radius){
+  const dist = Math.hypot(faceX - cx, faceY - cy);
+  return { inside: dist <= radius, dist: dist };
+}
+
+/* node 단위 테스트용 export (브라우저에선 무시) */
+if(typeof module !== 'undefined' && module.exports){
+  module.exports = { mapPoint, checkInCircle };
+}
+
+/* ═══════════ 브라우저 전용 UI/카메라 (node 테스트 시 실행 안 함) ═══════════ */
+if(typeof document !== 'undefined'){
+(function(){
+  const $ = id => document.getElementById(id);
+  const stage = $('stage'), video = $('video'), canvas = $('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // MediaPipe Tasks Vision — jsdelivr CDN (EBS 16강 vision_bundle과 동일 계열)
+  const CDN_MODULE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+  const CDN_WASM   = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+  const MODEL_URL  = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+  const EBS_FALLBACK = 'https://kwonjungu.github.io/ebs/16/';
+
+  let running = false;
+  let stream = null, landmarker = null;
+  let lastVT = -1, lastFace = null, frame = 0, raf = 0;
+  let sticker = 'antenna';        // 'antenna' | 'ear' | 'ping'
+  // 미션 상태
+  let mission = false, missionHold = 0, missionDone = false;
+  const HOLD_NEED = 18;           // 원 안에서 유지해야 하는 프레임 수(약 0.6초)
+
+  /* ── 스티커 종류 전환 ── */
+  $('skAntenna').onclick = () => setSticker('antenna');
+  $('skEar').onclick     = () => setSticker('ear');
+  $('skPing').onclick    = () => setSticker('ping');
+  function setSticker(s){
+    sticker = s;
+    [['antenna','skAntenna'],['ear','skEar'],['ping','skPing']].forEach(([k,id])=>{
+      $(id).classList.toggle('on', s === k);
+      $(id).setAttribute('aria-pressed', s === k ? 'true' : 'false');
+    });
+  }
+
+  /* ── 시작/멈춤 ── */
+  $('btnStart').onclick = async function(){
+    if(running){ stopAll(); return; }
+    this.disabled = true;
+    hidePerm();
+    $('state').textContent = 'AI가 얼굴 찾는 법을 준비하고 있어요…';
+    try{
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
+      await loadModel(this);
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { width:{ideal:640}, height:{ideal:480}, facingMode:'user' }, audio:false
+      });
+      video.srcObject = stream;
+      await video.play();
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      stage.style.aspectRatio = canvas.width + '/' + canvas.height;
+      $('idle').style.display = 'none';
+      video.style.display = 'block';
+      running = true; lastVT = -1; lastFace = null;
+      this.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg> 카메라 끄기';
+      this.classList.add('coral');
+      $('state').innerHTML = '카메라에 <b>얼굴이 보이게</b> 해 봐요';
+      loop();
+    }catch(e){
+      handleError(e);
+    }
+    this.disabled = false;
+  };
+
+  async function loadModel(btn){
+    if(landmarker) return;
+    btn.innerHTML = '⏳ AI 준비 중…';
+    let mp;
+    try{
+      mp = await import(CDN_MODULE);
+    }catch(e){
+      const err = new Error('cdn'); err.cause = e; throw err;
+    }
+    const vision = await mp.FilesetResolver.forVisionTasks(CDN_WASM);
+    landmarker = await mp.FaceLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      runningMode: 'VIDEO', numFaces: 1
+    });
+  }
+
+  function handleError(e){
+    const name = e && e.name ? e.name : '';
+    let msg;
+    if(name === 'NotAllowedError' || name === 'SecurityError'){
+      msg = '카메라 사용이 <b>거부</b>됐어요. 주소창 옆 카메라 아이콘에서 <b>허용</b>으로 바꾼 뒤 다시 눌러 주세요. (안전을 위해 <b>https</b> 주소에서만 켜져요.)';
+    }else if(e && e.message === 'nocam' || name === 'NotFoundError' || name === 'DevicesNotFoundError'){
+      msg = '이 기기에서는 카메라를 쓸 수 없어요. <b>휴대폰이나 웹캠이 있는 PC</b>에서 열어 주세요.';
+    }else if(name === 'NotReadableError'){
+      msg = '다른 앱이 카메라를 쓰고 있어요. 그 앱을 닫고 다시 눌러 주세요.';
+    }else if(e && e.message === 'cdn'){
+      msg = 'AI 얼굴 탐지 프로그램을 인터넷에서 <b>불러오지 못했어요</b>. 인터넷 연결을 확인하거나, 아래 EBS 얼굴 체험으로 가 보세요.';
+    }else{
+      msg = 'AI 모델이나 카메라를 불러오지 못했어요. 아래 EBS 얼굴 체험으로 가 보세요.';
+    }
+    showPerm(msg + '<br><a href="' + EBS_FALLBACK + '" target="_blank" rel="noopener noreferrer">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6v6M20 4l-9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      'EBS 얼굴 체험으로 가기 ↗</a>');
+    $('state').textContent = '카메라나 AI를 준비하지 못했어요.';
+    stopTracks();
+    $('btnStart').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="5" width="16" height="14" rx="3" stroke="currentColor" stroke-width="2"/><path d="m18 9 4-3v12l-4-3V9Z" fill="currentColor"/></svg> 얼굴 찾기 시작';
+    $('btnStart').classList.remove('coral');
+  }
+
+  function stopTracks(){
+    if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+  }
+
+  function stopAll(){
+    running = false; cancelAnimationFrame(raf);
+    stopTracks();
+    video.style.display = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    $('idle').style.display = 'flex';
+    $('btnStart').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="5" width="16" height="14" rx="3" stroke="currentColor" stroke-width="2"/><path d="m18 9 4-3v12l-4-3V9Z" fill="currentColor"/></svg> 얼굴 찾기 시작';
+    $('btnStart').classList.remove('coral');
+    $('vx').textContent = '—'; $('vy').textContent = '—';
+    stopMission();
+    $('state').innerHTML = '<b>카메라를 껐어요.</b> 얼굴 영상은 저장되지 않았어요.';
+  }
+
+  /* ── 미션 ── */
+  $('btnMission').onclick = function(){
+    if(mission){ stopMission(); return; }
+    mission = true; missionHold = 0; missionDone = false;
+    $('missionbar').classList.add('show');
+    $('mdot').classList.remove('hit');
+    $('missionText').textContent = '얼굴을 가운데 원에 맞춰요';
+    this.textContent = '미션 그만두기';
+    if(!running) $('state').innerHTML = '먼저 <b>[얼굴 찾기 시작]</b>을 눌러 카메라를 켜요';
+  };
+  function stopMission(){
+    mission = false; missionHold = 0; missionDone = false;
+    $('missionbar').classList.remove('show');
+    $('btnMission').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg> 미션 시작';
+  }
+
+  /* ── 렌더 루프 ── */
+  function loop(){
+    if(!running) return;
+    frame++;
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    let face = null;
+    if(video.currentTime !== lastVT && landmarker){
+      lastVT = video.currentTime;
+      try{
+        const res = landmarker.detectForVideo(video, performance.now());
+        lastFace = (res.faceLandmarks && res.faceLandmarks.length) ? res.faceLandmarks[0] : null;
+      }catch(e){ lastFace = null; }
+    }
+    if(lastFace){
+      const nose = mapPoint(lastFace[1], W, H);
+      const brow = mapPoint(lastFace[10], W, H);       // 이마
+      const tl = mapPoint(lastFace[332], W, H);        // 관자놀이(반전이라 좌우 교체)
+      const tr = mapPoint(lastFace[103], W, H);
+      const a = mapPoint(lastFace[234], W, H);
+      const b = mapPoint(lastFace[454], W, H);
+      const fw = Math.hypot(a.x - b.x, a.y - b.y);
+      let minX=1e9, minY=1e9, maxX=-1e9, maxY=-1e9;
+      for(const lm of lastFace){
+        const x = W - lm.x * W, y = lm.y * H;
+        if(x<minX) minX=x; if(x>maxX) maxX=x;
+        if(y<minY) minY=y; if(y>maxY) maxY=y;
+      }
+      face = { cx:nose.x, cy:nose.y, fx:brow.x, fy:brow.y,
+               tlx:tl.x, tly:tl.y, trx:tr.x, try_:tr.y, fw,
+               box:[minX, minY, maxX-minX, maxY-minY] };
+    }
+
+    // 미션 목표 원
+    if(mission){
+      const cx = W/2, cy = H*0.46, radius = Math.min(W,H)*0.20;
+      let ok = false;
+      if(face){
+        const r = checkInCircle(face.cx, face.cy, cx, cy, radius);
+        ok = r.inside;
+      }
+      drawTarget(cx, cy, radius, ok);
+      if(ok && !missionDone){
+        missionHold++;
+        $('mdot').classList.add('hit');
+        $('missionText').textContent = '유지! ' + Math.min(HOLD_NEED, missionHold) + '/' + HOLD_NEED;
+        if(missionHold >= HOLD_NEED){
+          missionDone = true;
+          $('missionText').textContent = '🎉 성공!';
+          $('state').innerHTML = '<b>미션 성공!</b> 얼굴을 가운데 원에 잘 맞췄어요';
+        }
+      }else if(!missionDone){
+        missionHold = Math.max(0, missionHold - 1);
+        $('mdot').classList.remove('hit');
+        $('missionText').textContent = face ? '얼굴을 가운데 원으로!' : '얼굴이 안 보여요';
+      }
+    }
+
+    if(face){
+      drawSticker(face);
+      if(frame % 4 === 0){ $('vx').textContent = Math.round(face.cx); $('vy').textContent = Math.round(face.cy); }
+      if(!mission) $('state').innerHTML = '얼굴 <b>탐지</b> 중! 고개를 움직여 안테나와 좌표를 관찰해요';
+    }else{
+      if(frame % 6 === 0){ $('vx').textContent = '—'; $('vy').textContent = '—'; }
+      if(!mission) $('state').textContent = '얼굴을 찾는 중… 카메라에 얼굴이 보이게 해 봐요';
+    }
+    raf = requestAnimationFrame(loop);
+  }
+
+  /* ── 목표 원 그리기 ── */
+  function drawTarget(cx, cy, radius, ok){
+    ctx.save();
+    ctx.lineWidth = Math.max(4, canvas.width/140);
+    ctx.setLineDash([14, 10]);
+    ctx.strokeStyle = ok ? '#12B76A' : '#FFB800';
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, 6.29); ctx.stroke();
+    ctx.setLineDash([]);
+    // 십자 표시
+    ctx.beginPath();
+    ctx.moveTo(cx-radius*0.18, cy); ctx.lineTo(cx+radius*0.18, cy);
+    ctx.moveTo(cx, cy-radius*0.18); ctx.lineTo(cx, cy+radius*0.18);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── 스티커 그리기 ── */
+  function drawSticker(f){
+    if(sticker === 'ear') drawEars(f);
+    else if(sticker === 'ping') drawPing(f);
+    else drawAntenna(f);
+  }
+
+  // 로봇 안테나: 이마 위로 뻗은 막대 + 끝에 빛나는 공(핑퐁로봇 느낌)
+  function drawAntenna(f){
+    const topY = Math.min(f.tly, f.try_, f.fy);
+    const baseX = (f.tlx + f.trx)/2;
+    const len = f.fw * 0.75;
+    const tipX = baseX, tipY = topY - len;
+    ctx.save();
+    // 막대
+    ctx.strokeStyle = '#141414'; ctx.lineWidth = Math.max(4, f.fw/22); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(baseX, topY); ctx.lineTo(tipX, tipY); ctx.stroke();
+    // 밑동 받침
+    ctx.fillStyle = '#3D5AFE'; ctx.strokeStyle = '#141414'; ctx.lineWidth = Math.max(3, f.fw/34);
+    ctx.beginPath(); ctx.arc(baseX, topY, f.fw*0.09, 0, 6.29); ctx.fill(); ctx.stroke();
+    // 빛나는 공
+    const rTip = f.fw*0.14;
+    ctx.beginPath(); ctx.arc(tipX, tipY, rTip*1.5, 0, 6.29);
+    ctx.fillStyle = 'rgba(255,184,0,0.28)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(tipX, tipY, rTip, 0, 6.29);
+    ctx.fillStyle = '#FFB800'; ctx.fill();
+    ctx.lineWidth = Math.max(3, f.fw/30); ctx.strokeStyle = '#141414'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // 고양이 귀
+  function drawEars(f){
+    const s = f.fw * 0.42, lift = f.fw * 0.32;
+    ear(f.tlx, Math.min(f.tly, f.fy) - lift, s, -0.18);
+    ear(f.trx, Math.min(f.try_, f.fy) - lift, s, 0.18);
+  }
+  function ear(x, y, s, tilt){
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(tilt);
+    ctx.fillStyle = '#3D5AFE';
+    ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(-s*0.62, s*0.42); ctx.lineTo(s*0.62, s*0.42); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#141414'; ctx.lineWidth = Math.max(2, s/16); ctx.stroke();
+    ctx.fillStyle = '#F9A8D4';
+    ctx.beginPath(); ctx.moveTo(0,-s*0.5); ctx.lineTo(-s*0.32, s*0.28); ctx.lineTo(s*0.32, s*0.28); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // 핑퐁공: 이마 위 통통 튀는 공 하나
+  function drawPing(f){
+    const topY = Math.min(f.tly, f.try_, f.fy);
+    const baseX = (f.tlx + f.trx)/2;
+    const bob = Math.sin(frame/9) * f.fw * 0.12;
+    const cy = topY - f.fw*0.5 + bob;
+    const r = f.fw * 0.22;
+    ctx.save();
+    ctx.fillStyle = '#FF7A00';
+    ctx.beginPath(); ctx.arc(baseX, cy, r, 0, 6.29); ctx.fill();
+    ctx.strokeStyle = '#141414'; ctx.lineWidth = Math.max(3, f.fw/30); ctx.stroke();
+    // 반짝
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(baseX - r*0.32, cy - r*0.32, r*0.28, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
+
+  function showPerm(html){ const w = $('permWarn'); w.innerHTML = html; w.classList.add('show'); }
+  function hidePerm(){ $('permWarn').classList.remove('show'); }
+
+  /* 화면 나갈 때 카메라 정리 */
+  window.addEventListener('pagehide', () => { if(stream) stream.getTracks().forEach(t => t.stop()); });
+  document.addEventListener('visibilitychange', () => { if(document.hidden && running) stopAll(); });
+})();
+}
+</script>
+</body>
+</html>

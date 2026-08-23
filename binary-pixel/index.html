@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이진수·픽셀 신호 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#7C3AED; --point-soft:#EDE7FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  .prog{display:flex;align-items:center;gap:12px;margin:0 0 16px}
+  .prog .pbar{flex:1;height:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;box-shadow:var(--hard-sm)}
+  .prog .pfill{height:100%;background:var(--point);width:0%;transition:width .35s}
+  .prog .plab{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .modes{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .modebtn{flex:1;min-width:150px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:11px 12px;min-height:48px;
+    transition:transform .1s,box-shadow .1s;text-align:center}
+  .modebtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .modebtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .modebtn[aria-pressed=true]{background:var(--point-soft)}
+
+  .play{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start}
+  @media(max-width:720px){.play{grid-template-columns:1fr}}
+
+  /* 픽셀 격자 + 행별 코드 */
+  .matrix-side{display:flex;flex-direction:column;gap:10px}
+  .matrix-row{display:flex;align-items:center;gap:8px}
+  .rowcode{width:64px;flex-shrink:0;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted);letter-spacing:.02em}
+  .rowcode .dec{display:block;font-size:11px;color:var(--point)}
+  .pxrow{display:grid;flex:1;gap:5px}
+  .px{aspect-ratio:1/1;background:var(--surface);border:2.5px solid var(--ink);border-radius:6px;cursor:pointer;
+    transition:background .12s,transform .08s;padding:0;min-width:0}
+  .px.on{background:var(--point)}
+  .px:hover{transform:scale(1.05)}
+  .px:active{transform:scale(.94)}
+  .px:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+  .px[disabled]{cursor:default}
+  .matrix-head{display:grid;gap:5px;margin-left:72px}
+  .matrix-head .colnum{font-size:10px;font-weight:800;color:var(--muted);text-align:center}
+
+  /* 목표(제시) 그림/코드 */
+  .goalcard{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px}
+  .goalcard h3{font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .goal-mini{display:grid;gap:2px;max-width:120px;margin:0 auto 8px}
+  .goal-mini .gpx{aspect-ratio:1/1;border:1.5px solid var(--ink);border-radius:2px;background:var(--surface)}
+  .goal-mini .gpx.on{background:var(--point)}
+  .goal-name{text-align:center;font-size:15px;font-weight:900}
+  .codelist{font-family:ui-monospace,'Consolas',monospace;font-size:13px;font-weight:700;line-height:1.7}
+  .codelist .cl{display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1.5px dashed rgba(20,20,20,.2)}
+  .codelist .cl b{color:var(--point)}
+
+  /* 읽기 모드: 코드 답 입력 */
+  .readans{display:flex;flex-direction:column;gap:8px}
+  .readrow{display:flex;align-items:center;gap:8px;font-family:ui-monospace,'Consolas',monospace;font-size:14px;font-weight:800}
+  .readrow .rl{width:52px;color:var(--muted)}
+  .readrow input{flex:1;font-family:inherit;font-size:15px;font-weight:800;letter-spacing:.14em;text-align:center;
+    border:2.5px solid var(--ink);border-radius:9px;padding:9px 8px;background:var(--surface);min-height:44px}
+  .readrow input:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;width:100%;
+    font-family:inherit;font-size:17px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 14px;min-height:54px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--surface);font-size:14px;min-height:46px}
+  .btn svg{flex-shrink:0}
+  .btnrow{display:flex;gap:10px;margin-top:14px}
+
+  .feedback{text-align:center;font-size:15px;font-weight:800;min-height:24px;padding:8px 4px}
+  .feedback b{color:var(--point)}
+  .feedback.ok b{color:var(--green)}
+  .feedback.no b{color:var(--red)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .checks{display:grid;gap:12px}
+  .checkitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px}
+  .checkitem .ctxt{font-size:14.5px;font-weight:700;flex:1}
+  .cbox{width:34px;height:34px;flex-shrink:0;cursor:pointer;background:var(--paper);border:2.5px solid var(--ink);
+    border-radius:9px;display:grid;place-items:center;padding:0}
+  .cbox svg{opacity:0;transition:opacity .12s}
+  .cbox[aria-pressed=true]{background:var(--green)}
+  .cbox[aria-pressed=true] svg{opacity:1}
+  .cbox:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">개념 게임 · 이진수</span>
+  </nav>
+
+  <header>
+    <span class="kicker">0은 꺼짐 · 1은 켜짐</span>
+    <h1>이진수·픽셀 <span class="u">신호</span></h1>
+    <p class="lead">컴퓨터는 그림을 <b>0(꺼짐)</b>과 <b>1(켜짐)</b>만으로 나타내요. 칸을 켜고 끄면 그림이 나타나죠. 도트 매트릭스와 픽셀의 원리예요. <b>코드를 보고 그림을 그리거나</b>, 내가 그린 그림을 <b>0·1 코드로 읽어</b> 봐요.</p>
+    <div class="chips">
+      <span class="chip pt">개념 · 이진수(0·1)</span>
+      <span class="chip pt">개념 · 픽셀·도트 매트릭스</span>
+      <span class="chip pt">개념 · 부호화(코드↔그림)</span>
+    </div>
+  </header>
+
+  <div class="cmp-head"><h2>미션</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <div class="prog">
+    <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="pbar" aria-label="미션 진행">
+      <div class="pfill" id="pfill"></div>
+    </div>
+    <span class="plab"><span id="missNow">1</span>/<span id="missMax">4</span> 미션 · <span id="scoreLab">0</span>점</span>
+  </div>
+
+  <div class="modes" role="group" aria-label="게임 모드 고르기">
+    <button class="modebtn" id="modeDraw" type="button" aria-pressed="true">그리기 모드 · 코드 보고 그림 완성</button>
+    <button class="modebtn" id="modeRead" type="button" aria-pressed="false">읽기 모드 · 그림을 0·1 코드로</button>
+  </div>
+
+  <section class="panel">
+    <div class="play">
+      <!-- 픽셀 매트릭스 -->
+      <div class="matrix-side">
+        <div class="matrix-head" id="matrixHead" aria-hidden="true"></div>
+        <div id="matrix"></div>
+        <div class="btnrow">
+          <button class="btn ghost" id="btnClear" type="button" style="min-height:44px">모두 끄기</button>
+        </div>
+      </div>
+
+      <!-- 목표/문제 카드 -->
+      <div>
+        <!-- 그리기 모드: 코드 제시 -->
+        <div id="drawGoal">
+          <div class="goalcard">
+            <h3>이 코드대로 켜세요</h3>
+            <div class="codelist" id="codeList"></div>
+          </div>
+          <div class="feedback" id="fbDraw" aria-live="polite">코드의 <b>1</b>인 칸을 눌러 켜세요.</div>
+          <button class="btn" id="btnCheckDraw" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4 10-11" stroke="var(--ink)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            그림 확인</button>
+        </div>
+
+        <!-- 읽기 모드: 그림 제시 + 코드 입력 -->
+        <div id="readGoal" style="display:none">
+          <div class="goalcard">
+            <h3>이 그림을 코드로</h3>
+            <div class="goal-mini" id="goalMini"></div>
+            <div class="goal-name" id="goalName"></div>
+          </div>
+          <div class="readans" id="readAns" style="margin-top:12px"></div>
+          <div class="feedback" id="fbRead" aria-live="polite">각 줄을 <b>0·1</b>로 적어요. 켜진 칸은 1!</div>
+          <button class="btn" id="btnCheckRead" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4 10-11" stroke="var(--ink)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            코드 확인</button>
+        </div>
+
+        <button class="btn ghost" id="btnNext" type="button" style="display:none;margin-top:12px">다음 미션 →</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>알아 둬요</b> — 픽셀 하나는 <b>0 아니면 1</b>, 딱 두 가지 상태예요. 이렇게 0과 1만 쓰는 수를 <b>이진수</b>라고 해요. 한 줄을 이진수로 읽으면 십진수로도 바꿀 수 있어요(예: 00100 → 4). 그림·글자·소리까지 결국 컴퓨터 안에서는 모두 <b>0과 1</b>로 저장돼요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks">
+    <div class="checkitem">
+      <span class="ctxt"><b>0은 꺼짐, 1은 켜짐</b>이라는 걸 알고 픽셀을 켜고 껐어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 1 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt"><b>코드를 보고</b> 그림을 그려 완성했어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 2 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt"><b>그림을 보고</b> 각 줄을 0·1 코드로 읽어 적었어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 3 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="badge" id="badge">
+    <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><path d="m17 20 4 4 10-10" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><div class="bt">이진수·픽셀 박사 배지 획득!</div><div class="bd">0·1 코드와 그림을 서로 바꿀 수 있어요.</div></div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ── 이진수 ↔ 픽셀 변환 핵심 로직 ──
+// 그림 = 문자열 배열(각 행이 '0'/'1'). 예: ['01110','10001',...]
+function rowToBinary(cells){ return cells.map(v=>v?'1':'0').join(''); }
+function binaryToRow(str){ return str.split('').map(c=>c==='1'); }
+function rowToDecimal(str){ return parseInt(str,2); }
+function gridEqual(a, b){
+  if(a.length!==b.length) return false;
+  for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return false; }
+  return true;
+}
+// 사용자가 켠 상태(2차원 boolean) → 코드 문자열 배열
+function stateToCode(state){ return state.map(rowToBinary); }
+// 코드 문자열 배열 → 2차원 boolean
+function codeToState(code){ return code.map(binaryToRow); }
+function normalizeInput(s){ return (s||'').replace(/[^01]/g,''); }
+
+if (typeof module!=='undefined' && module.exports){
+  module.exports = { rowToBinary, binaryToRow, rowToDecimal, gridEqual, stateToCode, codeToState, normalizeInput };
+}
+
+// ── 미션 데이터(5x5 픽셀 그림) ──
+const MISSIONS=[
+  { name:'하트', code:['01010','11111','11111','01110','00100'] },
+  { name:'웃는 얼굴', code:['01010','01010','00000','10001','01110'] },
+  { name:'별', code:['00100','01110','11111','01010','10001'] },
+  { name:'집', code:['00100','01110','11111','10101','10101'] },
+];
+const SIZE=5;
+
+// ── 상태 ──
+let mode='draw';
+let miss=0;
+let score=0;
+let state=[];   // boolean[SIZE][SIZE]
+let solvedMiss=false;
+let doneDraw=false, doneRead=false;
+
+function newState(){ return Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>false)); }
+
+// ── 매트릭스 UI ──
+function buildMatrix(interactive){
+  const head=$('matrixHead');
+  head.style.gridTemplateColumns='repeat('+SIZE+',1fr)';
+  head.innerHTML='';
+  for(let c=1;c<=SIZE;c++){ const s=document.createElement('div'); s.className='colnum'; s.textContent=c; head.appendChild(s); }
+
+  const mat=$('matrix');
+  mat.innerHTML='';
+  for(let r=0;r<SIZE;r++){
+    const row=document.createElement('div');
+    row.className='matrix-row';
+    const code=document.createElement('div');
+    code.className='rowcode';
+    code.id='rc'+r;
+    row.appendChild(code);
+    const pxrow=document.createElement('div');
+    pxrow.className='pxrow';
+    pxrow.style.gridTemplateColumns='repeat('+SIZE+',1fr)';
+    for(let c=0;c<SIZE;c++){
+      const px=document.createElement('button');
+      px.type='button';
+      px.className='px';
+      px.setAttribute('aria-pressed','false');
+      px.setAttribute('aria-label',(r+1)+'행 '+(c+1)+'열 픽셀');
+      if(interactive){
+        px.addEventListener('click',()=>togglePx(r,c,px));
+      } else { px.disabled=true; }
+      pxrow.appendChild(px);
+    }
+    row.appendChild(pxrow);
+    mat.appendChild(row);
+  }
+  updateRowCodes();
+}
+function togglePx(r,c,px){
+  if(solvedMiss) return;
+  state[r][c]=!state[r][c];
+  px.classList.toggle('on', state[r][c]);
+  px.setAttribute('aria-pressed', state[r][c]);
+  updateRowCodes();
+}
+function updateRowCodes(){
+  for(let r=0;r<SIZE;r++){
+    const el=$('rc'+r); if(!el) continue;
+    const bin=rowToBinary(state[r]);
+    el.innerHTML=bin+'<span class="dec">'+rowToDecimal(bin)+'</span>';
+  }
+}
+function renderState(){
+  const pxs=document.querySelectorAll('#matrix .px');
+  pxs.forEach((px,i)=>{
+    const r=Math.floor(i/SIZE), c=i%SIZE;
+    px.classList.toggle('on', state[r][c]);
+    px.setAttribute('aria-pressed', state[r][c]);
+  });
+  updateRowCodes();
+}
+
+$('btnClear').addEventListener('click',()=>{
+  if(solvedMiss) return;
+  state=newState(); renderState();
+});
+
+// ── 미니 미리보기(읽기 모드 그림) ──
+function renderMini(code){
+  const mini=$('goalMini');
+  mini.style.gridTemplateColumns='repeat('+SIZE+',1fr)';
+  mini.innerHTML='';
+  code.forEach(rowStr=>{
+    binaryToRow(rowStr).forEach(on=>{
+      const d=document.createElement('div');
+      d.className='gpx'+(on?' on':'');
+      mini.appendChild(d);
+    });
+  });
+}
+
+// ── 미션 시작 ──
+function startMission(){
+  const data=MISSIONS[miss];
+  state=newState();
+  solvedMiss=false;
+  $('missNow').textContent=miss+1;
+  $('btnNext').style.display='none';
+  updateProg();
+
+  if(mode==='draw'){
+    buildMatrix(true);   // 사용자가 그림
+    // 코드 목록 표시
+    const cl=$('codeList');
+    cl.innerHTML='';
+    data.code.forEach((rowStr,i)=>{
+      const div=document.createElement('div');
+      div.className='cl';
+      div.innerHTML='<span>'+(i+1)+'행</span><b>'+rowStr+'</b><span>= '+rowToDecimal(rowStr)+'</span>';
+      cl.appendChild(div);
+    });
+    $('fbDraw').className='feedback';
+    $('fbDraw').innerHTML='코드의 <b>1</b>인 칸을 눌러 켜세요.';
+    $('btnCheckDraw').disabled=false;
+  } else {
+    // 읽기 모드: 정답 그림을 매트릭스에도 켜서 보여줌(읽기 전용)
+    state=codeToState(data.code);
+    buildMatrix(false);
+    renderState();
+    renderMini(data.code);
+    $('goalName').textContent=data.name;
+    // 코드 입력칸
+    const ra=$('readAns');
+    ra.innerHTML='';
+    for(let r=0;r<SIZE;r++){
+      const row=document.createElement('div');
+      row.className='readrow';
+      row.innerHTML='<span class="rl">'+(r+1)+'행</span>';
+      const inp=document.createElement('input');
+      inp.type='text'; inp.inputMode='numeric'; inp.maxLength=SIZE;
+      inp.id='ri'+r; inp.setAttribute('aria-label',(r+1)+'행 코드 입력');
+      inp.placeholder='00000';
+      inp.addEventListener('input',()=>{ inp.value=normalizeInput(inp.value).slice(0,SIZE); });
+      row.appendChild(inp);
+      ra.appendChild(row);
+    }
+    $('fbRead').className='feedback';
+    $('fbRead').innerHTML='각 줄을 <b>0·1</b>로 적어요. 켜진 칸은 1!';
+    $('btnCheckRead').disabled=false;
+  }
+}
+
+function updateProg(){
+  $('pfill').style.width=(miss/MISSIONS.length*100)+'%';
+  $('pbar').setAttribute('aria-valuenow',miss);
+  $('scoreLab').textContent=score;
+}
+
+// ── 그리기 판정 ──
+$('btnCheckDraw').addEventListener('click',()=>{
+  if(solvedMiss) return;
+  const userCode=stateToCode(state);
+  const goal=MISSIONS[miss].code;
+  const ok=gridEqual(userCode, goal);
+  finishMission(ok, $('fbDraw'), '"'+MISSIONS[miss].name+'"');
+  $('btnCheckDraw').disabled=true;
+});
+
+// ── 읽기 판정 ──
+$('btnCheckRead').addEventListener('click',()=>{
+  if(solvedMiss) return;
+  const goal=MISSIONS[miss].code;
+  const userCode=[];
+  for(let r=0;r<SIZE;r++){
+    userCode.push(normalizeInput($('ri'+r).value).padEnd(SIZE,'0').slice(0,SIZE));
+  }
+  const ok=gridEqual(userCode, goal);
+  finishMission(ok, $('fbRead'), goal.join(' / '));
+  $('btnCheckRead').disabled=true;
+});
+
+function finishMission(ok, fbEl, correctStr){
+  solvedMiss=true;
+  if(ok){
+    score++;
+    fbEl.className='feedback ok';
+    fbEl.innerHTML='정답! <b>'+correctStr+'</b> 완성 🎉';
+    if(mode==='draw') doneDraw=true; else doneRead=true;
+  } else {
+    fbEl.className='feedback no';
+    fbEl.innerHTML='<b>다시 봐요</b> — 정답 코드는 <b>'+correctStr+'</b> 예요.';
+  }
+  miss++;
+  updateProg();
+  if(miss>=MISSIONS.length){
+    fbEl.innerHTML+='<br>모든 미션 끝! <b>'+score+'점</b>';
+    $('btnNext').textContent='처음부터 다시 →';
+  } else {
+    $('btnNext').textContent='다음 미션 →';
+  }
+  $('btnNext').style.display='flex';
+  maybeBadge();
+}
+
+$('btnNext').addEventListener('click',()=>{
+  if(miss>=MISSIONS.length){ miss=0; score=0; }
+  startMission();
+});
+
+// ── 모드 전환 ──
+function setMode(m){
+  mode=m;
+  $('modeDraw').setAttribute('aria-pressed', m==='draw');
+  $('modeRead').setAttribute('aria-pressed', m==='read');
+  $('drawGoal').style.display = m==='draw'?'block':'none';
+  $('readGoal').style.display = m==='read'?'block':'none';
+  $('btnClear').style.display = m==='draw'?'inline-flex':'none';
+  miss=0; score=0;
+  startMission();
+}
+$('modeDraw').addEventListener('click',()=>setMode('draw'));
+$('modeRead').addEventListener('click',()=>setMode('read'));
+
+// ── 자기 점검 & 배지 ──
+document.querySelectorAll('.cbox').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=b.getAttribute('aria-pressed')==='true';
+    b.setAttribute('aria-pressed', p?'false':'true');
+    maybeBadge();
+  });
+});
+function maybeBadge(){
+  const allChecked=[...document.querySelectorAll('.cbox')].every(b=>b.getAttribute('aria-pressed')==='true');
+  if(allChecked){ $('badge').classList.add('show'); }
+}
+
+// 초기
+setMode('draw');
+</script>
+</body>
+</html>

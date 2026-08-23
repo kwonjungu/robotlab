@@ -97,8 +97,10 @@ footer .pill{margin-bottom:14px}
 
 <script>
 const CATS = [
-  {key:'arcade',  title:'재미 아케이드 게임', chip:'즐기기', lead:'로봇 활동을 아케이드 게임으로! 단순하고 클래식하게 바로 즐겨요.'},
   {key:'concept', title:'개념 게임',          chip:'배우기', lead:'수업 중 그 개념을 가르칠 때 꺼내 쓰는 미니 게임이에요.'},
+  {key:'ebs',     title:'EBS AI탐험대 체험',   chip:'AI 개념', lead:'EBS AI탐험대 중급 체험 웹 — 소리·얼굴·물체탐지·편향 같은 AI 개념을 직접 만져봐요.'},
+  {key:'sensor',  title:'휴대폰 센서·카메라 게임', chip:'센서', lead:'폰의 진짜 센서(기울기·흔들기·나침반·마이크·카메라)로 즐겨요. 휴대폰에서 열면 더 좋아요.'},
+  {key:'arcade',  title:'재미 아케이드 게임', chip:'즐기기', lead:'로봇 활동을 아케이드 게임으로! 단순하고 클래식하게 바로 즐겨요.'},
   {key:'tool',    title:'만들기 도구',        chip:'만들기', lead:'직접 그리고 만들고 코딩하는 창작 도구예요.'},
   {key:'link',    title:'바깥 AI 도구 바로가기', chip:'바로가기', lead:'교재에 나오는 AI·창작 사이트로 바로 이동해요.'},
 ];
@@ -119,9 +121,11 @@ const GAMES = [
   {cat:'concept', slug:'song-structure', ico:'wave',   t:'곡 구조 탐정', d:'멜로디 A·B·C를 듣고 AB·ABA 구조 맞히고 작곡', tag:'음악'},
   {cat:'concept', slug:'angle-polygon',  ico:'poly',   t:'외각으로 정다각형 그리기', d:'회전각을 쌓아 도형 그리며 외각=360°÷변 원리 확인', tag:'수학'},
   {cat:'concept', slug:'tessellation',   ico:'tess',   t:'테셀레이션 놀이터', d:'도형으로 평면 채우기. 각의 합 360°일 때만 빈틈 없음', tag:'수학'},
-  {cat:'concept', slug:'tilt-sensor',    ico:'tilt',   t:'기울기 센서 시뮬레이터', d:'G큐브를 기울여 X·Y값을 읽고 조건 규칙 만들기', tag:'센서'},
   {cat:'concept', slug:'condition-dice', ico:'dice',   t:'조건·랜덤 디지털 주사위', d:'무작위 1~6을 굴려 조건 규칙으로 로봇 움직이기', tag:'조건·랜덤'},
   {cat:'concept', slug:'ai-classify',    ico:'ai',     t:'분류왕 로봇(데이터로 배워요)', d:'데이터를 모아 학습·분류하고 편향을 실험하는 AI 게임', tag:'AI'},
+  {cat:'concept', slug:'coordinate-find',ico:'coord',  t:'좌표 찾기', d:'가로 X·세로 Y로 로봇을 목표 칸에 보내고 좌표 읽기', tag:'좌표'},
+  {cat:'concept', slug:'binary-pixel',   ico:'binary', t:'이진수·픽셀 신호', d:'0과 1로 그림을 켜고 끄며 코드↔그림 바꾸기', tag:'이진수'},
+  {cat:'concept', slug:'color-scale',    ico:'colorscale', t:'색-음계 매칭', d:'색마다 정해진 음을 짝짓고 순서 기억해 연주', tag:'음악·매칭'},
   // ── 만들기 도구 (기존 앱) ──
   {cat:'tool', slug:'https://kwonjungu.github.io/pixel--art/',  ico:'pixel',  t:'픽셀아트 만들기', d:'숫자 규칙으로 도트 그림 그리기', tag:'미술', ext:1},
   {cat:'tool', slug:'https://kwonjungu.github.io/flowchart/',   ico:'flow',   t:'순서도 만들기', d:'알고리즘을 순서도로 짜보기', tag:'코딩', ext:1},
@@ -134,6 +138,23 @@ const GAMES = [
   {cat:'link', slug:'https://teachablemachine.withgoogle.com/', ico:'ai',     t:'Teachable Machine', d:'나만의 AI 분류 모델 학습', tag:'AI', ext:1},
   {cat:'link', slug:'https://suno.com/',                        ico:'note',   t:'Suno AI', d:'프롬프트로 노래 만들기', tag:'AI 음악', ext:1},
   {cat:'link', slug:'https://tooning.io/magic',                 ico:'toon',   t:'투닝 매직', d:'AI로 4컷 만화 만들기', tag:'AI 만화', ext:1},
+  // ── 휴대폰 센서·카메라 게임 (이 저장소) ──
+  {cat:'sensor', slug:'tilt-sensor',     ico:'tilt',   t:'기울기 센서 시뮬레이터', d:'G큐브를 기울여 X·Y값을 읽고 조건 규칙 만들기', tag:'기울기'},
+  {cat:'sensor', slug:'bubble-level',    ico:'level',  t:'수평계', d:'폰을 기울여 물방울로 수평 맞히고 3초 유지 도전', tag:'기울기'},
+  {cat:'sensor', slug:'shake-battle',    ico:'shake',  t:'흔들기 대결', d:'폰을 흔들어 10초 카운트! 최고 기록에 도전', tag:'가속도'},
+  {cat:'sensor', slug:'compass-find',    ico:'compass',t:'나침반 찾기', d:'폰을 돌려 나침반 바늘로 목표 방향 찾기', tag:'방위'},
+  {cat:'sensor', slug:'sound-meter',     ico:'mic',    t:'소리 크기 측정기', d:'폰 마이크로 소리 크기 재기! 최대 성량·3초 정적', tag:'마이크'},
+  {cat:'sensor', slug:'camera-classify', ico:'cam',    t:'미니 티처블 머신', d:'카메라에 물건을 가르치면 색·밝기로 실시간 분류', tag:'카메라·AI'},
+  {cat:'sensor', slug:'face-ar',         ico:'face',   t:'얼굴 따라 로봇 안테나', d:'카메라로 얼굴을 탐지해 스티커를 붙이는 AR (탐지 개념)', tag:'카메라·얼굴'},
+  // ── EBS AI탐험대 체험 (외부 링크) ──
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/14/', ico:'note', t:'소리 조종 게임', d:'목소리 크기로 조종하기', tag:'EBS 14', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/15/', ico:'mic',  t:'소리 크기 vs 음성 인식', d:'소리와 말 인식의 차이', tag:'EBS 15', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/16/', ico:'face', t:'얼굴 따라 고양이 귀 AR', d:'얼굴 탐지로 스티커 붙이기', tag:'EBS 16', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/17/', ico:'face', t:'얼굴 인식 문지기', d:'등록된 얼굴 알아보기(식별)', tag:'EBS 17', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/18/', ico:'note', t:'AI DJ 기분 노래', d:'기분을 읽고 노래 골라주기', tag:'EBS 18', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/23/', ico:'ai',   t:'찰칵! 네모 박스 탐험', d:'물체 탐지(바운딩 박스) 체험', tag:'EBS 23', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/24/', ico:'ai',   t:'AI 편향 탐정', d:'치우친 데이터가 만드는 편향 찾기', tag:'EBS 24', ext:1},
+  {cat:'ebs', slug:'https://kwonjungu.github.io/ebs/25/', ico:'mission', t:'AI 탐험가 라이선스', d:'AI 개념 종합 미션', tag:'EBS 25', ext:1},
 ];
 
 const ICON = {
@@ -153,6 +174,15 @@ const ICON = {
   tilt:'<rect x="9" y="9" width="22" height="22" rx="4" transform="rotate(12 20 20)"/><path d="M20 26v6"/>',
   dice:'<rect x="7" y="7" width="26" height="26" rx="5"/><circle cx="14" cy="14" r="2.2" fill="currentColor"/><circle cx="26" cy="26" r="2.2" fill="currentColor"/><circle cx="20" cy="20" r="2.2" fill="currentColor"/>',
   ai:'<rect x="9" y="9" width="22" height="22" rx="5"/><circle cx="16" cy="17" r="2.2"/><circle cx="24" cy="17" r="2.2"/><path d="M15 25h10"/>',
+  coord:'<path d="M9 31V7M9 31h24"/><circle cx="25" cy="15" r="3"/><path d="M25 31V15M9 15h13"/>',
+  binary:'<rect x="8" y="9" width="9" height="9"/><rect x="8" y="22" width="9" height="9" fill="currentColor"/><path d="M23 13h7M23 27h7"/>',
+  colorscale:'<circle cx="12" cy="13" r="4"/><circle cx="24" cy="13" r="4"/><path d="M9 24h5v8H9zM19 22h5v10h-5z"/>',
+  level:'<rect x="6" y="15" width="28" height="10" rx="5"/><circle cx="20" cy="20" r="3" fill="currentColor"/>',
+  shake:'<rect x="15" y="10" width="10" height="20" rx="3"/><path d="M9 14l-3 3 3 3M31 14l3 3-3 3"/>',
+  compass:'<circle cx="20" cy="20" r="13"/><path d="M20 20l6-8-2 10-8 2z" fill="currentColor"/>',
+  mic:'<rect x="15" y="7" width="10" height="16" rx="5"/><path d="M11 20a9 9 0 0018 0M20 29v4"/>',
+  cam:'<rect x="6" y="12" width="28" height="18" rx="4"/><circle cx="20" cy="21" r="5"/><path d="M14 12l3-4h6l3 4"/>',
+  face:'<circle cx="20" cy="20" r="13"/><circle cx="15" cy="17" r="1.8" fill="currentColor"/><circle cx="25" cy="17" r="1.8" fill="currentColor"/><path d="M15 25c2 2 8 2 10 0"/>',
   pixel:'<rect x="8" y="8" width="8" height="8"/><rect x="24" y="8" width="8" height="8"/><rect x="16" y="16" width="8" height="8"/><rect x="8" y="24" width="8" height="8"/><rect x="24" y="24" width="8" height="8"/>',
   flow:'<rect x="13" y="5" width="14" height="9" rx="2"/><rect x="13" y="26" width="14" height="9" rx="2"/><path d="M20 14v12"/>',
   mission:'<rect x="7" y="7" width="26" height="26" rx="3"/><path d="M13 20l5 5 9-11"/>',
