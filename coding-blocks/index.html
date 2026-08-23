@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>코딩 3구조 놀이터 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --green-soft:#D6F5E6; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px;flex-wrap:wrap}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,6.5vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chasi{display:inline-flex;flex-wrap:wrap;gap:6px;margin:16px 0 26px}
+  .chasi span{font-weight:800;font-size:12.5px;background:var(--surface);border:2px solid var(--ink);
+    border-radius:999px;padding:4px 12px;box-shadow:var(--hard-sm)}
+
+  /* stage bar */
+  .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stagebar .lbl{font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .schip{cursor:pointer;font-family:inherit;font-weight:900;font-size:14px;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;padding:8px 15px;min-height:44px;min-width:44px;
+    box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s}
+  .schip:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .schip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .schip:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .schip.on{background:var(--point);color:#fff}
+  .schip.cleared{background:var(--green);color:#fff}
+
+  /* progress */
+  .prog{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .progtrack{flex:1;height:16px;background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;box-shadow:var(--hard-sm)}
+  .progfill{height:100%;width:0%;background:repeating-linear-gradient(45deg,var(--amber),var(--amber) 9px,#ffce4d 9px,#ffce4d 18px);transition:width .4s}
+  .xpwrap{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:14px;background:var(--amber-soft);
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:var(--hard-sm)}
+
+  /* layout */
+  .lab{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
+  @media(max-width:820px){.lab{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px}
+  .phead{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .phead h2{font-size:18px;font-weight:900;letter-spacing:-.02em}
+  .phead .bar{height:3px;background:var(--ink);flex:1;border-radius:2px;opacity:.25}
+
+  .goaltxt{font-size:13.5px;font-weight:700;color:#333;margin-bottom:12px;background:var(--point-soft);
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:10px 13px;line-height:1.45}
+  .goaltxt b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px;font-weight:900}
+
+  /* grid board */
+  .boardwrap{display:flex;justify-content:center;margin-bottom:8px}
+  .board{display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
+    background:var(--paper);touch-action:manipulation}
+  .cell{position:relative;background:var(--paper);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
+  .cell.wall{background:var(--ink);background-image:repeating-linear-gradient(45deg,#000,#000 4px,#2a2a2a 4px,#2a2a2a 8px)}
+  .cell .star,.cell .flag{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .cell .star svg{width:64%;height:64%}
+  .robot{position:absolute;inset:0;display:grid;place-items:center;transition:left .28s ease,top .28s ease,transform .28s ease;z-index:5;pointer-events:none}
+  .robot svg{width:70%;height:70%;filter:drop-shadow(2px 2px 0 rgba(20,20,20,.25))}
+  @media(prefers-reduced-motion:reduce){.robot{transition:none}}
+
+  .runctl{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;flex:1;min-width:120px;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:12px 14px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--hard-sm)}
+  .btn svg{flex-shrink:0}
+
+  .state{text-align:center;font-size:14px;font-weight:800;min-height:26px;margin-top:12px;color:#333}
+  .state b{color:var(--ink)}
+  .state.ok{color:var(--green)}
+  .state.bad{color:var(--red)}
+
+  /* palette */
+  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .blk{display:inline-flex;align-items:center;gap:7px;cursor:grab;user-select:none;
+    font-family:inherit;font-weight:900;font-size:13.5px;color:#fff;border:2.5px solid var(--ink);
+    border-radius:11px;padding:9px 12px;min-height:44px;box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s;
+    touch-action:none}
+  .blk:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .blk:active{cursor:grabbing}
+  .blk:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .blk svg{flex-shrink:0}
+  .blk.fwd{background:var(--point)}
+  .blk.left{background:#7C3AED}
+  .blk.right{background:#F59E0B;color:var(--ink)}
+  .blk.loop{background:var(--green)}
+  .blk.ifw{background:var(--red)}
+  .blk .cnt{display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,.28);border-radius:7px;padding:1px 5px;font-size:12px}
+  .paletitle{font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+
+  /* program list */
+  .progtitle{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px}
+  .progtitle .count{background:var(--ink);color:var(--paper);border-radius:999px;padding:2px 9px;font-size:11px}
+  .prog-list{list-style:none;min-height:120px;background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);padding:10px;display:flex;flex-direction:column;gap:7px}
+  .prog-list.drag{background:var(--point-soft);border-style:solid}
+  .prog-list .empty{color:var(--muted);font-size:13.5px;font-weight:700;text-align:center;padding:22px 8px}
+  .pitem{display:flex;align-items:center;gap:8px;background:var(--surface);border:2.5px solid var(--ink);border-radius:11px;
+    padding:7px 10px;box-shadow:var(--hard-sm);font-weight:900;font-size:14px}
+  .pitem.running{outline:3px solid var(--amber);outline-offset:2px}
+  .pitem .idx{width:22px;height:22px;flex-shrink:0;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:7px;font-size:11px}
+  .pitem .swatch{width:16px;height:16px;border:2px solid var(--ink);border-radius:5px;flex-shrink:0}
+  .pitem .lab{flex:1}
+  .pitem .stepbtns{display:flex;gap:4px}
+  .pitem .mini{cursor:pointer;font-family:inherit;font-weight:900;font-size:13px;width:30px;height:30px;display:grid;place-items:center;
+    border:2px solid var(--ink);border-radius:8px;background:var(--paper);color:var(--ink)}
+  .pitem .mini:hover{background:var(--amber-soft)}
+  .pitem .mini:focus-visible{outline:2.5px solid var(--point);outline-offset:1px}
+  .pitem .mini.del{background:#FFE3E4}
+
+  .hint{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:10px;line-height:1.45}
+
+  /* observation box */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:16px 20px;font-size:14px;font-weight:600;margin:24px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* badges */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:26px 0 14px}
+  .cmp-head h2{font-size:20px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .badges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:640px){.badges{grid-template-columns:1fr}}
+  .badge{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    padding:16px;text-align:center;position:relative;opacity:.5;filter:grayscale(1);transition:opacity .3s,filter .3s,transform .3s}
+  .badge.got{opacity:1;filter:none;transform:translateY(-2px)}
+  .badge .medal{width:56px;height:56px;margin:0 auto 8px;display:grid;place-items:center;border:2.5px solid var(--ink);
+    border-radius:50%;background:var(--amber-soft)}
+  .badge.got .medal{background:var(--amber)}
+  .badge .bt{font-size:14px;font-weight:900;letter-spacing:-.02em}
+  .badge .bd{font-size:12px;font-weight:600;color:var(--muted);margin-top:3px;line-height:1.35}
+
+  /* self check */
+  .selfcheck{margin-top:24px;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .selfcheck h2{font-size:17px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .selfcheck ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .selfcheck li{display:flex;align-items:center;gap:11px;font-weight:700;font-size:14.5px}
+  .selfcheck .cbx{width:30px;height:30px;flex-shrink:0;cursor:pointer;border:2.5px solid var(--ink);border-radius:9px;
+    background:var(--paper);display:grid;place-items:center;transition:background .15s}
+  .selfcheck .cbx svg{opacity:0;transition:opacity .15s}
+  .selfcheck .cbx[aria-checked=true]{background:var(--green)}
+  .selfcheck .cbx[aria-checked=true] svg{opacity:1}
+  .selfcheck .cbx:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  footer{text-align:center;margin-top:30px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  .drag-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.9;transform:translate(-50%,-50%)}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">코딩 3구조 · 순차·반복·선택</span>
+  </nav>
+
+  <header>
+    <span class="kicker">개념 게임 · 프로그래밍의 뼈대</span>
+    <h1>코딩 <span class="u">3구조</span> 놀이터</h1>
+    <p class="lead">블록을 쌓아 로봇을 별까지 옮겨요. <b>순차</b>로 늘어놓고, 똑같은 동작은 <b>반복</b>으로 줄이고, 벽 앞에서는 <b>선택</b>으로 길을 바꿔요.</p>
+    <div class="chasi">
+      <span>관련 차시 · 3-4 오토카</span><span>9-10 청소</span><span>23-24 미로</span><span>27-28 도형</span>
+    </div>
+  </header>
+
+  <div class="stagebar">
+    <span class="lbl">스테이지</span>
+    <button class="schip" data-stage="0" type="button">1</button>
+    <button class="schip" data-stage="1" type="button">2</button>
+    <button class="schip" data-stage="2" type="button">3</button>
+    <button class="schip" data-stage="3" type="button">4</button>
+  </div>
+
+  <div class="prog">
+    <div class="progtrack" role="progressbar" aria-label="스테이지 진행" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+      <div class="progfill" id="progfill"></div>
+    </div>
+    <span class="xpwrap" aria-label="획득 경험치">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span id="xp">0</span> XP
+    </span>
+  </div>
+
+  <div class="lab">
+    <!-- board panel -->
+    <section class="panel">
+      <div class="phead"><h2 id="stageName">스테이지 1</h2><span class="bar" aria-hidden="true"></span></div>
+      <p class="goaltxt" id="goalTxt"></p>
+      <div class="boardwrap"><div class="board" id="board" aria-label="로봇 이동 격자"></div></div>
+      <div class="runctl">
+        <button class="btn" id="runBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4l13 8-13 8V4z" fill="var(--ink)"/></svg>
+          실행
+        </button>
+        <button class="btn ghost" id="resetBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 10a8 8 0 0 0-14-3M4 14a8 8 0 0 0 14 3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg>
+          되돌리기
+        </button>
+      </div>
+      <p class="state" id="state">블록을 쌓고 실행을 눌러요.</p>
+    </section>
+
+    <!-- program panel -->
+    <section class="panel">
+      <div class="phead"><h2>블록 프로그램</h2><span class="bar" aria-hidden="true"></span></div>
+
+      <div class="paletitle">블록 서랍 (클릭하거나 아래로 끌어다 놓기)</div>
+      <div class="palette" id="palette">
+        <button class="blk fwd" type="button" data-op="fwd" aria-label="앞으로 블록 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v16M6 10l6-6 6 6" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          앞으로
+        </button>
+        <button class="blk left" type="button" data-op="left" aria-label="왼쪽 90도 회전 블록 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 7H15a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H7" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 4L7 7l3 3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          왼쪽 90°
+        </button>
+        <button class="blk right" type="button" data-op="right" aria-label="오른쪽 90도 회전 블록 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 7H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4h8" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4l3 3-3 3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          오른쪽 90°
+        </button>
+        <button class="blk loop" type="button" data-op="loop" aria-label="반복 블록 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9a6 6 0 0 1 6-6h6M20 15a6 6 0 0 1-6 6H8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 1l3 2-3 2M11 23l-3-2 3-2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="cnt" id="loopCntPreview">2회</span> 반복
+        </button>
+        <button class="blk ifw" type="button" data-op="ifw" aria-label="만약 벽이면 회전 블록 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+          만약 벽이면↻
+        </button>
+      </div>
+      <p class="hint" id="loopHint">반복 블록은 바로 <b>앞의 블록 1개</b>를 정한 횟수만큼 반복해요. 반복 항목의 <b>+ / −</b>로 횟수를 바꿔요. 「만약 벽이면」은 앞이 벽일 때만 오른쪽으로 돌아요(선택).</p>
+
+      <div class="progtitle"><span>내 프로그램</span><span class="count"><span id="blkCount">0</span> / <span id="blkMax">–</span></span></div>
+      <ul class="prog-list" id="progList" aria-label="쌓은 블록 프로그램">
+        <li class="empty" id="emptyMsg">여기에 블록이 쌓여요</li>
+      </ul>
+
+      <div class="runctl" style="margin-top:12px">
+        <button class="btn ghost" id="clearBtn" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          모두 비우기
+        </button>
+      </div>
+      <p class="hint">블록 수를 줄이려면 같은 동작을 <b>반복</b>으로 묶고, 벽 앞 갈림길은 <b>만약 벽이면</b>으로 처리해요.</p>
+    </section>
+  </div>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>생각해 봐요</b> — 「앞으로 · 앞으로 · 앞으로」는 「앞으로를 3회 반복」과 결과가 같아요. 반복은 <b>같은 명령을 짧게</b> 쓰는 방법이에요. 벽이 어디 있을지 모를 때는 「만약 벽이면 돌기」 같은 <b>선택</b>으로 그때그때 길을 정해요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>모은 배지</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="badges">
+    <div class="badge" id="badge-seq">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+      <div class="bt">순차 마스터</div><div class="bd">블록을 순서대로 놓아 첫 별을 얻으면</div>
+    </div>
+    <div class="badge" id="badge-loop">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10a6 6 0 0 1 6-6h5M20 14a6 6 0 0 1-6 6H9" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1l3 3-3 3M12 23l-3-3 3-3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="bt">반복 달인</div><div class="bd">반복 블록을 써서 스테이지를 통과하면</div>
+    </div>
+    <div class="badge" id="badge-if">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 9v4M12 16h.01" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+      <div class="bt">선택 탐정</div><div class="bd">「만약 벽이면」으로 갈림길을 통과하면</div>
+    </div>
+  </div>
+
+  <div class="selfcheck">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11l3 3L20 6" stroke="var(--green)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg>
+      스스로 점검
+    </h2>
+    <ul>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="순차 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 블록을 <b>순서대로</b> 놓으면 로봇이 그 순서로 움직인다는 것을 안다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="반복 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 같은 동작이 여러 번 나올 때 <b>반복</b>으로 짧게 만들 수 있다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="선택 이해 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 상황(벽)이 다를 때 <b>선택(조건)</b>으로 다르게 움직이게 할 수 있다.</li>
+    </ul>
+  </div>
+
+  <footer><a href="../">← 신나는 로봇 창작랩 수업터 홈</a></footer>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+
+/* ── 방향: 0=위,1=오른,2=아래,3=왼 ── */
+const DIRS=[{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
+
+/* ── 스테이지 정의 ──
+   grid: n×n, 좌표 {x,y} 0-index, start.dir 방향
+   walls: [{x,y}] 벽 칸, star: 목표
+   need: 통과에 요구되는 구조 힌트 (배지/힌트용)
+*/
+const STAGES=[
+  { name:"스테이지 1 · 순차",
+    goal:"블록을 <b>순서대로</b> 놓아 로봇(오른쪽 향함)을 별까지 옮겨요. 앞으로만으로도 풀려요.",
+    size:6, start:{x:1,y:4,dir:1}, star:{x:4,y:4}, walls:[], blkMax:8, tag:"seq" },
+
+  { name:"스테이지 2 · 반복",
+    goal:"별이 <b>멀리</b> 있어요. 「앞으로」를 여러 번 놓아도 되지만, <b>반복 블록</b>으로 줄여서 6칸을 가 봐요.",
+    size:8, start:{x:1,y:6,dir:1}, star:{x:7,y:6}, walls:[], blkMax:10, tag:"loop", minLoop:1 },
+
+  { name:"스테이지 3 · 선택(벽)",
+    goal:"앞에 <b>벽</b>이 있어요. 「만약 벽이면 오른쪽으로」를 넣으면 벽 앞에서만 방향을 틀어 돌아가요.",
+    size:7, start:{x:1,y:1,dir:1},
+    walls:[{x:4,y:1},{x:4,y:2}], star:{x:5,y:4}, blkMax:12, tag:"if", needIf:true },
+
+  { name:"스테이지 4 · 3구조 종합",
+    goal:"긴 복도와 모퉁이, 벽이 섞여 있어요. <b>순차·반복·선택</b>을 모두 써서 가장 짧은 코드로 별을 찾아요.",
+    size:8, start:{x:1,y:1,dir:1},
+    walls:[{x:5,y:1},{x:5,y:2},{x:5,y:3},{x:2,y:5},{x:3,y:5}],
+    star:{x:6,y:6}, blkMax:16, tag:"all", minLoop:1, needIf:false }
+];
+
+/* ── 상태 ── */
+let stageIdx=0;
+let program=[];      // [{op, count?}]
+let xp=0;
+const cleared=new Set();
+const badges={seq:false,loop:false,if:false};
+let running=false;
+
+const OPINFO={
+  fwd:{lab:"앞으로",color:"#3D5AFE"},
+  left:{lab:"왼쪽 90°",color:"#7C3AED"},
+  right:{lab:"오른쪽 90°",color:"#F59E0B"},
+  loop:{lab:"반복",color:"#12B76A"},
+  ifw:{lab:"만약 벽이면 오른쪽",color:"#FF4D4D"}
+};
+
+/* ── 격자 렌더 ── */
+function stage(){return STAGES[stageIdx];}
+function isWall(s,x,y){ return s.walls.some(w=>w.x===x&&w.y===y); }
+
+function buildBoard(){
+  const s=stage();
+  const board=$('board');
+  board.innerHTML='';
+  board.style.gridTemplateColumns=`repeat(${s.size},1fr)`;
+  const px=Math.min(52, Math.floor(360/s.size));
+  for(let y=0;y<s.size;y++){
+    for(let x=0;x<s.size;x++){
+      const c=document.createElement('div');
+      c.className='cell';
+      c.style.width=px+'px'; c.style.height=px+'px';
+      if(isWall(s,x,y)) c.classList.add('wall');
+      if(s.star.x===x&&s.star.y===y){
+        c.innerHTML='<span class="star"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg></span>';
+      }
+      board.appendChild(c);
+    }
+  }
+  // robot element
+  const r=document.createElement('div');
+  r.className='robot'; r.id='robot';
+  r.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="7" width="14" height="11" rx="3" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><circle cx="9.5" cy="12" r="1.6" fill="#fff"/><circle cx="14.5" cy="12" r="1.6" fill="#fff"/><path d="M12 7V3M9 3h6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M12 18v2" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M20 12l2 0" stroke="var(--point)" stroke-width="0"/><path d="M17.5 10.5l3 1.5-3 1.5z" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  board.appendChild(r);
+  board.dataset.px=px;
+  placeRobot(s.start.x,s.start.y,s.start.dir,false);
+}
+function placeRobot(x,y,dir,anim){
+  const board=$('board');
+  const px=+board.dataset.px;
+  const r=$('robot');
+  if(!anim){ r.style.transition='none'; requestAnimationFrame(()=>{r.style.transition='';}); }
+  r.style.left=(x*px)+'px'; r.style.top=(y*px)+'px';
+  r.style.width=px+'px'; r.style.height=px+'px';
+  r.style.transform='rotate('+(dir*90)+'deg)';
+}
+
+/* ── 프로그램 → 실행 명령 펼치기 (반복 전개) ──
+   반복(loop)은 "바로 앞 블록 1개"를 count회 실행.
+   결과: 원자 명령 리스트 [{op}] (op in fwd/left/right/ifw)
+*/
+function expand(prog){
+  const out=[];
+  for(let i=0;i<prog.length;i++){
+    const b=prog[i];
+    if(b.op==='loop'){
+      // 앞 블록(직전에 out에 넣은 마지막 원자 그룹) 대신, 소스상 직전 블록을 count회
+      const prev=prog[i-1];
+      if(!prev||prev.op==='loop') continue; // 앞이 없거나 반복이면 무시
+      // 직전 블록은 이미 1회 out에 들어감 → count-1회 더
+      const times=Math.max(1,b.count||1);
+      for(let k=0;k<times-1;k++) out.push({op:prev.op});
+    } else {
+      out.push({op:b.op});
+    }
+  }
+  return out;
+}
+
+/* ── 시뮬레이션 (순수 로직) ──
+   반환: {states:[{x,y,dir,blocked?}], win, usedIf, hitWall, outOfBounds}
+*/
+function simulate(atoms, s){
+  let x=s.start.x, y=s.start.y, dir=s.start.dir;
+  const states=[{x,y,dir}];
+  let win=(x===s.star.x&&y===s.star.y);
+  let usedIf=false, crash=false;
+  for(const a of atoms){
+    if(a.op==='left'){ dir=(dir+3)%4; states.push({x,y,dir}); }
+    else if(a.op==='right'){ dir=(dir+1)%4; states.push({x,y,dir}); }
+    else if(a.op==='fwd'){
+      const nx=x+DIRS[dir].dx, ny=y+DIRS[dir].dy;
+      if(nx<0||ny<0||nx>=s.size||ny>=s.size||isWall(s,nx,ny)){
+        crash=true; states.push({x,y,dir,blocked:true}); break;
+      }
+      x=nx; y=ny; states.push({x,y,dir});
+    }
+    else if(a.op==='ifw'){
+      usedIf=true;
+      const nx=x+DIRS[dir].dx, ny=y+DIRS[dir].dy;
+      const wall=(nx<0||ny<0||nx>=s.size||ny>=s.size||isWall(s,nx,ny));
+      if(wall){ dir=(dir+1)%4; states.push({x,y,dir,turned:true}); }
+      // 벽 아니면 아무 것도 안 함(선택)
+    }
+    if(x===s.star.x&&y===s.star.y){ win=true; break; }
+  }
+  return {states, win, usedIf, crash};
+}
+
+/* ── 프로그램 리스트 렌더 ── */
+function renderProg(){
+  const list=$('progList');
+  list.querySelectorAll('.pitem').forEach(n=>n.remove());
+  const empty=$('emptyMsg');
+  empty.style.display=program.length?'none':'block';
+  program.forEach((b,i)=>{
+    const li=document.createElement('li');
+    li.className='pitem'; li.dataset.i=i;
+    const info=OPINFO[b.op];
+    let extra='';
+    if(b.op==='loop'){
+      extra=`<span style="font-weight:900">${b.count}회</span>`;
+    }
+    li.innerHTML=`<span class="idx">${i+1}</span>
+      <span class="swatch" style="background:${info.color}"></span>
+      <span class="lab">${info.lab} ${extra}</span>
+      <span class="stepbtns"></span>`;
+    const btns=li.querySelector('.stepbtns');
+    if(b.op==='loop'){
+      const minus=mkMini('−','반복 횟수 줄이기',()=>{ if(b.count>2){b.count--; renderProg();} });
+      const plus=mkMini('+','반복 횟수 늘리기',()=>{ if(b.count<9){b.count++; renderProg();} });
+      btns.appendChild(minus); btns.appendChild(plus);
+    }
+    const up=mkMini('▲','위로 옮기기',()=>move(i,-1)); up.disabled=i===0;
+    const del=mkMini('✕','블록 삭제',()=>{ program.splice(i,1); renderProg(); });
+    del.classList.add('del');
+    btns.appendChild(up); btns.appendChild(del);
+    list.appendChild(li);
+  });
+  $('blkCount').textContent=program.length;
+  $('blkMax').textContent=stage().blkMax;
+}
+function mkMini(txt,label,fn){
+  const b=document.createElement('button');
+  b.type='button'; b.className='mini'; b.textContent=txt; b.setAttribute('aria-label',label);
+  b.onclick=fn; return b;
+}
+function move(i,d){
+  const j=i+d; if(j<0||j>=program.length) return;
+  const t=program[i]; program[i]=program[j]; program[j]=t; renderProg();
+}
+
+/* ── 블록 추가 ── */
+function addBlock(op){
+  if(running) return;
+  if(program.length>=stage().blkMax){ setState('블록이 가득 찼어요. 반복으로 줄여 봐요!','bad'); return; }
+  if(op==='loop') program.push({op:'loop',count:2});
+  else program.push({op});
+  renderProg();
+}
+
+/* ── 팔레트 클릭 & 드래그 ── */
+$('palette').querySelectorAll('.blk').forEach(b=>{
+  b.addEventListener('click',()=>addBlock(b.dataset.op));
+});
+
+/* pointer 기반 드래그 (마우스+터치 공통) */
+let dragOp=null, ghost=null;
+$('palette').querySelectorAll('.blk').forEach(b=>{
+  b.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0) return;
+    dragOp=b.dataset.op;
+    startGhost(b,e);
+    const move=ev=>{ if(ghost){ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px';} overList(ev);};
+    const up=ev=>{
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      $('progList').classList.remove('drag');
+      if(ghost){ghost.remove();ghost=null;}
+      const el=document.elementFromPoint(ev.clientX,ev.clientY);
+      if(el&&$('progList').contains(el)||el===$('progList')){ addBlock(dragOp); }
+      else if(el){ const l=el.closest&&el.closest('#progList'); if(l) addBlock(dragOp); }
+      dragOp=null;
+    };
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up);
+  });
+});
+function startGhost(b,e){
+  ghost=b.cloneNode(true);
+  ghost.classList.add('drag-ghost');
+  ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+  document.body.appendChild(ghost);
+}
+function overList(ev){
+  const el=document.elementFromPoint(ev.clientX,ev.clientY);
+  const over=el&&(el===$('progList')||(el.closest&&el.closest('#progList')));
+  $('progList').classList.toggle('drag',!!over);
+}
+
+/* ── 실행 ── */
+$('runBtn').onclick=runProgram;
+$('resetBtn').onclick=()=>{ if(running)return; const s=stage(); placeRobot(s.start.x,s.start.y,s.start.dir,false); setState('처음 위치로 돌아왔어요.'); };
+$('clearBtn').onclick=()=>{ if(running)return; program=[]; renderProg(); setState('프로그램을 비웠어요.'); };
+
+function setState(msg,kind){
+  const el=$('state'); el.className='state'+(kind?' '+kind:''); el.innerHTML=msg;
+}
+
+async function runProgram(){
+  if(running) return;
+  if(program.length===0){ setState('먼저 블록을 쌓아요!','bad'); return; }
+  const s=stage();
+  const atoms=expand(program);
+  const sim=simulate(atoms,s);
+  running=true; $('runBtn').disabled=true; $('resetBtn').disabled=true;
+  setState('로봇이 움직여요…');
+  placeRobot(s.start.x,s.start.y,s.start.dir,false);
+  const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const delay=reduce?60:300;
+  for(let i=1;i<sim.states.length;i++){
+    await sleep(delay);
+    const st=sim.states[i];
+    placeRobot(st.x,st.y,st.dir,true);
+    if(st.blocked){ setState('앞이 <b>벽</b>이라 더 못 가요. 「만약 벽이면」이나 회전을 넣어 봐요.','bad'); }
+  }
+  running=false; $('runBtn').disabled=false; $('resetBtn').disabled=false;
+  if(sim.win){ onWin(sim); }
+  else if(!sim.crash){ setState('별에 닿지 못했어요. 블록 순서를 살펴봐요.','bad'); }
+}
+
+function onWin(sim){
+  const s=stage();
+  const usedLoop=program.some(b=>b.op==='loop');
+  const usedIf=program.some(b=>b.op==='ifw');
+  setState('별 도착! <b>성공</b> 🎉 — 블록 '+program.length+'개로 풀었어요.','ok');
+  // 배지
+  if(!badges.seq){ badges.seq=true; gotBadge('seq'); }
+  if(usedLoop&&!badges.loop){ badges.loop=true; gotBadge('loop'); }
+  if(usedIf&&!badges.if){ badges.if=true; gotBadge('if'); }
+  // XP & clear
+  if(!cleared.has(stageIdx)){
+    cleared.add(stageIdx);
+    let gain=20; if(usedLoop)gain+=10; if(usedIf)gain+=10;
+    xp+=gain; $('xp').textContent=xp;
+    updateProgress();
+    document.querySelector('.schip[data-stage="'+stageIdx+'"]').classList.add('cleared');
+  }
+}
+function gotBadge(k){ $('badge-'+({seq:'seq',loop:'loop',if:'if'}[k])).classList.add('got'); }
+
+function updateProgress(){
+  const n=cleared.size;
+  $('progfill').style.width=(n/STAGES.length*100)+'%';
+  document.querySelector('.progtrack').setAttribute('aria-valuenow',n);
+}
+
+/* ── 스테이지 전환 ── */
+function loadStage(i){
+  stageIdx=i; program=[]; running=false;
+  document.querySelectorAll('.schip').forEach(c=>c.classList.toggle('on',+c.dataset.stage===i));
+  $('stageName').textContent=stage().name;
+  $('goalTxt').innerHTML=stage().goal;
+  buildBoard(); renderProg();
+  setState('블록을 쌓고 실행을 눌러요.');
+}
+document.querySelectorAll('.schip').forEach(c=>{
+  c.addEventListener('click',()=>loadStage(+c.dataset.stage));
+});
+
+/* ── 자기 점검 체크박스 ── */
+document.querySelectorAll('.selfcheck .cbx').forEach(cb=>{
+  const toggle=()=>cb.setAttribute('aria-checked', cb.getAttribute('aria-checked')==='true'?'false':'true');
+  cb.addEventListener('click',toggle);
+  cb.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ── 시작 ── */
+loadStage(0);
+updateProgress();
+
+/* ── 테스트 훅 (node 단위 확인용) ── */
+if(typeof module!=='undefined'&&module.exports){
+  module.exports={STAGES,DIRS,expand,simulate,isWall};
+}
+</script>
+</body>
+</html>

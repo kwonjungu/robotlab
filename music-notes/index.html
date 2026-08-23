@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계이름·리듬 게임 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink)}
+
+  .heronote{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 6px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:7px 14px;font-size:13px;font-weight:800;box-shadow:var(--hard-sm)}
+  .chip svg{flex-shrink:0}
+
+  .cube{display:flex;align-items:flex-start;gap:11px;background:var(--point-soft);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:12px 16px;font-size:13.5px;font-weight:600;margin:18px 0 8px}
+  .cube svg{flex-shrink:0;margin-top:1px}
+  .cube b{font-weight:900}
+
+  /* sound toolbar */
+  .toolbar{display:flex;align-items:center;gap:10px;margin:22px 0 24px;flex-wrap:wrap}
+  .mute{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px;
+    color:var(--ink);background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:9px 16px;
+    box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s}
+  .mute:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .mute:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .mute:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .mute.off{background:var(--red);color:#fff}
+  .mute .ic-on{display:inline-flex}.mute .ic-off{display:none}
+  .mute.off .ic-on{display:none}.mute.off .ic-off{display:inline-flex}
+
+  /* section head */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head .sig{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px}
+  .panel + .panel{margin-top:20px}
+  .phelp{font-size:14px;color:#333;font-weight:600;margin-bottom:14px}
+  .phelp b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* progress bar */
+  .prog{height:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;margin:4px 0 14px}
+  .progbar{height:100%;width:0%;background:repeating-linear-gradient(45deg,var(--point),var(--point) 8px,#5B72FF 8px,#5B72FF 16px);transition:width .3s}
+
+  /* target sequence */
+  .target{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 14px;min-height:52px}
+  .seqchip{display:inline-grid;place-items:center;min-width:44px;height:44px;padding:0 12px;font-weight:900;font-size:16px;
+    background:var(--paper);border:2.5px solid var(--ink);border-radius:11px;box-shadow:var(--hard-sm)}
+  .seqchip.done{background:var(--green);color:#fff}
+  .seqchip.next{background:var(--amber);animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+
+  /* piano */
+  .piano{display:flex;gap:6px;margin:8px 0 6px;justify-content:center;flex-wrap:wrap}
+  .key{position:relative;width:52px;height:120px;cursor:pointer;font-family:inherit;
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:0 0 10px 10px;box-shadow:var(--hard-sm);
+    display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:10px;gap:2px;
+    transition:transform .07s,box-shadow .07s,background .07s}
+  .key:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .key:active,.key.press{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);background:var(--point-soft)}
+  .key.hit{background:var(--green)}
+  .key:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .key .sol{font-weight:900;font-size:16px}
+  .key .en{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.02em}
+  .key.high .sol{color:var(--point)}
+
+  .state{text-align:center;font-size:15px;min-height:30px;color:#333;font-weight:800;margin:10px 0 4px}
+  .state b{color:var(--ink)}
+  .state.good{color:var(--green)}
+  .state.bad{color:var(--red)}
+
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1;min-width:140px;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:13px 14px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn svg{flex-shrink:0}
+
+  /* rhythm palette */
+  .notepal{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 14px}
+  .note-btn{display:inline-flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font-family:inherit;
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:10px 12px;min-width:74px;
+    transition:transform .1s,box-shadow .1s}
+  .note-btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .note-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .note-btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .note-btn .nm{font-size:12.5px;font-weight:900;letter-spacing:-.02em}
+  .note-btn .bt{font-size:11px;font-weight:800;color:var(--muted)}
+  .note-btn svg{flex-shrink:0}
+
+  /* measure (bar) */
+  .measure{display:flex;align-items:stretch;gap:0;border:3px solid var(--ink);border-radius:var(--r-sm);
+    background:var(--paper);overflow:hidden;margin:6px 0 6px;min-height:74px;box-shadow:var(--hard-sm)}
+  .beatcell{flex:1;border-right:2px dashed var(--ink);display:flex;align-items:center;justify-content:flex-start;padding:6px;gap:4px;position:relative;flex-wrap:wrap}
+  .beatcell:last-child{border-right:none}
+  .beatcell .bn{position:absolute;top:3px;left:5px;font-size:10px;font-weight:800;color:var(--muted)}
+  .placed{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:var(--point-soft);
+    border:2px solid var(--ink);border-radius:8px;padding:5px 7px;cursor:pointer;font-family:inherit}
+  .placed:hover{background:var(--red);color:#fff}
+  .placed .pl{font-size:10.5px;font-weight:900;line-height:1}
+  .placed .pb{font-size:9px;font-weight:800}
+
+  .fillrow{display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap}
+  .fillmeter{flex:1;min-width:180px;height:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden}
+  .fillbar{height:100%;width:0%;background:repeating-linear-gradient(45deg,var(--amber),var(--amber) 8px,#FFCE47 8px,#FFCE47 16px);transition:width .25s}
+  .fillbar.full{background:repeating-linear-gradient(45deg,var(--green),var(--green) 8px,#3ED08C 8px,#3ED08C 16px)}
+  .fillbar.over{background:repeating-linear-gradient(45deg,var(--red),var(--red) 8px,#FF7A7A 8px,#FF7A7A 16px)}
+  .fillcap{font-size:14px;font-weight:900;white-space:nowrap}
+
+  /* badges */
+  .badges{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 4px}
+  .badge{display:flex;align-items:center;gap:9px;background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);
+    padding:11px 14px;font-size:14px;font-weight:800;color:var(--muted);flex:1;min-width:190px}
+  .badge svg{flex-shrink:0}
+  .badge.earned{background:var(--amber-soft);border-style:solid;color:var(--ink)}
+  .badge.earned .medal circle{fill:var(--amber)}
+
+  /* observe box */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* self-check */
+  .selfcheck{margin-top:26px;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:20px 22px}
+  .selfcheck h3{font-size:17px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .checkitem{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:2px dashed var(--ink);font-weight:700;font-size:14.5px}
+  .checkitem:first-of-type{border-top:none}
+  .checkitem input{appearance:none;-webkit-appearance:none;width:26px;height:26px;flex-shrink:0;cursor:pointer;
+    border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);position:relative;transition:background .12s}
+  .checkitem input:checked{background:var(--green)}
+  .checkitem input:checked::after{content:"";position:absolute;left:8px;top:3px;width:7px;height:13px;
+    border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
+  .checkitem input:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(max-width:640px){
+    .key{width:44px;height:104px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">음악교실 1 · 13-14차시</span>
+  </nav>
+
+  <header>
+    <span class="kicker">음악 개념 게임</span>
+    <h1>계이름과 <span class="u">리듬</span> 게임</h1>
+    <p class="lead">음의 <b>높낮이</b>(도~높은도)와 <b>길이</b>(온·2분·4분·8분음표)를 게임으로 익혀요. 건반을 눌러 계이름을 연주하고, 음표를 놓아 한 마디를 <b>4박</b>으로 채워 봐요.</p>
+    <div class="heronote">
+      <span class="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V5l12-2v13" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="var(--ink)" stroke-width="2.2"/><circle cx="18" cy="16" r="3" stroke="var(--ink)" stroke-width="2.2"/></svg>음의 높낮이 · 계이름</span>
+      <span class="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg>음의 길이 · 박자</span>
+    </div>
+    <div class="cube">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      <span><b>핑퐁 G큐브</b>는 색과 음계를 연결해요. 빨강은 '도', 주황은 '레'처럼요. 색을 바꾸면 음도 바뀌지요. 오늘은 그 <b>색-음계</b>의 원리를 계이름 게임으로 먼저 느껴 봐요.</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="mute" id="muteBtn" aria-pressed="false" aria-label="소리 끄기">
+      <span class="ic-on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="var(--point)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span class="ic-off"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="#fff" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="m16 9 5 6M21 9l-5 6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span id="muteTxt">소리 켜짐</span>
+    </button>
+    <span class="chip" style="box-shadow:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2"/><path d="M12 7v5l3 2" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>버튼은 크게, 여유 있게 눌러 봐요</span>
+  </div>
+
+  <!-- ===== 미션 A: 계이름 ===== -->
+  <div class="cmp-head"><span class="sig">A</span><h2>계이름 미션 · 연주하기</h2><span class="bar" aria-hidden="true"></span></div>
+  <section class="panel" aria-labelledby="tA">
+    <p class="phelp" id="tA">제시된 계이름 순서대로 건반을 눌러요. 건반을 누르면 <b>소리</b>가 나요. 왼쪽부터 낮은 '도', 오른쪽으로 갈수록 높아져요.</p>
+    <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="계이름 미션 진행"><div class="progbar" id="progA"></div></div>
+    <div class="target" id="targetA" aria-label="맞혀야 할 계이름 순서"></div>
+    <div class="piano" id="piano"></div>
+    <p class="state" id="stateA">▶ 미션 듣기 를 눌러 순서를 들어 봐요</p>
+    <div class="btnrow">
+      <button class="btn ghost" id="listenA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z" fill="var(--point)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>미션 듣기</button>
+      <button class="btn" id="newA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5m2-3v4h-4M20 12a8 8 0 0 1-14 5m-2 3v-4h4" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>새 미션</button>
+    </div>
+  </section>
+
+  <!-- ===== 미션 B: 리듬 ===== -->
+  <div class="cmp-head"><span class="sig">B</span><h2>리듬 미션 · 한 마디 채우기</h2><span class="bar" aria-hidden="true"></span></div>
+  <section class="panel" aria-labelledby="tB">
+    <p class="phelp" id="tB"><b>4/4박자</b> 한 마디는 <b>4박</b>이에요. 아래 음표를 눌러 마디에 넣어요. 길이의 합이 딱 <b>4박</b>이 되면 성공! 점음표(点)는 원래 길이의 1.5배예요. 놓은 음표를 누르면 지워져요.</p>
+    <div class="notepal" id="notepal"></div>
+    <div class="measure" id="measure" aria-label="한 마디 (4박)">
+      <div class="beatcell"><span class="bn">1박</span></div>
+      <div class="beatcell"><span class="bn">2박</span></div>
+      <div class="beatcell"><span class="bn">3박</span></div>
+      <div class="beatcell"><span class="bn">4박</span></div>
+    </div>
+    <div class="fillrow">
+      <div class="fillmeter" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-label="채운 박"><div class="fillbar" id="fillbar"></div></div>
+      <span class="fillcap" id="fillcap">0 / 4 박</span>
+    </div>
+    <p class="state" id="stateB">음표를 눌러 마디를 채워 봐요</p>
+    <div class="btnrow">
+      <button class="btn ghost" id="playB"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z" fill="var(--point)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>마디 연주</button>
+      <button class="btn ghost" id="clearB"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>비우기</button>
+    </div>
+  </section>
+
+  <div class="obs" id="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10Z" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 20h6M10 22h4" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>발견해 봐요</b> — 4박 마디를 채우는 방법은 여러 가지예요. 4분음표 4개도, 2분음표 2개도, 온음표 하나도 모두 <b>4박</b>이 돼요. 어떤 조합이 있는지 바꿔가며 연주해 들어 봐요.</span>
+  </div>
+
+  <!-- badges -->
+  <div class="cmp-head"><h2>얻은 배지</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="badges">
+    <div class="badge" id="badgeA">
+      <svg class="medal" width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="10" r="6" fill="#EDEDED" stroke="var(--ink)" stroke-width="2"/><path d="m9 15-2 6 5-3 5 3-2-6" fill="#fff" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 10 11 11.5 14.5 8" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>계이름 연주가</span>
+    </div>
+    <div class="badge" id="badgeB">
+      <svg class="medal" width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="10" r="6" fill="#EDEDED" stroke="var(--ink)" stroke-width="2"/><path d="m9 15-2 6 5-3 5 3-2-6" fill="#fff" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M9 10h6M12 7v6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>리듬 채우기 명수</span>
+    </div>
+  </div>
+
+  <!-- self check -->
+  <div class="selfcheck">
+    <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11l3 3L22 4" stroke="var(--point)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>스스로 점검</h3>
+    <label class="checkitem"><input type="checkbox"> 낮은 도부터 높은 도까지 계이름 순서를 말할 수 있어요.</label>
+    <label class="checkitem"><input type="checkbox"> 온·2분·4분·8분음표의 길이 차이를 설명할 수 있어요.</label>
+    <label class="checkitem"><input type="checkbox"> 점음표가 원래 길이의 1.5배라는 것을 알아요.</label>
+    <label class="checkitem"><input type="checkbox"> 4/4박자 한 마디를 여러 방법으로 4박 채워 봤어요.</label>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ===== 공통: Web Audio ===== */
+let audioCtx=null, muted=false;
+function ac(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
+function tone(freq,dur,when,type){
+  if(muted) return;
+  const ctx=ac(), t0=(when!=null?when:ctx.currentTime);
+  const osc=ctx.createOscillator(), g=ctx.createGain();
+  osc.type=type||'triangle'; osc.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.2,t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+Math.max(0.08,dur*0.92));
+  osc.connect(g).connect(ctx.destination);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function blip(ok){
+  if(muted) return;
+  if(ok){ tone(659.25,0.12); tone(987.77,0.16,ac().currentTime+0.11); }
+  else { tone(196,0.18,null,'sawtooth'); }
+}
+
+/* 음소거 */
+$('muteBtn').onclick=function(){
+  muted=!muted; this.classList.toggle('off',muted);
+  this.setAttribute('aria-pressed', muted?'true':'false');
+  this.setAttribute('aria-label', muted?'소리 켜기':'소리 끄기');
+  $('muteTxt').textContent= muted?'소리 꺼짐':'소리 켜짐';
+};
+
+/* ===== 미션 A: 계이름 ===== */
+const SCALE=[
+  {sol:'도', en:'C', f:261.63},
+  {sol:'레', en:'D', f:293.66},
+  {sol:'미', en:'E', f:329.63},
+  {sol:'파', en:'F', f:349.23},
+  {sol:'솔', en:'G', f:392.00},
+  {sol:'라', en:'A', f:440.00},
+  {sol:'시', en:'B', f:493.88},
+  {sol:'높은도', en:'C', f:523.25}
+];
+let seqA=[], stepA=0, doneA=false;
+
+function buildPiano(){
+  const p=$('piano'); p.innerHTML='';
+  SCALE.forEach((n,i)=>{
+    const b=document.createElement('button');
+    b.className='key'+(i===7?' high':'');
+    b.type='button';
+    b.dataset.i=i;
+    b.setAttribute('aria-label', n.sol+' 건반');
+    b.innerHTML='<span class="sol">'+n.sol+'</span><span class="en">'+n.en+'</span>';
+    b.addEventListener('click',()=>pressKey(i));
+    p.appendChild(b);
+  });
+}
+function pressKey(i){
+  const key=$('piano').children[i];
+  tone(SCALE[i].f,0.5);
+  key.classList.add('press'); setTimeout(()=>key.classList.remove('press'),140);
+  if(doneA || seqA.length===0) return;
+  if(i===seqA[stepA]){
+    stepA++;
+    renderTargetA();
+    if(stepA>=seqA.length){
+      doneA=true;
+      $('stateA').textContent='완벽해요! 순서대로 다 연주했어요';
+      $('stateA').className='state good';
+      $('progA').style.width='100%';
+      $('progA').parentElement.setAttribute('aria-valuenow',100);
+      $('badgeA').classList.add('earned');
+      blip(true);
+    } else {
+      $('stateA').textContent='좋아요! 다음 계이름을 눌러요';
+      $('stateA').className='state';
+      const pct=Math.round(stepA/seqA.length*100);
+      $('progA').style.width=pct+'%';
+      $('progA').parentElement.setAttribute('aria-valuenow',pct);
+      blip(true);
+    }
+  } else {
+    $('stateA').innerHTML='<b>'+SCALE[seqA[stepA]].sol+'</b> 차례예요. 다시 들어 볼까요?';
+    $('stateA').className='state bad';
+    key.classList.add('press');
+    blip(false);
+  }
+}
+function renderTargetA(){
+  const t=$('targetA'); t.innerHTML='';
+  seqA.forEach((idx,k)=>{
+    const c=document.createElement('span');
+    c.className='seqchip'+(k<stepA?' done':(k===stepA&&!doneA?' next':''));
+    c.textContent=SCALE[idx].sol;
+    t.appendChild(c);
+  });
+}
+function newMissionA(){
+  const len=4;
+  seqA=[];
+  for(let k=0;k<len;k++) seqA.push(Math.floor(Math.random()*SCALE.length));
+  stepA=0; doneA=false;
+  renderTargetA();
+  $('progA').style.width='0%';
+  $('progA').parentElement.setAttribute('aria-valuenow',0);
+  $('stateA').textContent='▶ 미션 듣기 를 눌러 순서를 들어 봐요';
+  $('stateA').className='state';
+  $('badgeA').classList.remove('earned');
+}
+function listenA(){
+  if(seqA.length===0) return;
+  const ctx=ac(); let t=ctx.currentTime+0.05; const d=0.5;
+  seqA.forEach((idx,k)=>{
+    tone(SCALE[idx].f,d,t);
+    ((kk)=>setTimeout(()=>{
+      const key=$('piano').children[seqA[kk]];
+      key.classList.add('hit'); setTimeout(()=>key.classList.remove('hit'),320);
+    }, (t-ctx.currentTime)*1000))(k);
+    t+=d;
+  });
+  $('stateA').textContent='잘 들었나요? 순서대로 건반을 눌러요';
+  $('stateA').className='state';
+}
+$('newA').onclick=newMissionA;
+$('listenA').onclick=listenA;
+
+/* ===== 미션 B: 리듬 ===== */
+const NOTES=[
+  {nm:'온음표', beats:4, f:'M'},
+  {nm:'점2분음표', beats:3, f:'H3'},
+  {nm:'2분음표', beats:2, f:'H'},
+  {nm:'점4분음표', beats:1.5, f:'Q3'},
+  {nm:'4분음표', beats:1, f:'Q'},
+  {nm:'8분음표', beats:0.5, f:'E'}
+];
+let placed=[]; // {beats, nm}
+const CAP=4;
+
+function noteSVG(f){
+  // 간단한 음표 아이콘 (SVG)
+  const head='<ellipse cx="7" cy="20" rx="5" ry="3.6" transform="rotate(-20 7 20)" fill="'+(f==='M'||f==='H'||f==='H3'?'#fff':'var(--ink)')+'" stroke="var(--ink)" stroke-width="2"/>';
+  const stem=(f==='M')?'':'<path d="M11.5 18V3" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>';
+  const flag=(f==='E')?'<path d="M11.5 3c4 1.5 5 4 3 7" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" fill="none"/>':'';
+  const dot=(f==='H3'||f==='Q3')?'<circle cx="15.5" cy="20" r="1.8" fill="var(--ink)"/>':'';
+  return '<svg width="24" height="26" viewBox="0 0 24 26" fill="none" aria-hidden="true">'+head+stem+flag+dot+'</svg>';
+}
+function buildPalette(){
+  const p=$('notepal'); p.innerHTML='';
+  NOTES.forEach((n,i)=>{
+    const b=document.createElement('button');
+    b.className='note-btn'; b.type='button';
+    b.setAttribute('aria-label', n.nm+' 넣기, '+n.beats+'박');
+    b.innerHTML=noteSVG(n.f)+'<span class="nm">'+n.nm+'</span><span class="bt">'+n.beats+'박</span>';
+    b.addEventListener('click',()=>addNote(i));
+    p.appendChild(b);
+  });
+}
+function totalBeats(){ return placed.reduce((s,p)=>s+p.beats,0); }
+function addNote(i){
+  const n=NOTES[i];
+  if(totalBeats()+n.beats > CAP+0.001){
+    $('stateB').innerHTML='<b>4박</b>을 넘겨요! 더 짧은 음표를 넣거나 비워 봐요';
+    $('stateB').className='state bad';
+    blip(false);
+    return;
+  }
+  placed.push({beats:n.beats, nm:n.nm, f:n.f});
+  // 소리: 4분음표 기준 한 박당 소리
+  tone(392.00, Math.min(0.5,n.beats*0.25));
+  renderMeasure();
+}
+function removeNote(idx){
+  placed.splice(idx,1);
+  renderMeasure();
+}
+function renderMeasure(){
+  const cells=$('measure').children;
+  for(const c of cells){ [...c.querySelectorAll('.placed')].forEach(e=>e.remove()); }
+  // 박 위치에 따라 셀에 배치
+  let acc=0;
+  placed.forEach((p,idx)=>{
+    const cellIdx=Math.min(3,Math.floor(acc));
+    const cell=cells[cellIdx];
+    const el=document.createElement('button');
+    el.className='placed'; el.type='button';
+    el.setAttribute('aria-label', p.nm+' 지우기');
+    el.innerHTML=noteSVG(p.f)+'<span class="pb">'+p.beats+'박</span>';
+    el.addEventListener('click',()=>removeNote(idx));
+    cell.appendChild(el);
+    acc+=p.beats;
+  });
+  const tb=totalBeats();
+  const pct=Math.min(100, tb/CAP*100);
+  const bar=$('fillbar');
+  bar.style.width=pct+'%';
+  bar.classList.toggle('full', Math.abs(tb-CAP)<0.001);
+  bar.classList.toggle('over', tb>CAP+0.001);
+  const meter=bar.parentElement; meter.setAttribute('aria-valuenow', tb);
+  $('fillcap').textContent=(Number.isInteger(tb)?tb:tb.toFixed(1))+' / 4 박';
+  if(Math.abs(tb-CAP)<0.001){
+    $('stateB').innerHTML='딱 <b>4박</b>! 한 마디를 완성했어요';
+    $('stateB').className='state good';
+    $('badgeB').classList.add('earned');
+    blip(true);
+  } else if(tb<CAP){
+    $('stateB').textContent='좋아요! '+(CAP-tb).toFixed(1).replace(/\.0$/,'')+'박 더 채우면 돼요';
+    $('stateB').className='state';
+    $('badgeB').classList.remove('earned');
+  }
+}
+function clearB(){ placed=[]; renderMeasure(); $('stateB').textContent='음표를 눌러 마디를 채워 봐요'; $('stateB').className='state'; }
+function playB(){
+  if(placed.length===0){ $('stateB').textContent='먼저 음표를 넣어 주세요'; return; }
+  const ctx=ac(); let t=ctx.currentTime+0.05;
+  const beatSec=0.42;
+  const mel=[261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25];
+  placed.forEach((p,i)=>{
+    const f=mel[i%mel.length];
+    tone(f, p.beats*beatSec, t);
+    t+=p.beats*beatSec;
+  });
+  $('stateB').textContent='마디를 연주했어요! 길이를 귀로 느껴 봐요';
+  $('stateB').className='state';
+}
+$('clearB').onclick=clearB;
+$('playB').onclick=playB;
+
+/* 초기화 */
+buildPiano();
+buildPalette();
+newMissionA();
+renderMeasure();
+</script>
+</body>
+</html>

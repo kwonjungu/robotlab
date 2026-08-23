@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>청소 경로 알고리즘 미로 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#12B76A; --point-soft:#D6F5E6;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --blue:#3D5AFE; --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px;flex-wrap:wrap}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,6.5vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink)}
+  .chasi{display:inline-flex;flex-wrap:wrap;gap:6px;margin:16px 0 26px}
+  .chasi span{font-weight:800;font-size:12.5px;background:var(--surface);border:2px solid var(--ink);
+    border-radius:999px;padding:4px 12px;box-shadow:var(--hard-sm)}
+
+  .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stagebar .lbl{font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .schip{cursor:pointer;font-family:inherit;font-weight:900;font-size:14px;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;padding:8px 15px;min-height:44px;min-width:44px;
+    box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s}
+  .schip:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .schip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .schip:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .schip.on{background:var(--point);color:#fff}
+  .schip.cleared{background:var(--blue);color:#fff}
+
+  /* stats row */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+  .stat{flex:1;min-width:120px;display:flex;align-items:center;gap:11px;background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 14px}
+  .stat .ic{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border:2px solid var(--ink);border-radius:9px;background:var(--amber-soft)}
+  .stat .num{font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1}
+  .stat .cap{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .stat .num small{font-size:13px;color:var(--muted);font-weight:800}
+
+  .lab{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px}
+  @media(max-width:820px){.lab{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px}
+  .phead{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .phead h2{font-size:18px;font-weight:900;letter-spacing:-.02em}
+  .phead .bar{height:3px;background:var(--ink);flex:1;border-radius:2px;opacity:.25}
+
+  .goaltxt{font-size:13.5px;font-weight:700;color:#333;margin-bottom:12px;background:var(--point-soft);
+    border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:10px 13px;line-height:1.45}
+  .goaltxt b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px;font-weight:900}
+
+  .boardwrap{display:flex;justify-content:center;margin-bottom:8px}
+  .board{display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
+    background:var(--paper);touch-action:manipulation}
+  .cell{position:relative;background:var(--surface);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
+  .cell.wall{background:var(--ink);background-image:repeating-linear-gradient(45deg,#000,#000 4px,#2a2a2a 4px,#2a2a2a 8px)}
+  .cell.dust::after{content:"";position:absolute;left:50%;top:50%;width:38%;height:38%;transform:translate(-50%,-50%);
+    border-radius:50%;background:#B9A67A;border:2px solid var(--ink);box-shadow:1px 1px 0 rgba(20,20,20,.3)}
+  .cell.clean::after{background:var(--point);border-color:var(--ink);transform:translate(-50%,-50%) scale(.55);transition:background .2s,transform .2s}
+  .cell.visited{background:var(--point-soft)}
+  .robot{position:absolute;inset:0;display:grid;place-items:center;transition:left .25s ease,top .25s ease,transform .25s ease;z-index:5;pointer-events:none}
+  .robot svg{width:74%;height:74%;filter:drop-shadow(2px 2px 0 rgba(20,20,20,.25))}
+  @media(prefers-reduced-motion:reduce){.robot,.cell.clean::after{transition:none}}
+
+  .runctl{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;flex:1;min-width:110px;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:12px 14px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--hard-sm)}
+  .btn svg{flex-shrink:0}
+
+  .state{text-align:center;font-size:14px;font-weight:800;min-height:26px;margin-top:12px;color:#333}
+  .state b{color:var(--ink)}
+  .state.ok{color:var(--green)}
+  .state.bad{color:var(--red)}
+
+  .paletitle{font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .blk{display:inline-flex;align-items:center;gap:7px;cursor:grab;user-select:none;
+    font-family:inherit;font-weight:900;font-size:13.5px;color:#fff;border:2.5px solid var(--ink);
+    border-radius:11px;padding:9px 12px;min-height:44px;box-shadow:var(--hard-sm);transition:transform .1s,box-shadow .1s;touch-action:none}
+  .blk:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .blk:active{cursor:grabbing}
+  .blk:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .blk svg{flex-shrink:0}
+  .blk.fwd{background:var(--point)}
+  .blk.left{background:#7C3AED}
+  .blk.right{background:#F59E0B;color:var(--ink)}
+  .blk.loop{background:var(--blue)}
+
+  .progtitle{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px}
+  .progtitle .count{background:var(--ink);color:var(--paper);border-radius:999px;padding:2px 9px;font-size:11px}
+  .prog-list{list-style:none;min-height:110px;background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);padding:10px;display:flex;flex-direction:column;gap:7px}
+  .prog-list.drag{background:var(--point-soft);border-style:solid}
+  .prog-list .empty{color:var(--muted);font-size:13.5px;font-weight:700;text-align:center;padding:20px 8px}
+  .pitem{display:flex;align-items:center;gap:8px;background:var(--surface);border:2.5px solid var(--ink);border-radius:11px;
+    padding:7px 10px;box-shadow:var(--hard-sm);font-weight:900;font-size:14px}
+  .pitem .idx{width:22px;height:22px;flex-shrink:0;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:7px;font-size:11px}
+  .pitem .swatch{width:16px;height:16px;border:2px solid var(--ink);border-radius:5px;flex-shrink:0}
+  .pitem .lab{flex:1}
+  .pitem .stepbtns{display:flex;gap:4px}
+  .pitem .mini{cursor:pointer;font-family:inherit;font-weight:900;font-size:13px;width:30px;height:30px;display:grid;place-items:center;
+    border:2px solid var(--ink);border-radius:8px;background:var(--paper);color:var(--ink)}
+  .pitem .mini:hover{background:var(--amber-soft)}
+  .pitem .mini:focus-visible{outline:2.5px solid var(--point);outline-offset:1px}
+  .pitem .mini.del{background:#FFE3E4}
+
+  .hint{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:10px;line-height:1.45}
+  .hint b{color:var(--ink)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:16px 20px;font-size:14px;font-weight:600;margin:24px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:26px 0 14px}
+  .cmp-head h2{font-size:20px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .badges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:640px){.badges{grid-template-columns:1fr}}
+  .badge{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    padding:16px;text-align:center;opacity:.5;filter:grayscale(1);transition:opacity .3s,filter .3s,transform .3s}
+  .badge.got{opacity:1;filter:none;transform:translateY(-2px)}
+  .badge .medal{width:56px;height:56px;margin:0 auto 8px;display:grid;place-items:center;border:2.5px solid var(--ink);
+    border-radius:50%;background:var(--amber-soft)}
+  .badge.got .medal{background:var(--amber)}
+  .badge .bt{font-size:14px;font-weight:900;letter-spacing:-.02em}
+  .badge .bd{font-size:12px;font-weight:600;color:var(--muted);margin-top:3px;line-height:1.35}
+
+  .selfcheck{margin-top:24px;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .selfcheck h2{font-size:17px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .selfcheck ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .selfcheck li{display:flex;align-items:center;gap:11px;font-weight:700;font-size:14.5px}
+  .selfcheck .cbx{width:30px;height:30px;flex-shrink:0;cursor:pointer;border:2.5px solid var(--ink);border-radius:9px;
+    background:var(--paper);display:grid;place-items:center;transition:background .15s}
+  .selfcheck .cbx svg{opacity:0;transition:opacity .15s}
+  .selfcheck .cbx[aria-checked=true]{background:var(--green)}
+  .selfcheck .cbx[aria-checked=true] svg{opacity:1}
+  .selfcheck .cbx:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  footer{text-align:center;margin-top:30px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  .drag-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.9;transform:translate(-50%,-50%)}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">청소 경로 · 효율적 알고리즘·반복</span>
+  </nav>
+
+  <header>
+    <span class="kicker">개념 게임 · 더 짧은 코드로</span>
+    <h1>청소 <span class="u">경로</span> 알고리즘 미로</h1>
+    <p class="lead">방에 흩어진 <b>먼지</b>를 모두 지나면 청소 성공! 전진·회전·반복 명령으로 경로를 <b>계획</b>한 뒤 실행해요. <b>명령 개수</b>와 <b>이동 칸수</b>를 줄이는 게 진짜 도전이에요.</p>
+    <div class="chasi">
+      <span>관련 차시 · 9-10 청소 경로</span><span>23-24 코드 미로</span>
+    </div>
+  </header>
+
+  <div class="stagebar">
+    <span class="lbl">방</span>
+    <button class="schip" data-stage="0" type="button">방 1</button>
+    <button class="schip" data-stage="1" type="button">방 2</button>
+    <button class="schip" data-stage="2" type="button">방 3</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+      <div><div class="num" id="cmdNum">0</div><div class="cap">명령 개수</div></div>
+    </div>
+    <div class="stat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h18M14 5l7 7-7 7" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><div class="num" id="moveNum">0</div><div class="cap">이동 칸수</div></div>
+    </div>
+    <div class="stat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="#B9A67A" stroke="var(--ink)" stroke-width="2"/></svg></div>
+      <div><div class="num"><span id="dustNum">0</span><small> / <span id="dustTot">0</span></small></div><div class="cap">청소한 먼지</div></div>
+    </div>
+    <div class="stat">
+      <div class="ic" style="background:var(--point-soft)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l2 6h10l2-6" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 3v10M9 6l3-3 3 3" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><div class="num" id="bestNum">–</div><div class="cap">최소 명령 기록</div></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <section class="panel">
+      <div class="phead"><h2 id="stageName">방 1</h2><span class="bar" aria-hidden="true"></span></div>
+      <p class="goaltxt" id="goalTxt"></p>
+      <div class="boardwrap"><div class="board" id="board" aria-label="청소 격자"></div></div>
+      <div class="runctl">
+        <button class="btn" id="runBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4l13 8-13 8V4z" fill="var(--ink)"/></svg>
+          청소 실행
+        </button>
+        <button class="btn ghost" id="resetBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 10a8 8 0 0 0-14-3M4 14a8 8 0 0 0 14 3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg>
+          되돌리기
+        </button>
+      </div>
+      <p class="state" id="state">명령을 쌓고 청소 실행을 눌러요.</p>
+    </section>
+
+    <section class="panel">
+      <div class="phead"><h2>명령 계획</h2><span class="bar" aria-hidden="true"></span></div>
+
+      <div class="paletitle">명령 서랍 (클릭하거나 아래로 끌어다 놓기)</div>
+      <div class="palette" id="palette">
+        <button class="blk fwd" type="button" data-op="fwd" aria-label="전진 명령 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v16M6 10l6-6 6 6" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          전진
+        </button>
+        <button class="blk left" type="button" data-op="left" aria-label="왼쪽 회전 명령 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 7H15a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H7" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 4L7 7l3 3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          왼쪽 90°
+        </button>
+        <button class="blk right" type="button" data-op="right" aria-label="오른쪽 회전 명령 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 7H9a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4h8" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4l3 3-3 3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          오른쪽 90°
+        </button>
+        <button class="blk loop" type="button" data-op="loop" aria-label="반복 명령 추가">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9a6 6 0 0 1 6-6h6M20 15a6 6 0 0 1-6 6H8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 1l3 2-3 2M11 23l-3-2 3-2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          반복
+        </button>
+      </div>
+      <p class="hint" id="loopHint">「반복」은 <b>바로 앞 명령 1개</b>를 정한 횟수만큼 되풀이해요. 「전진 · 반복 4회」는 전진을 4번 한 것과 같아요. 항목의 <b>+ / −</b>로 횟수를 바꿔요.</p>
+
+      <div class="progtitle"><span>내 명령</span><span class="count"><span id="blkCount">0</span> 개</span></div>
+      <ul class="prog-list" id="progList" aria-label="계획한 명령">
+        <li class="empty" id="emptyMsg">여기에 명령이 쌓여요</li>
+      </ul>
+
+      <div class="runctl" style="margin-top:12px">
+        <button class="btn ghost" id="clearBtn" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          모두 비우기
+        </button>
+      </div>
+      <p class="hint">먼지를 <b>다 지나기만</b> 하면 성공이에요. 같은 방향으로 여러 칸 가야 할 땐 <b>반복</b>으로 명령을 확 줄일 수 있어요.</p>
+    </section>
+  </div>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>알고리즘이란</b> — 먼지를 다 지나는 길은 여러 가지예요. 그중 <b>이동 칸수가 적은 길</b>을 찾는 게 좋은 알고리즘이에요. 지그재그로 훑거나, 한 줄씩 왕복하는 방법을 떠올려 봐요. 그리고 반복을 쓰면 <b>명령 개수</b>도 줄어들어요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>모은 배지</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="badges">
+    <div class="badge" id="badge-clean">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/></svg></div>
+      <div class="bt">청소 완료</div><div class="bd">한 방의 먼지를 모두 청소하면</div>
+    </div>
+    <div class="badge" id="badge-loop">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10a6 6 0 0 1 6-6h5M20 14a6 6 0 0 1-6 6H9" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1l3 3-3 3M12 23l-3-3 3-3" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="bt">반복 절약가</div><div class="bd">반복을 써서 명령 개수를 줄이면</div>
+    </div>
+    <div class="badge" id="badge-eff">
+      <div class="medal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg></div>
+      <div class="bt">효율 달인</div><div class="bd">한 칸도 낭비 없이 최소 경로로 청소하면</div>
+    </div>
+  </div>
+
+  <div class="selfcheck">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11l3 3L20 6" stroke="var(--green)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/></svg>
+      스스로 점검
+    </h2>
+    <ul>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="경로 계획 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 먼지를 모두 지나는 <b>경로</b>를 머릿속으로 그린 뒤 명령을 짤 수 있다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="반복 활용 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 같은 방향 이동을 <b>반복</b>으로 묶어 명령 개수를 줄일 수 있다.</li>
+      <li><span class="cbx" role="checkbox" aria-checked="false" tabindex="0" aria-label="효율 비교 확인"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 같은 청소라도 <b>이동 칸수가 적은</b> 길이 더 좋은 알고리즘임을 안다.</li>
+    </ul>
+  </div>
+
+  <footer><a href="../">← 신나는 로봇 창작랩 수업터 홈</a></footer>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const DIRS=[{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}]; // 위 오른 아래 왼
+
+/* ── 방 정의 ──
+   size, start{x,y,dir}, walls[], dust[]  (dust 좌표에 먼지)
+   optMoves: 손으로 확인한 최소 이동 칸수 (효율 배지 기준)
+   par: 참고용 최소 명령 목표
+*/
+const STAGES=[
+  { name:"방 1 · 일자 청소",
+    goal:"먼지가 <b>한 줄</b>로 놓여 있어요. 전진만으로 지나가되, <b>반복</b>으로 명령을 줄여 봐요.",
+    size:6, start:{x:1,y:2,dir:1}, walls:[],
+    dust:[{x:2,y:2},{x:3,y:2},{x:4,y:2}], optMoves:3, par:2 },
+
+  { name:"방 2 · ㄱ자 꺾기",
+    goal:"먼지가 <b>꺾인 길</b>로 이어져요. 전진하다 <b>회전</b>해서 방향을 바꿔야 해요.",
+    size:6, start:{x:1,y:1,dir:1}, walls:[{x:3,y:3}],
+    dust:[{x:2,y:1},{x:3,y:1},{x:4,y:1},{x:4,y:2},{x:4,y:3},{x:4,y:4}], optMoves:6, par:5 },
+
+  { name:"방 3 · 지그재그 방",
+    goal:"먼지가 방에 <b>넓게</b> 퍼져 있어요. 한 줄씩 훑는 <b>지그재그</b> 경로를 계획하고 반복으로 줄여요.",
+    size:6, start:{x:1,y:1,dir:1}, walls:[{x:4,y:2},{x:4,y:3}],
+    dust:[{x:2,y:1},{x:3,y:1},{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:1,y:3},{x:2,y:3},{x:3,y:3}],
+    optMoves:8, par:8 }
+];
+
+let stageIdx=0, program=[], running=false;
+const cleared=new Set();
+const best={};        // stageIdx -> 최소 명령 개수 기록
+const badges={clean:false,loop:false,eff:false};
+
+const OPINFO={
+  fwd:{lab:"전진",color:"#12B76A"},
+  left:{lab:"왼쪽 90°",color:"#7C3AED"},
+  right:{lab:"오른쪽 90°",color:"#F59E0B"},
+  loop:{lab:"반복",color:"#3D5AFE"}
+};
+
+function stage(){return STAGES[stageIdx];}
+function isWall(s,x,y){return s.walls.some(w=>w.x===x&&w.y===y);}
+
+function buildBoard(){
+  const s=stage();
+  const board=$('board'); board.innerHTML='';
+  board.style.gridTemplateColumns=`repeat(${s.size},1fr)`;
+  const px=Math.min(56, Math.floor(340/s.size));
+  for(let y=0;y<s.size;y++)for(let x=0;x<s.size;x++){
+    const c=document.createElement('div');
+    c.className='cell'; c.dataset.x=x; c.dataset.y=y;
+    c.style.width=px+'px'; c.style.height=px+'px';
+    if(isWall(s,x,y)) c.classList.add('wall');
+    if(s.dust.some(d=>d.x===x&&d.y===y)) c.classList.add('dust');
+    board.appendChild(c);
+  }
+  const r=document.createElement('div');
+  r.className='robot'; r.id='robot';
+  r.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="8" width="16" height="10" rx="5" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><circle cx="9" cy="13" r="1.5" fill="#fff"/><circle cx="15" cy="13" r="1.5" fill="#fff"/><path d="M12 8V4M9 4h6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M17.5 11.5l3 1.5-3 1.5z" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  board.appendChild(r);
+  board.dataset.px=px;
+  placeRobot(s.start.x,s.start.y,s.start.dir,false);
+}
+function cellAt(x,y){return $('board').querySelector('.cell[data-x="'+x+'"][data-y="'+y+'"]');}
+function placeRobot(x,y,dir,anim){
+  const board=$('board'), px=+board.dataset.px, r=$('robot');
+  if(!anim){ r.style.transition='none'; requestAnimationFrame(()=>{r.style.transition='';}); }
+  r.style.left=(x*px)+'px'; r.style.top=(y*px)+'px'; r.style.width=px+'px'; r.style.height=px+'px';
+  r.style.transform='rotate('+(dir*90)+'deg)';
+}
+
+/* ── 반복 전개: 반복은 바로 앞 명령 1개를 count회 ── */
+function expand(prog){
+  const out=[];
+  for(let i=0;i<prog.length;i++){
+    const b=prog[i];
+    if(b.op==='loop'){
+      const prev=prog[i-1];
+      if(!prev||prev.op==='loop') continue;
+      const times=Math.max(1,b.count||1);
+      for(let k=0;k<times-1;k++) out.push({op:prev.op});
+    } else out.push({op:b.op});
+  }
+  return out;
+}
+
+/* ── 시뮬레이션: 지나간 칸의 먼지 청소, 이동 칸수 집계 ── */
+function simulate(atoms,s){
+  let x=s.start.x,y=s.start.y,dir=s.start.dir;
+  const cleaned=new Set();
+  const key=(a,b)=>a+","+b;
+  const dustSet=new Set(s.dust.map(d=>key(d.x,d.y)));
+  const states=[{x,y,dir,clean:dustSet.has(key(x,y))}];
+  if(dustSet.has(key(x,y))) cleaned.add(key(x,y));
+  let moves=0, crash=false;
+  for(const a of atoms){
+    if(a.op==='left'){dir=(dir+3)%4;states.push({x,y,dir});}
+    else if(a.op==='right'){dir=(dir+1)%4;states.push({x,y,dir});}
+    else if(a.op==='fwd'){
+      const nx=x+DIRS[dir].dx,ny=y+DIRS[dir].dy;
+      if(nx<0||ny<0||nx>=s.size||ny>=s.size||isWall(s,nx,ny)){crash=true;states.push({x,y,dir,blocked:true});break;}
+      x=nx;y=ny;moves++;
+      const cl=dustSet.has(key(x,y))&&!cleaned.has(key(x,y));
+      if(cl) cleaned.add(key(x,y));
+      states.push({x,y,dir,clean:cl});
+    }
+  }
+  const win=cleaned.size===dustSet.size;
+  return {states,win,moves,cleaned:cleaned.size,total:dustSet.size,crash};
+}
+
+/* ── 렌더 프로그램 ── */
+function renderProg(){
+  const list=$('progList');
+  list.querySelectorAll('.pitem').forEach(n=>n.remove());
+  $('emptyMsg').style.display=program.length?'none':'block';
+  program.forEach((b,i)=>{
+    const li=document.createElement('li'); li.className='pitem';
+    const info=OPINFO[b.op];
+    let extra=b.op==='loop'?`<span style="font-weight:900">${b.count}회</span>`:'';
+    li.innerHTML=`<span class="idx">${i+1}</span><span class="swatch" style="background:${info.color}"></span><span class="lab">${info.lab} ${extra}</span><span class="stepbtns"></span>`;
+    const btns=li.querySelector('.stepbtns');
+    if(b.op==='loop'){
+      btns.appendChild(mkMini('−','반복 횟수 줄이기',()=>{if(b.count>2){b.count--;renderProg();}}));
+      btns.appendChild(mkMini('+','반복 횟수 늘리기',()=>{if(b.count<12){b.count++;renderProg();}}));
+    }
+    const up=mkMini('▲','위로 옮기기',()=>move(i,-1)); up.disabled=i===0; btns.appendChild(up);
+    const del=mkMini('✕','명령 삭제',()=>{program.splice(i,1);renderProg();}); del.classList.add('del'); btns.appendChild(del);
+    list.appendChild(li);
+  });
+  $('blkCount').textContent=program.length;
+  updateStatsPreview();
+}
+function mkMini(txt,label,fn){const b=document.createElement('button');b.type='button';b.className='mini';b.textContent=txt;b.setAttribute('aria-label',label);b.onclick=fn;return b;}
+function move(i,d){const j=i+d;if(j<0||j>=program.length)return;const t=program[i];program[i]=program[j];program[j]=t;renderProg();}
+
+/* 미리보기: 명령 개수와 (실행 없이) 예상 이동 칸수 */
+function updateStatsPreview(){
+  $('cmdNum').textContent=program.length;
+  const sim=simulate(expand(program),stage());
+  $('moveNum').textContent=sim.moves;
+}
+
+function addBlock(op){
+  if(running) return;
+  if(op==='loop') program.push({op:'loop',count:2});
+  else program.push({op});
+  renderProg();
+}
+$('palette').querySelectorAll('.blk').forEach(b=>b.addEventListener('click',()=>addBlock(b.dataset.op)));
+
+/* pointer 드래그 */
+let dragOp=null, ghost=null;
+$('palette').querySelectorAll('.blk').forEach(b=>{
+  b.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0) return;
+    dragOp=b.dataset.op; startGhost(b,e);
+    const mv=ev=>{ if(ghost){ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';} overList(ev); };
+    const up=ev=>{
+      document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up);
+      $('progList').classList.remove('drag'); if(ghost){ghost.remove();ghost=null;}
+      const el=document.elementFromPoint(ev.clientX,ev.clientY);
+      if(el&&(el===$('progList')||(el.closest&&el.closest('#progList')))) addBlock(dragOp);
+      dragOp=null;
+    };
+    document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+  });
+});
+function startGhost(b,e){ghost=b.cloneNode(true);ghost.classList.add('drag-ghost');ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';document.body.appendChild(ghost);}
+function overList(ev){const el=document.elementFromPoint(ev.clientX,ev.clientY);const over=el&&(el===$('progList')||(el.closest&&el.closest('#progList')));$('progList').classList.toggle('drag',!!over);}
+
+/* ── 컨트롤 ── */
+$('runBtn').onclick=runProgram;
+$('resetBtn').onclick=()=>{ if(running)return; buildBoard(); setState('처음 상태로 돌아왔어요.'); updateStatsPreview(); };
+$('clearBtn').onclick=()=>{ if(running)return; program=[]; renderProg(); setState('명령을 비웠어요.'); };
+function setState(msg,kind){const el=$('state');el.className='state'+(kind?' '+kind:'');el.innerHTML=msg;}
+
+async function runProgram(){
+  if(running) return;
+  if(program.length===0){ setState('먼저 명령을 계획해요!','bad'); return; }
+  const s=stage();
+  const sim=simulate(expand(program),s);
+  running=true; $('runBtn').disabled=true; $('resetBtn').disabled=true;
+  // 격자 초기화(먼지 복구)
+  buildBoard();
+  setState('청소기가 움직여요…');
+  $('dustNum').textContent=sim.total; // will animate; reset below
+  let cleanedCnt=0; $('dustNum').textContent=0;
+  const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const delay=reduce?50:260;
+  // 시작 칸 먼지 처리
+  if(sim.states[0].clean){ const c=cellAt(sim.states[0].x,sim.states[0].y); if(c){c.classList.remove('dust');c.classList.add('clean');} cleanedCnt++; $('dustNum').textContent=cleanedCnt; }
+  for(let i=1;i<sim.states.length;i++){
+    await sleep(delay);
+    const st=sim.states[i];
+    placeRobot(st.x,st.y,st.dir,true);
+    const c=cellAt(st.x,st.y); if(c) c.classList.add('visited');
+    if(st.clean){ if(c){c.classList.remove('dust');c.classList.add('clean');} cleanedCnt++; $('dustNum').textContent=cleanedCnt; }
+    if(st.blocked){ setState('앞이 <b>벽</b>이라 멈췄어요. 경로를 다시 계획해 봐요.','bad'); }
+  }
+  running=false; $('runBtn').disabled=false; $('resetBtn').disabled=false;
+  $('moveNum').textContent=sim.moves;
+  if(sim.win) onWin(sim);
+  else if(!sim.crash) setState('아직 남은 먼지가 있어요 ('+sim.cleaned+'/'+sim.total+'). 경로를 늘려 봐요.','bad');
+}
+
+function onWin(sim){
+  const s=stage();
+  const usedLoop=program.some(b=>b.op==='loop');
+  const cmds=program.length;
+  let msg='청소 완료! <b>성공</b> — 명령 '+cmds+'개 · 이동 '+sim.moves+'칸.';
+  if(sim.moves<=s.optMoves) msg+=' <b>최소 경로!</b>';
+  setState(msg,'ok');
+  // 배지
+  if(!badges.clean){ badges.clean=true; $('badge-clean').classList.add('got'); }
+  if(usedLoop&&!badges.loop){ badges.loop=true; $('badge-loop').classList.add('got'); }
+  if(sim.moves<=s.optMoves&&!badges.eff){ badges.eff=true; $('badge-eff').classList.add('got'); }
+  // 기록
+  if(best[stageIdx]===undefined||cmds<best[stageIdx]){ best[stageIdx]=cmds; }
+  $('bestNum').textContent=best[stageIdx];
+  cleared.add(stageIdx);
+  document.querySelector('.schip[data-stage="'+stageIdx+'"]').classList.add('cleared');
+}
+
+/* ── 방 전환 ── */
+function loadStage(i){
+  stageIdx=i; program=[]; running=false;
+  document.querySelectorAll('.schip').forEach(c=>c.classList.toggle('on',+c.dataset.stage===i));
+  $('stageName').textContent=stage().name;
+  $('goalTxt').innerHTML=stage().goal;
+  $('dustTot').textContent=stage().dust.length;
+  $('dustNum').textContent=0;
+  $('bestNum').textContent=best[i]!==undefined?best[i]:'–';
+  buildBoard(); renderProg();
+  setState('명령을 쌓고 청소 실행을 눌러요.');
+}
+document.querySelectorAll('.schip').forEach(c=>c.addEventListener('click',()=>loadStage(+c.dataset.stage)));
+
+/* ── 자기 점검 ── */
+document.querySelectorAll('.selfcheck .cbx').forEach(cb=>{
+  const toggle=()=>cb.setAttribute('aria-checked',cb.getAttribute('aria-checked')==='true'?'false':'true');
+  cb.addEventListener('click',toggle);
+  cb.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();toggle();}});
+});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+loadStage(0);
+
+if(typeof module!=='undefined'&&module.exports){
+  module.exports={STAGES,DIRS,expand,simulate,isWall};
+}
+</script>
+</body>
+</html>

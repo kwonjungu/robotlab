@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분류왕 로봇 · AI 이미지 분류 체험</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#12B76A; --point-soft:#D6F5E6;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:22px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  /* 단계 스테퍼 */
+  .flow{display:flex;align-items:stretch;gap:0;margin:0 0 24px;flex-wrap:nowrap}
+  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .fstep .snum{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:14px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .2s,color .2s;box-shadow:var(--hard-sm)}
+  .fstep .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .2s}
+  .fstep:not(:last-child)::after{content:"";position:absolute;top:14px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2.5px;background:var(--ink);opacity:.22}
+  .fstep.on .snum{background:var(--point);color:#fff}
+  .fstep.on .slab{color:var(--ink)}
+  .fstep.done .snum{background:var(--ink);color:#fff}
+  @media(max-width:560px){.fstep .slab{font-size:10.5px}}
+
+  /* panel */
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;margin-bottom:22px;position:relative}
+  .phead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .badge-n{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:16px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--point);color:#fff;box-shadow:var(--hard-sm)}
+  .phead h2{font-size:21px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+  .phead .sub{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .phint{font-size:14px;color:#333;font-weight:600;margin:6px 0 16px}
+  .phint b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  /* 데이터 모으기: 클래스 트레이 */
+  .trays{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.trays{grid-template-columns:1fr}}
+  .tray{border:2.5px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:10px}
+  .tray .th{display:flex;align-items:center;gap:9px}
+  .tray .emoji{font-size:30px;line-height:1;filter:drop-shadow(1px 1px 0 rgba(0,0,0,.15))}
+  .tray .tname{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .tray .tcount{margin-left:auto;font-size:13px;font-weight:900;background:var(--surface);border:2px solid var(--ink);
+    border-radius:999px;padding:2px 11px;min-width:38px;text-align:center}
+  .binrow{display:flex;flex-wrap:wrap;gap:6px;min-height:44px;align-content:flex-start;
+    background:var(--surface);border:2px dashed var(--ink);border-radius:10px;padding:8px}
+  .chip{width:26px;height:26px;border-radius:6px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;line-height:1}
+  .chip.sq{border-radius:4px}
+  .chip.tr{border-radius:2px}
+  .addbtns{display:flex;gap:8px;flex-wrap:wrap}
+  .addbtn{flex:1;min-width:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);
+    padding:9px 6px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,box-shadow .1s}
+  .addbtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .addbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .addbtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .addbtn .swatch{width:16px;height:16px;border:2px solid var(--ink);flex-shrink:0}
+  .addbtn .swatch.round{border-radius:50%}
+  .toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .minibtn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;box-shadow:var(--hard-sm);padding:9px 14px;min-height:44px;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .1s,box-shadow .1s}
+  .minibtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .minibtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .minibtn:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .minibtn svg{flex-shrink:0}
+
+  /* 데이터 통계 바 */
+  .databar-wrap{margin-top:16px;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:12px 14px}
+  .databar-lab{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .databar{display:flex;height:24px;border:2.5px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--surface)}
+  .databar > div{transition:width .35s ease}
+  .databar .segA{background:repeating-linear-gradient(45deg,var(--red),var(--red) 9px,#ff7a7a 9px,#ff7a7a 18px)}
+  .databar .segB{background:repeating-linear-gradient(45deg,var(--amber),var(--amber) 9px,#ffd45e 9px,#ffd45e 18px)}
+  .databar-note{font-size:12px;font-weight:700;color:var(--muted);margin-top:7px}
+  .databar-note b{color:var(--ink);font-weight:900}
+  .warnpill{display:none;align-items:center;gap:6px;font-size:12px;font-weight:900;color:#fff;background:var(--red);
+    border:2px solid var(--ink);border-radius:999px;padding:2px 10px;box-shadow:var(--hard-sm)}
+  .warnpill.show{display:inline-flex}
+
+  /* 큰 액션 버튼 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:16.5px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 16px;min-height:52px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn svg{flex-shrink:0}
+  .btn.busy{background:var(--point);color:#fff;animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.015)}}
+
+  /* 학습 진행바 */
+  .train-anim{margin-top:16px;display:none}
+  .train-anim.show{display:block}
+  .prog{position:relative;height:22px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;overflow:hidden}
+  .progbar{height:100%;width:0%;background:repeating-linear-gradient(45deg,var(--point),var(--point) 9px,#3ed693 9px,#3ed693 18px);transition:width .12s linear}
+  .prog-txt{font-size:12.5px;font-weight:800;color:var(--muted);text-align:center;margin-top:7px;min-height:18px}
+  .prog-txt b{color:var(--ink)}
+
+  /* 학습 결과: 규칙 요약 카드 */
+  .rulebox{display:none;margin-top:16px;background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:14px 16px}
+  .rulebox.show{display:block}
+  .rulebox h3{font-size:14px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .protos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.protos{grid-template-columns:1fr}}
+  .proto{background:var(--surface);border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:700}
+  .proto .pn{font-size:14px;font-weight:900;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+  .proto .feat{display:flex;justify-content:space-between;gap:8px;padding:1px 0}
+  .proto .feat span:last-child{font-weight:900}
+
+  /* 테스트(분류) */
+  .testarea{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .testcard{width:130px;height:130px;border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard);
+    display:grid;place-items:center;background:var(--surface);position:relative}
+  .testcard .obj{width:74px;height:74px;border:3px solid var(--ink);display:grid;place-items:center;font-size:34px;line-height:1}
+  .testcard .qm{font-size:52px;font-weight:900;color:var(--muted)}
+  .verdict{min-height:30px;font-size:16px;font-weight:800;text-align:center}
+  .verdict.good{color:var(--green)}
+  .verdict.bad{color:var(--red)}
+  .verdict .tag{display:inline-block;background:var(--ink);color:var(--paper);border-radius:999px;padding:1px 10px;font-size:13px;margin:0 3px;font-weight:900}
+  .scorebar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .scorepill{font-size:13px;font-weight:900;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;
+    padding:5px 14px;box-shadow:var(--hard-sm)}
+  .scorepill b{color:var(--green)}
+  .scorepill.wrong b{color:var(--red)}
+
+  /* 관찰 박스 */
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* 편향 실험 버튼들 */
+  .biasrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+  @media(max-width:560px){.biasrow{grid-template-columns:1fr}}
+  .biascard{background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px;display:flex;flex-direction:column;gap:9px}
+  .biascard .bh{font-size:15px;font-weight:900;letter-spacing:-.02em}
+  .biascard .bd{font-size:12.5px;color:#333;font-weight:600;line-height:1.4;flex:1}
+
+  /* 배지 / 자기점검 */
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+  .checks{display:grid;gap:10px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;cursor:pointer;transition:transform .1s,box-shadow .1s}
+  .check:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .check:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .check .box{width:26px;height:26px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:7px;background:var(--paper);
+    display:grid;place-items:center}
+  .check .box svg{opacity:0;transition:opacity .15s}
+  .check[aria-checked=true] .box{background:var(--green)}
+  .check[aria-checked=true] .box svg{opacity:1}
+  .check .lab{font-size:14.5px;font-weight:700}
+
+  .badgebox{margin-top:20px;display:flex;align-items:center;gap:16px;background:var(--point-soft);
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .badgebox.locked{opacity:.55;filter:grayscale(.5)}
+  .medal{width:66px;height:66px;flex-shrink:0}
+  .badgebox .bt{font-size:17px;font-weight:900;letter-spacing:-.02em}
+  .badgebox .bp{font-size:13px;font-weight:700;color:#333;margin-top:3px}
+  .badgebox .bp b{color:var(--ink);font-weight:900}
+
+  /* quicklinks */
+  .quicklinks{margin-top:26px;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px}
+  .ql-h{font-size:14px;font-weight:900;letter-spacing:-.01em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .ql-h svg{flex-shrink:0;color:var(--point)}
+  .ql{display:flex;align-items:center;gap:9px;text-decoration:none;font-size:14px;font-weight:800;color:var(--ink);
+    background:var(--point-soft);border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:11px 15px;min-height:48px;transition:transform .1s,box-shadow .1s}
+  .ql:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .ql:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .ql:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .ql svg{flex-shrink:0;color:var(--point)}
+  .ql .arw{margin-left:auto;font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      수업터 홈</a>
+    <span class="lesson-tag">37-38 · 분류왕 로봇</span>
+  </nav>
+
+  <header>
+    <span class="kicker">AI가 배우는 방법</span>
+    <h1>분류왕 로봇 — <span class="u">데이터로 배워요</span></h1>
+    <p class="lead">AI는 <b>많은 예시(데이터)</b>를 보고 규칙을 스스로 만들어 새 그림을 나눠요. 데이터를 직접 모으고, <b>학습</b>시키고, <b>분류</b>시켜 봐요. 데이터가 <b>골고루·많이</b> 있어야 똑똑해진다는 걸 실험으로 확인해요.</p>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>진짜 AI 라이브러리 없이, 색·모양·크기 특징으로 <b style="font-weight:900">분류 규칙</b>을 흉내 내는 체험이에요. 카메라·인터넷은 쓰지 않아요.</span>
+  </div>
+
+  <!-- 큰 흐름 -->
+  <div class="flow" id="flow" aria-hidden="true">
+    <div class="fstep on" data-fstep="1"><span class="snum">1</span><span class="slab">데이터 모으기</span></div>
+    <div class="fstep" data-fstep="2"><span class="snum">2</span><span class="slab">학습하기</span></div>
+    <div class="fstep" data-fstep="3"><span class="snum">3</span><span class="slab">분류하기</span></div>
+    <div class="fstep" data-fstep="4"><span class="snum">4</span><span class="slab">편향 실험</span></div>
+  </div>
+
+  <!-- STEP 1: 데이터 모으기 -->
+  <section class="panel" aria-labelledby="h1step">
+    <div class="phead"><span class="badge-n">1</span><div><div class="sub">Collect</div><h2 id="h1step">데이터 모으기</h2></div></div>
+    <p class="phint">두 상자에 예시를 넣어요. 아래 버튼을 눌러 <b>특징이 조금씩 다른 예시</b>를 모아요. AI는 이 예시들의 색·모양·크기를 기억해요.</p>
+
+    <div class="trays">
+      <!-- 클래스 A: 사과 -->
+      <div class="tray">
+        <div class="th"><span class="emoji" aria-hidden="true">🍎</span><span class="tname">사과</span><span class="tcount" id="cntA">0</span></div>
+        <div class="binrow" id="binA" aria-label="사과 데이터 모음"></div>
+        <div class="addbtns">
+          <button type="button" class="addbtn" data-cls="A" data-kind="typical">
+            <span class="swatch round" style="background:#FF4D4D" aria-hidden="true"></span>보통 사과</button>
+          <button type="button" class="addbtn" data-cls="A" data-kind="variant">
+            <span class="swatch round" style="background:#12B76A" aria-hidden="true"></span>초록 사과</button>
+        </div>
+      </div>
+      <!-- 클래스 B: 바나나 -->
+      <div class="tray">
+        <div class="th"><span class="emoji" aria-hidden="true">🍌</span><span class="tname">바나나</span><span class="tcount" id="cntB">0</span></div>
+        <div class="binrow" id="binB" aria-label="바나나 데이터 모음"></div>
+        <div class="addbtns">
+          <button type="button" class="addbtn" data-cls="B" data-kind="typical">
+            <span class="swatch" style="background:#FFB800" aria-hidden="true"></span>노란 바나나</button>
+          <button type="button" class="addbtn" data-cls="B" data-kind="variant">
+            <span class="swatch" style="background:#12B76A" aria-hidden="true"></span>덜 익은 바나나</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolrow">
+      <button type="button" class="minibtn" id="autoFill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v6l4-4M12 3 8 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 13v4a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        골고루 자동으로 채우기</button>
+      <button type="button" class="minibtn" id="clearData">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        비우기</button>
+    </div>
+
+    <div class="databar-wrap">
+      <div class="databar-lab">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10M12 20V4M20 20v-7" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/></svg>
+        데이터 균형 <span class="warnpill" id="balWarn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4M12 17v.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>한쪽으로 치우침</span>
+      </div>
+      <div class="databar" id="databar" role="img" aria-label="사과와 바나나 데이터 비율">
+        <div class="segA" id="segA" style="width:50%"></div>
+        <div class="segB" id="segB" style="width:50%"></div>
+      </div>
+      <div class="databar-note" id="balNote">아직 데이터가 없어요. 두 상자에 예시를 넣어 봐요.</div>
+    </div>
+
+    <button class="btn" id="trainBtn" style="margin-top:18px" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      학습하기</button>
+
+    <div class="train-anim" id="trainAnim">
+      <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progWrap"><div class="progbar" id="progbar"></div></div>
+      <div class="prog-txt" id="progTxt"></div>
+    </div>
+
+    <div class="rulebox" id="rulebox">
+      <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2.2"/></svg>학습 끝! AI가 만든 규칙(대표 특징)</h3>
+      <div class="protos">
+        <div class="proto"><div class="pn"><span aria-hidden="true">🍎</span>사과 대표</div>
+          <div class="feat"><span>색</span><span id="pA-color">–</span></div>
+          <div class="feat"><span>모양</span><span id="pA-shape">–</span></div>
+          <div class="feat"><span>세로로 길쭉함</span><span id="pA-long">–</span></div>
+        </div>
+        <div class="proto"><div class="pn"><span aria-hidden="true">🍌</span>바나나 대표</div>
+          <div class="feat"><span>색</span><span id="pB-color">–</span></div>
+          <div class="feat"><span>모양</span><span id="pB-shape">–</span></div>
+          <div class="feat"><span>세로로 길쭉함</span><span id="pB-long">–</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2: 분류하기 -->
+  <section class="panel" aria-labelledby="h2step" id="testPanel" style="opacity:.5;pointer-events:none">
+    <div class="phead"><span class="badge-n">2</span><div><div class="sub">Classify</div><h2 id="h2step">분류하기 (테스트)</h2></div></div>
+    <p class="phint">새 그림을 주면 AI가 <b>대표 특징과 가장 가까운 상자</b>로 예측해요. (가까운 이웃 규칙) 예측이 맞았는지 확인해요.</p>
+
+    <div class="testarea">
+      <div class="testcard" id="testCard"><span class="qm" aria-hidden="true">?</span></div>
+      <div class="verdict" id="verdict">아래 버튼을 눌러 새 그림을 받아요.</div>
+      <button class="btn" id="testBtn" style="max-width:320px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+        새 그림으로 분류하기</button>
+      <div class="scorebar">
+        <span class="scorepill">맞음 <b id="scRight">0</b></span>
+        <span class="scorepill wrong">틀림 <b id="scWrong">0</b></span>
+        <span class="scorepill">정확도 <b id="scAcc" style="color:var(--ink)">–</b></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="obs" id="obsMain">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>관찰해요</b> — AI는 스스로 사과·바나나를 아는 게 아니라, 내가 준 예시의 <b>색·모양·크기</b>만 기억해요. 예시와 많이 다른 그림이 오면 헷갈려요. 그래서 <b>골고루 많은 데이터</b>가 중요해요.</span>
+  </div>
+
+  <!-- STEP 3: 편향 실험 -->
+  <section class="panel" aria-labelledby="h3step">
+    <div class="phead"><span class="badge-n">3</span><div><div class="sub">Bias</div><h2 id="h3step">편향(치우침) 실험</h2></div></div>
+    <p class="phint">데이터를 <b>일부러 치우치게</b> 모아 다시 학습해 봐요. 그 뒤 <b>분류하기</b>로 정확도를 비교하면, 왜 골고루 모아야 하는지 알 수 있어요.</p>
+
+    <div class="biasrow">
+      <div class="biascard">
+        <div class="bh">한 상자만 잔뜩</div>
+        <div class="bd">사과만 많이, 바나나는 조금. AI가 웬만하면 “사과”라고 답해요.</div>
+        <button type="button" class="minibtn" data-bias="one" style="justify-content:center">이렇게 모으기 → 학습</button>
+      </div>
+      <div class="biascard">
+        <div class="bh">한 가지 색만</div>
+        <div class="bd">초록색 예시만 모아 학습해요. 노란 바나나·빨간 사과가 오면 헷갈려요.</div>
+        <button type="button" class="minibtn" data-bias="color" style="justify-content:center">이렇게 모으기 → 학습</button>
+      </div>
+    </div>
+    <p class="databar-note" id="biasResult" style="margin-top:14px"></p>
+  </section>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>알아냈어요</b> — 치우친 데이터로 배운 AI는 <b>안 배운 것</b>을 자꾸 틀려요. 사람도 한쪽만 보면 편견이 생기죠. AI를 똑똑하고 <b>공정하게</b> 만들려면, 데이터를 <b>골고루·많이</b> 모아야 해요.</span>
+  </div>
+
+  <!-- 자기 점검 -->
+  <div class="cmp-head"><h2>스스로 점검해요</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks" id="checks">
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="1">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">AI는 사람이 준 <b>데이터(예시)</b>로 규칙을 만든다는 걸 설명할 수 있어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="2">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab">데이터가 <b>많고 다양할수록</b> 분류가 정확해진다는 걸 확인했어요.</span>
+    </div>
+    <div class="check" role="checkbox" aria-checked="false" tabindex="0" data-chk="3">
+      <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l4 4 10-10" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="lab"><b>치우친 데이터(편향)</b>는 AI를 틀리게 만든다는 걸 실험으로 봤어요.</span>
+    </div>
+  </div>
+
+  <div class="badgebox locked" id="badgeBox">
+    <svg class="medal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <circle cx="32" cy="26" r="18" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+      <circle cx="32" cy="26" r="11" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>
+      <path d="M27 26l3.5 3.5L38 22" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 41 16 60l16-8 16 8-6-19" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="bt" id="badgeTitle">분류왕 배지 (잠김)</div>
+      <div class="bp" id="badgeMsg">위 3가지를 모두 체크하면 <b>분류왕 배지</b>를 받아요!</div>
+    </div>
+  </div>
+
+  <div class="quicklinks">
+    <div class="ql-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6v6M20 4l-9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>실제로 해보기</div>
+    <a class="ql" href="https://teachablemachine.withgoogle.com/" target="_blank" rel="noopener noreferrer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><path d="M8 21h8M12 18v3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><circle cx="15" cy="10" r="1.6" fill="currentColor"/></svg>
+      <span>티처블 머신 — 진짜 사진으로 분류 AI 만들기</span>
+      <span class="arw" aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <footer><a href="../">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ── 특징 벡터 정의 ──────────────────────────────
+   각 예시 = {color, shape, longness}
+   color:   빨강 0 · 초록 1 · 노랑 2  (범주값, 매칭 비교)
+   shape:   0=둥근(사과) · 1=길쭉(바나나)  (0~1)
+   longness:세로 길쭉함 0(안길쭉)~1(길쭉)
+   실제 ML 없이, 각 클래스의 "대표 특징(평균)"을 만들고
+   테스트 카드는 대표와의 거리(가까운 이웃)로 분류한다. */
+
+const COLOR={RED:0,GREEN:1,YELLOW:2};
+const COLORNAME={0:'빨강',1:'초록',2:'노랑'};
+const COLORHEX={0:'#FF4D4D',1:'#12B76A',2:'#FFB800'};
+
+// 데이터 저장소
+let data={A:[],B:[]};   // A=사과, B=바나나
+let model=null;         // 학습 결과(대표 특징)
+let score={right:0,wrong:0};
+
+/* 예시 생성기: 클래스+종류에 따라 특징을 조금씩 흔들어 생성 */
+function makeSample(cls, kind){
+  // 사과(A): 둥근 모양(shape≈0), 길쭉함 낮음. 색은 빨강 or 초록
+  // 바나나(B): 길쭉(shape≈1), 길쭉함 높음. 색은 노랑 or 초록(덜익음)
+  if(cls==='A'){
+    const color = kind==='variant'?COLOR.GREEN:COLOR.RED;
+    return {color, shape:0, long:0, cls:'A', variant:kind==='variant'};
+  }else{
+    const color = kind==='variant'?COLOR.GREEN:COLOR.YELLOW;
+    return {color, shape:1, long:1, cls:'B', variant:kind==='variant'};
+  }
+}
+
+/* 최빈값(대표 색) */
+function modeColor(arr){
+  const c={}; arr.forEach(s=>{c[s.color]=(c[s.color]||0)+1;});
+  let best=null,bn=-1; for(const k in c){ if(c[k]>bn){bn=c[k];best=+k;} } return best;
+}
+function avg(arr,key){ return arr.reduce((a,s)=>a+s[key],0)/arr.length; }
+
+/* ── 학습: 각 클래스의 대표 특징(평균/최빈) 계산 ── */
+function trainModel(d){
+  if(!d.A.length || !d.B.length) return null;
+  return {
+    A:{color:modeColor(d.A), shape:avg(d.A,'shape'), long:avg(d.A,'long'), colors:d.A.map(s=>s.color)},
+    B:{color:modeColor(d.B), shape:avg(d.B,'shape'), long:avg(d.B,'long'), colors:d.B.map(s=>s.color)},
+    counts:{A:d.A.length, B:d.B.length}
+  };
+}
+
+/* ── 분류: 테스트 카드를 대표와의 거리로 예측(가까운 이웃) ── */
+function classify(m, sample){
+  const dist=(proto)=>{
+    // 색: 학습에서 본 색과 일치하면 0, 아니면 1 (안 본 색이면 멀다)
+    const colorD = proto.colors.includes(sample.color) ? 0 : 1;
+    const shapeD = Math.abs(proto.shape - sample.shape);
+    const longD  = Math.abs(proto.long  - sample.long);
+    // 색 가중치를 크게 두어, 안 본 색이면 모양이 애매할 때 확 틀림
+    return colorD*1.0 + shapeD*0.35 + longD*0.35;
+  };
+  const dA=dist(m.A), dB=dist(m.B);
+  if(dA<dB) return 'A';
+  if(dB<dA) return 'B';
+  // 동점이면 모양이 더 가까운 쪽으로
+  return Math.abs(m.A.shape-sample.shape)<=Math.abs(m.B.shape-sample.shape)?'A':'B';
+}
+
+/* ── 정직한 정확도 추정: 고정 테스트셋으로 모델 평가 ── */
+function TESTSET(){
+  // 모양이 애매한 카드는 색으로 판단해야 함 → 색·불균형 편향이 드러남
+  return [
+    makeSample('A','typical'), makeSample('A','variant'),
+    makeSample('B','typical'), makeSample('B','variant'),
+    {color:COLOR.YELLOW,shape:0.45, long:0.45, cls:'B'}, // 노란·애매모양 바나나
+    {color:COLOR.RED,   shape:0.55, long:0.55, cls:'A'}, // 빨간·애매모양 사과
+    {color:COLOR.YELLOW,shape:1, long:1, cls:'B'},       // 노란 바나나
+    {color:COLOR.RED,   shape:0, long:0, cls:'A'}        // 빨강 사과
+  ];
+}
+function estimateAccuracy(m){
+  if(!m) return 0;
+  const ts=TESTSET();
+  let ok=0; ts.forEach(s=>{ if(classify(m,s)===s.cls) ok++; });
+  return Math.round(ok/ts.length*100);
+}
+
+/* ═══════════ UI ═══════════ */
+function chipEl(sample){
+  const el=document.createElement('span');
+  el.className='chip '+(sample.shape>=0.5?'tr':'sq');
+  el.style.background=COLORHEX[sample.color];
+  el.setAttribute('aria-hidden','true');
+  return el;
+}
+function renderData(){
+  $('cntA').textContent=data.A.length;
+  $('cntB').textContent=data.B.length;
+  const bA=$('binA'), bB=$('binB'); bA.innerHTML=''; bB.innerHTML='';
+  data.A.forEach(s=>bA.appendChild(chipEl(s)));
+  data.B.forEach(s=>bB.appendChild(chipEl(s)));
+  updateBalance();
+  const total=data.A.length+data.B.length;
+  $('trainBtn').disabled = !(data.A.length>0 && data.B.length>0);
+  // 데이터가 바뀌면 이전 학습 결과 무효화
+  invalidateModel();
+}
+function updateBalance(){
+  const a=data.A.length, b=data.B.length, t=a+b;
+  const segA=$('segA'), segB=$('segB'), note=$('balNote'), warn=$('balWarn');
+  if(t===0){ segA.style.width='50%'; segB.style.width='50%'; note.textContent='아직 데이터가 없어요. 두 상자에 예시를 넣어 봐요.'; warn.classList.remove('show'); return; }
+  const pa=Math.round(a/t*100);
+  segA.style.width=pa+'%'; segB.style.width=(100-pa)+'%';
+  // 색 다양성 체크
+  const colorsAll=new Set([...data.A,...data.B].map(s=>s.color));
+  const ratio = t? Math.min(a,b)/Math.max(a,b||1) :1;
+  const skew = (t>0 && (a===0||b===0)) || ratio<0.34;
+  const oneColor = colorsAll.size<=1 && t>=2;
+  if(skew||oneColor){ warn.classList.add('show'); } else { warn.classList.remove('show'); }
+  let msg='사과 '+a+'개 · 바나나 '+b+'개 (색 '+colorsAll.size+'종).';
+  if(skew) msg+=' 한쪽으로 치우쳤어요 — 골고루 모아 봐요.';
+  else if(oneColor) msg+=' 색이 한 가지뿐이에요 — 다양하게 모아 봐요.';
+  else msg+=' 좋아요! 골고루 모였어요.';
+  note.innerHTML=msg.replace(/(치우쳤어요|한 가지뿐이에요|골고루 모였어요)/,'<b>$1</b>');
+}
+
+function invalidateModel(){
+  if(model){
+    model=null;
+    $('rulebox').classList.remove('show');
+    $('testPanel').style.opacity='.5';
+    $('testPanel').style.pointerEvents='none';
+    $('verdict').textContent='데이터가 바뀌었어요. 다시 학습해 주세요.';
+    resetScore();
+    setFlow(1);
+  }
+}
+function resetScore(){ score={right:0,wrong:0}; $('scRight').textContent=0; $('scWrong').textContent=0; $('scAcc').textContent='–'; }
+
+function setFlow(n){
+  document.querySelectorAll('#flow .fstep').forEach(el=>{
+    const s=+el.dataset.fstep;
+    el.classList.toggle('on', s===n);
+    el.classList.toggle('done', s<n);
+  });
+}
+
+/* 데이터 추가 버튼 */
+document.querySelectorAll('.addbtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    data[btn.dataset.cls].push(makeSample(btn.dataset.cls, btn.dataset.kind));
+    renderData(); setFlow(1);
+  });
+});
+$('autoFill').addEventListener('click',()=>{
+  data={A:[],B:[]};
+  // 골고루 + 다양한 색
+  data.A.push(makeSample('A','typical'),makeSample('A','typical'),makeSample('A','variant'),makeSample('A','typical'));
+  data.B.push(makeSample('B','typical'),makeSample('B','variant'),makeSample('B','typical'),makeSample('B','typical'));
+  renderData();
+});
+$('clearData').addEventListener('click',()=>{ data={A:[],B:[]}; renderData(); });
+
+/* ── 학습하기 ── */
+let training=false;
+$('trainBtn').addEventListener('click',()=>{
+  if(training || data.A.length===0 || data.B.length===0) return;
+  training=true; setFlow(2);
+  const btn=$('trainBtn'); btn.classList.add('busy'); btn.disabled=true;
+  $('trainAnim').classList.add('show'); $('rulebox').classList.remove('show');
+  const wrap=$('progWrap'), bar=$('progbar'), txt=$('progTxt');
+  const phases=['예시를 살펴봐요…','색·모양·크기를 재요…','대표 특징을 계산해요…','규칙을 정리해요…'];
+  let p=0;
+  const timer=setInterval(()=>{
+    p+=4+Math.random()*5; if(p>100)p=100;
+    bar.style.width=p+'%'; wrap.setAttribute('aria-valuenow',Math.round(p));
+    txt.textContent=phases[Math.min(phases.length-1, Math.floor(p/25))];
+    if(p>=100){
+      clearInterval(timer);
+      model=trainModel(data);
+      showRules(model);
+      training=false; btn.classList.remove('busy'); btn.disabled=false;
+      txt.innerHTML='<b>학습 완료!</b> 아래 규칙이 만들어졌어요.';
+      // 테스트 패널 열기
+      $('testPanel').style.opacity='1';
+      $('testPanel').style.pointerEvents='auto';
+      resetScore(); $('testCard').innerHTML='<span class="qm" aria-hidden="true">?</span>';
+      $('verdict').textContent='새 그림으로 분류하기를 눌러 시작해요.';
+      setFlow(3);
+    }
+  },90);
+});
+function longLabel(v){ return v>=0.5?'그렇다':'아니다'; }
+function shapeLabel(v){ return v>=0.5?'길쭉함':'둥긂'; }
+function showRules(m){
+  if(!m) return;
+  $('pA-color').textContent=COLORNAME[m.A.color]; $('pA-color').style.color=COLORHEX[m.A.color];
+  $('pA-shape').textContent=shapeLabel(m.A.shape);
+  $('pA-long').textContent=longLabel(m.A.long);
+  $('pB-color').textContent=COLORNAME[m.B.color]; $('pB-color').style.color=COLORHEX[m.B.color];
+  $('pB-shape').textContent=shapeLabel(m.B.shape);
+  $('pB-long').textContent=longLabel(m.B.long);
+  $('rulebox').classList.add('show');
+}
+
+/* ── 분류하기(테스트) ── */
+let currentTest=null;
+function randomTest(){
+  // 실제 라벨이 있는 새 카드 무작위 생성(간혹 드문 색 포함)
+  const pool=TESTSET();
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+$('testBtn').addEventListener('click',()=>{
+  if(!model) return;
+  const s=randomTest(); currentTest=s;
+  // 카드 그리기
+  const shapeClass = s.shape>=0.5?'tr':'sq';
+  const card=$('testCard');
+  card.innerHTML='';
+  const obj=document.createElement('div');
+  obj.className='obj';
+  obj.style.background=COLORHEX[s.color];
+  obj.style.borderRadius = s.shape>=0.5 ? '8px/26px' : '50%';
+  obj.setAttribute('aria-hidden','true');
+  card.appendChild(obj);
+  // 예측
+  const pred=classify(model, s);
+  const predName = pred==='A'?'사과':'바나나';
+  const trueName = s.cls==='A'?'사과':'바나나';
+  const ok = pred===s.cls;
+  if(ok) score.right++; else score.wrong++;
+  $('scRight').textContent=score.right; $('scWrong').textContent=score.wrong;
+  const total=score.right+score.wrong;
+  $('scAcc').textContent = total? Math.round(score.right/total*100)+'%' : '–';
+  const v=$('verdict');
+  v.className='verdict '+(ok?'good':'bad');
+  v.innerHTML = ok
+    ? 'AI 예측 <span class="tag">'+predName+'</span> 정답! 🎉'
+    : 'AI 예측 <span class="tag">'+predName+'</span> 실제는 <span class="tag">'+trueName+'</span> — 틀렸어요';
+});
+
+/* ── 편향 실험 ── */
+document.querySelectorAll('[data-bias]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const mode=btn.dataset.bias;
+    if(mode==='one'){
+      // 사과만 잔뜩(두 색), 바나나는 초록 1개뿐 → 노란 바나나를 못 배움
+      data={A:[],B:[]};
+      data.A.push(makeSample('A','typical'),makeSample('A','typical'),makeSample('A','typical'),makeSample('A','variant'),makeSample('A','variant'),makeSample('A','variant'));
+      data.B.push(makeSample('B','variant'));
+    }else{
+      // 초록색만 모으기
+      data={A:[],B:[]};
+      data.A.push(makeSample('A','variant'),makeSample('A','variant'),makeSample('A','variant'));
+      data.B.push(makeSample('B','variant'),makeSample('B','variant'),makeSample('B','variant'));
+    }
+    renderData();
+    // 즉시 학습(애니메이션 짧게) 후 정확도 추정
+    model=trainModel(data);
+    showRules(model);
+    $('testPanel').style.opacity='1'; $('testPanel').style.pointerEvents='auto';
+    resetScore(); $('testCard').innerHTML='<span class="qm" aria-hidden="true">?</span>';
+    $('verdict').textContent='이 상태로 "분류하기"를 여러 번 눌러 정확도를 확인해요.';
+    setFlow(4);
+    const acc=estimateAccuracy(model);
+    const goodModel=trainModel({
+      A:[makeSample('A','typical'),makeSample('A','variant'),makeSample('A','typical'),makeSample('A','variant')],
+      B:[makeSample('B','typical'),makeSample('B','variant'),makeSample('B','typical'),makeSample('B','variant')]
+    });
+    const goodAcc=estimateAccuracy(goodModel);
+    const label = mode==='one'?'한 상자만 잔뜩':'한 가지 색만';
+    $('biasResult').innerHTML='<b>'+label+'</b>으로 학습한 AI의 예상 정확도: <b style="color:var(--red)">약 '+acc+'%</b> '
+      +'(골고루 모으면 약 '+goodAcc+'%). 치우친 데이터라 <b>틀리기 쉬워요</b>. 위 <b>분류하기</b>로 직접 확인!';
+    document.getElementById('testPanel').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+});
+
+/* ── 자기 점검 체크 ── */
+document.querySelectorAll('.check').forEach(c=>{
+  const toggle=()=>{
+    const on=c.getAttribute('aria-checked')==='true';
+    c.setAttribute('aria-checked', on?'false':'true');
+    updateBadge();
+  };
+  c.addEventListener('click',toggle);
+  c.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+});
+function updateBadge(){
+  const all=[...document.querySelectorAll('.check')].every(c=>c.getAttribute('aria-checked')==='true');
+  const box=$('badgeBox');
+  if(all){
+    box.classList.remove('locked');
+    $('badgeTitle').textContent='분류왕 배지 획득!';
+    $('badgeMsg').innerHTML='데이터로 배우고, <b>골고루·많은 데이터</b>의 힘을 알아냈어요. 이제 티처블 머신으로 진짜 AI를 만들어 봐요!';
+  }else{
+    box.classList.add('locked');
+    $('badgeTitle').textContent='분류왕 배지 (잠김)';
+    $('badgeMsg').innerHTML='위 3가지를 모두 체크하면 <b>분류왕 배지</b>를 받아요!';
+  }
+}
+
+// 초기 렌더
+renderData();
+</script>
+</body>
+</html>

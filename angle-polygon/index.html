@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>외각으로 정다각형 그리기 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chapchips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+  .chip{font-weight:800;font-size:12.5px;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 12px}
+
+  .concept{display:flex;gap:12px;align-items:flex-start;background:var(--point-soft);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;font-size:14px;font-weight:600;margin:22px 0 26px;line-height:1.5}
+  .concept svg{flex-shrink:0;margin-top:1px}
+  .concept b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:26px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  /* studio layout */
+  .studio{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+  @media(max-width:760px){.studio{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px}
+
+  .stage{position:relative}
+  .canvas-holder{position:relative;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);overflow:hidden}
+  canvas{display:block;width:100%;height:auto;touch-action:none}
+  .verdict{position:absolute;left:12px;top:12px;display:inline-flex;align-items:center;gap:7px;
+    font-weight:900;font-size:13px;background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;
+    padding:6px 13px;box-shadow:var(--hard-sm)}
+  .verdict.ok{background:var(--green);color:#fff}
+  .verdict.bad{background:var(--red);color:#fff}
+  .verdict.idle{background:var(--surface);color:var(--ink)}
+
+  .ctrl-h{font-size:13px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);margin:2px 0 10px}
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:14px;margin-bottom:8px}
+  .field .val{font-weight:900;font-size:16px;background:var(--point-soft);border:2px solid var(--ink);border-radius:8px;padding:1px 10px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:12px;background:var(--paper);
+    border:2.5px solid var(--ink);border-radius:999px;outline-offset:4px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;
+    background:var(--point);border:2.5px solid var(--ink);box-shadow:var(--hard-sm);cursor:pointer;margin-top:-1px}
+  input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--point);
+    border:2.5px solid var(--ink);box-shadow:var(--hard-sm);cursor:pointer}
+  input[type=range]:focus-visible{outline:3px solid var(--point)}
+  .hint{font-size:12px;color:var(--muted);font-weight:600;margin-top:6px}
+
+  .autobox{display:flex;align-items:center;gap:8px;background:var(--amber-soft);border:2px solid var(--ink);
+    border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:700;margin-top:8px}
+
+  .btnrow{display:flex;gap:9px;margin-top:6px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:13px;box-shadow:var(--hard-sm);padding:12px 12px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn svg{flex-shrink:0}
+
+  /* missions */
+  .missions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 4px}
+  @media(max-width:640px){.missions{grid-template-columns:repeat(2,1fr)}}
+  .mission{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    padding:12px;display:flex;flex-direction:column;gap:6px;text-align:center;cursor:pointer;font-family:inherit;
+    transition:transform .1s,box-shadow .1s}
+  .mission:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .mission:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+  .mission:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .mission .mh{font-size:15px;font-weight:900;letter-spacing:-.02em}
+  .mission .mang{font-size:12px;font-weight:700;color:var(--muted)}
+  .mission .mbadge{width:26px;height:26px;margin:0 auto;display:grid;place-items:center;border:2px solid var(--ink);
+    border-radius:50%;background:var(--paper);font-weight:900;font-size:13px}
+  .mission.cleared .mbadge{background:var(--green);color:#fff}
+  .mission.cleared{background:#EBFBF3}
+
+  /* table */
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;background:var(--surface);
+    border:3px solid var(--ink);border-radius:var(--r);overflow:hidden;box-shadow:var(--hard);font-weight:600}
+  thead th{background:var(--ink);color:var(--paper);font-size:13.5px;font-weight:900;padding:11px 8px}
+  td{padding:11px 8px;text-align:center;border-top:2px solid var(--ink)}
+  tbody tr td:first-child{background:var(--paper);font-weight:800}
+  td.hi{background:var(--point-soft);font-weight:900}
+  tr td{border-right:2px solid var(--ink)}
+  tr td:last-child{border-right:none}
+  tfoot td{background:var(--amber-soft);font-weight:900;border-top:3px solid var(--ink)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  /* self-check */
+  .check{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px;margin-top:26px}
+  .check h3{font-size:17px;font-weight:900;margin-bottom:4px}
+  .check .csub{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .qitem{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:2px dashed var(--ink)}
+  .qitem:first-of-type{border-top:none}
+  .qitem .qtx{flex:1;font-size:14.5px;font-weight:700}
+  .qchk{display:flex;gap:7px;flex-shrink:0}
+  .qchk button{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);
+    background:var(--paper);border:2px solid var(--ink);border-radius:9px;padding:8px 12px;min-height:44px;min-width:52px;
+    transition:transform .1s,box-shadow .1s}
+  .qchk button:hover{transform:translate(-1px,-1px);box-shadow:var(--hard-sm)}
+  .qchk button:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .qchk button.yes[aria-pressed=true]{background:var(--green);color:#fff}
+  .qchk button.no[aria-pressed=true]{background:var(--red);color:#fff}
+
+  .badge-wrap{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:16px;border-top:2px solid var(--ink)}
+  .badge{width:64px;height:64px;flex-shrink:0;border:3px solid var(--ink);border-radius:50%;background:var(--paper);
+    display:grid;place-items:center;box-shadow:var(--hard-sm);opacity:.35;transition:opacity .3s,background .3s}
+  .badge.earned{opacity:1;background:var(--amber)}
+  .badge-txt{font-size:13.5px;font-weight:700;color:var(--muted)}
+  .badge-txt b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">로봇 창작랩 · 도형</span>
+  </nav>
+
+  <header>
+    <span class="kicker">거북이가 되어 도형 그리기</span>
+    <h1>외각으로 <span class="u">정다각형</span> 그리기</h1>
+    <p class="lead">드로잉봇이 도형을 그릴 때, 사실은 “앞으로 가기”와 “돌기”만 반복해요. 얼마나 돌아야 도형이 딱 닫힐까요? 그 비밀은 <b>외각</b>에 있어요.</p>
+    <div class="chapchips">
+      <span class="chip">관련 차시 · 27–28 모션코딩 도형</span>
+      <span class="chip">관련 차시 · 33–34 도형</span>
+    </div>
+  </header>
+
+  <div class="concept">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="2"/><path d="M12 12 12 4" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M12 12 19 15" stroke="var(--point)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>외각 = 180° − 내각</b>이에요. 도형을 한 바퀴 돌며 그리면 방향이 딱 한 바퀴(360°) 돌아요. 그래서 <b>외각을 모두 더하면 360°</b>! 변이 N개인 정다각형은 한 번에 <b>360° ÷ N</b>만큼 돌면 돼요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>드로잉봇 조종실</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <div class="studio">
+    <section class="panel stage" aria-label="그림판">
+      <div class="canvas-holder">
+        <span class="verdict idle" id="verdict" role="status" aria-live="polite">변·회전각을 정해 봐요</span>
+        <canvas id="cv" width="560" height="560" aria-label="드로잉봇이 그린 도형"></canvas>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="조종 장치">
+      <div class="ctrl-h">명령 설정</div>
+
+      <div class="field">
+        <label for="sides">변의 수 (몇 번 돌까?) <span class="val" id="sidesVal">4</span></label>
+        <input type="range" id="sides" min="3" max="10" step="1" value="4" aria-describedby="sidesHint">
+        <p class="hint" id="sidesHint">앞으로 → 돌기를 이 횟수만큼 반복해요.</p>
+      </div>
+
+      <div class="field">
+        <label for="turn">오른쪽 회전 각도 (외각) <span class="val" id="turnVal">90°</span></label>
+        <input type="range" id="turn" min="20" max="170" step="1" value="90" aria-describedby="turnHint">
+        <p class="hint" id="turnHint">이 각도만큼 오른쪽으로 방향을 틀어요.</p>
+        <label class="autobox"><input type="checkbox" id="autoTurn" style="width:18px;height:18px"> 정다각형이 되게 자동 계산 (360°÷변)</label>
+      </div>
+
+      <div class="field">
+        <label for="len">앞으로 가는 길이 <span class="val" id="lenVal">110</span></label>
+        <input type="range" id="len" min="50" max="160" step="1" value="110">
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="drawBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20 20 4M14 4h6v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          그리기
+        </button>
+        <button class="btn ghost" id="clearBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          지우기
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="cmp-head"><h2>도형 미션</h2><span class="bar" aria-hidden="true"></span></div>
+  <p class="lead" style="margin:-4px 0 14px">칩을 누르면 변의 수가 맞춰져요. <b>회전각을 알맞게 돌려</b> 도형이 딱 닫히면 미션 성공!</p>
+  <div class="missions" id="missions">
+    <button type="button" class="mission" data-n="3" data-ang="120"><div class="mbadge">✓</div><div class="mh">정삼각형</div><div class="mang">외각 120°</div></button>
+    <button type="button" class="mission" data-n="4" data-ang="90"><div class="mbadge">✓</div><div class="mh">정사각형</div><div class="mang">외각 90°</div></button>
+    <button type="button" class="mission" data-n="5" data-ang="72"><div class="mbadge">✓</div><div class="mh">정오각형</div><div class="mang">외각 72°</div></button>
+    <button type="button" class="mission" data-n="6" data-ang="60"><div class="mbadge">✓</div><div class="mh">정육각형</div><div class="mang">외각 60°</div></button>
+  </div>
+
+  <div class="cmp-head"><h2>외각을 모두 더하면?</h2><span class="bar" aria-hidden="true"></span></div>
+  <table>
+    <thead><tr><th>도형</th><th>변 수 N</th><th>내각</th><th>외각(=180−내각)</th><th>외각의 합(N×외각)</th></tr></thead>
+    <tbody>
+      <tr><td>정삼각형</td><td>3</td><td>60°</td><td class="hi">120°</td><td>360°</td></tr>
+      <tr><td>정사각형</td><td>4</td><td>90°</td><td class="hi">90°</td><td>360°</td></tr>
+      <tr><td>정오각형</td><td>5</td><td>108°</td><td class="hi">72°</td><td>360°</td></tr>
+      <tr><td>정육각형</td><td>6</td><td>120°</td><td class="hi">60°</td><td>360°</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="4">어떤 정다각형이든 외각의 합은 언제나</td><td>360°</td></tr></tfoot>
+  </table>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>직접 확인해 봐요</b> — 정사각형(변 4개)에서 회전각을 90°가 아니라 80°나 100°로 주면 어떻게 되나요? 시작점으로 돌아오지 못해 도형이 <b>안 닫혀요</b>. 딱 닫히는 각(360°÷변)일 때만 정다각형이 완성돼요.</span>
+  </div>
+
+  <div class="check">
+    <h3>스스로 점검</h3>
+    <p class="csub">그리기를 해 보고, 아래 문장이 맞으면 O를 눌러 봐요.</p>
+    <div class="qitem">
+      <div class="qtx">외각은 “180° − 내각”으로 구할 수 있다.</div>
+      <div class="qchk" role="group" aria-label="점검 1"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+    <div class="qitem">
+      <div class="qtx">정다각형은 회전각을 “360° ÷ 변의 수”로 주면 딱 닫힌다.</div>
+      <div class="qchk" role="group" aria-label="점검 2"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+    <div class="qitem">
+      <div class="qtx">정삼각형이든 정육각형이든 외각을 모두 더하면 360°다.</div>
+      <div class="qchk" role="group" aria-label="점검 3"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+
+    <div class="badge-wrap">
+      <div class="badge" id="badge" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="m12 2 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.8 6.1 20.7l1.3-6.6L2.5 8.9l6.6-.8L12 2Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="badge-txt" id="badgeTxt"><b>도형 미션 0/4</b> — 정삼각·정사각·정오각·정육각형을 모두 완성하면 <b>거북이 도형가</b> 배지를 받아요.</div>
+    </div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'), ctx=cv.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+// hi-dpi setup
+const CSS_W=560, CSS_H=560;
+cv.width=CSS_W*DPR; cv.height=CSS_H*DPR;
+cv.style.aspectRatio='1 / 1';
+ctx.scale(DPR,DPR);
+
+const sidesEl=$('sides'), turnEl=$('turn'), lenEl=$('len'), autoEl=$('autoTurn');
+const cleared={3:false,4:false,5:false,6:false};
+
+function readVals(){
+  return { n:+sidesEl.value, turn:+turnEl.value, len:+lenEl.value };
+}
+function syncLabels(){
+  $('sidesVal').textContent=sidesEl.value;
+  $('turnVal').textContent=turnEl.value+'°';
+  $('lenVal').textContent=lenEl.value;
+}
+// compute turtle path; returns {pts, closed, minX...}
+function computePath(n,turn,len){
+  let x=0,y=0,heading=-90; // start pointing up
+  const pts=[[x,y]];
+  for(let i=0;i<n;i++){
+    const rad=heading*Math.PI/180;
+    x+=len*Math.cos(rad); y+=len*Math.sin(rad);
+    pts.push([x,y]);
+    heading+=turn; // turn right (clockwise on screen y-down)
+  }
+  const first=pts[0], last=pts[pts.length-1];
+  const gap=Math.hypot(first[0]-last[0], first[1]-last[1]);
+  const closed=gap < Math.max(2, len*0.02);
+  return {pts, closed, gap};
+}
+function fitTransform(pts){
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const [px,py] of pts){ minX=Math.min(minX,px);minY=Math.min(minY,py);maxX=Math.max(maxX,px);maxY=Math.max(maxY,py);}
+  const pad=70;
+  const w=maxX-minX||1, h=maxY-minY||1;
+  const s=Math.min((CSS_W-pad*2)/w,(CSS_H-pad*2)/h,1.4);
+  const ox=CSS_W/2 - (minX+maxX)/2*s;
+  const oy=CSS_H/2 - (minY+maxY)/2*s;
+  return {s,ox,oy};
+}
+function drawGrid(){
+  ctx.clearRect(0,0,CSS_W,CSS_H);
+  ctx.save();
+  ctx.strokeStyle='rgba(20,20,20,.08)'; ctx.lineWidth=1;
+  for(let g=0; g<=CSS_W; g+=40){
+    ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,CSS_H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(CSS_W,g);ctx.stroke();
+  }
+  ctx.restore();
+}
+let anim=null;
+function draw(animate=true){
+  const {n,turn,len}=readVals();
+  const path=computePath(n,turn,len);
+  const {s,ox,oy}=fitTransform(path.pts);
+  const P=path.pts.map(([px,py])=>[px*s+ox, py*s+oy]);
+  if(anim){cancelAnimationFrame(anim);anim=null;}
+
+  const closed=path.closed;
+  setVerdict(closed,n,turn);
+
+  const strokeCol = closed ? getCSS('--point') : getCSS('--red');
+  const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  function renderUpTo(k, part){
+    drawGrid();
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    // completed segments
+    ctx.strokeStyle=strokeCol; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(P[0][0],P[0][1]);
+    for(let i=1;i<=k;i++) ctx.lineTo(P[i][0],P[i][1]);
+    // partial segment
+    if(part!=null && k+1<P.length){
+      const a=P[k], b=P[k+1];
+      ctx.lineTo(a[0]+(b[0]-a[0])*part, a[1]+(b[1]-a[1])*part);
+    }
+    ctx.stroke();
+    // vertices
+    for(let i=0;i<=Math.min(k+1,P.length-1);i++){
+      ctx.beginPath(); ctx.arc(P[i][0],P[i][1],4.5,0,7); ctx.fillStyle=getCSS('--ink'); ctx.fill();
+    }
+    // pen head
+    let hx,hy;
+    if(part!=null && k+1<P.length){ const a=P[k],b=P[k+1]; hx=a[0]+(b[0]-a[0])*part; hy=a[1]+(b[1]-a[1])*part; }
+    else { hx=P[Math.min(k,P.length-1)][0]; hy=P[Math.min(k,P.length-1)][1]; }
+    drawPen(hx,hy,closed);
+    // start marker
+    ctx.beginPath(); ctx.arc(P[0][0],P[0][1],7,0,7); ctx.fillStyle=getCSS('--amber'); ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=getCSS('--ink'); ctx.stroke();
+  }
+
+  if(reduce || !animate){ renderUpTo(P.length-1,null); afterDraw(closed,n,turn); return; }
+
+  const perSeg=16; // frames per segment
+  let seg=0, f=0;
+  (function step(){
+    renderUpTo(seg, f/perSeg);
+    f++;
+    if(f>perSeg){ f=0; seg++; }
+    if(seg < P.length-1 || (seg===P.length-1 && f<=perSeg)){
+      if(seg<P.length-1) anim=requestAnimationFrame(step);
+      else { renderUpTo(P.length-1,null); afterDraw(closed,n,turn); }
+    } else { renderUpTo(P.length-1,null); afterDraw(closed,n,turn); }
+  })();
+}
+function drawPen(x,y,ok){
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,10,0,7);
+  ctx.fillStyle=ok?getCSS('--green'):getCSS('--amber');
+  ctx.fill(); ctx.lineWidth=2.5; ctx.strokeStyle=getCSS('--ink'); ctx.stroke();
+  ctx.restore();
+}
+function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function setVerdict(closed,n,turn){
+  const v=$('verdict'); v.classList.remove('ok','bad','idle');
+  if(closed){ v.classList.add('ok'); v.textContent='딱 닫혔어요! (외각 '+turn+'°)'; }
+  else{ v.classList.add('bad'); v.textContent='안 닫혔어요 · 정'+n+'각형은 '+Math.round(3600/n)/10+'°'; }
+}
+function afterDraw(closed,n,turn){
+  const ideal=360/n;
+  if(closed && Math.abs(turn-ideal)<0.5 && cleared.hasOwnProperty(n)){
+    if(!cleared[n]){ cleared[n]=true; markMission(n); }
+  }
+  updateBadge();
+}
+function markMission(n){
+  const btn=document.querySelector('.mission[data-n="'+n+'"]');
+  if(btn) btn.classList.add('cleared');
+}
+function updateBadge(){
+  const done=Object.values(cleared).filter(Boolean).length;
+  $('badgeTxt').innerHTML = done>=4
+    ? '<b>도형 미션 4/4 완료!</b> — <b>거북이 도형가</b> 배지를 받았어요. 외각의 비밀을 정복했어요!'
+    : '<b>도형 미션 '+done+'/4</b> — 정삼각·정사각·정오각·정육각형을 모두 완성하면 <b>거북이 도형가</b> 배지를 받아요.';
+  $('badge').classList.toggle('earned', done>=4);
+}
+
+// events
+[sidesEl,turnEl,lenEl].forEach(el=>el.addEventListener('input',()=>{
+  if(el===sidesEl && autoEl.checked){ turnEl.value=Math.round(360/(+sidesEl.value)); }
+  syncLabels(); draw(false);
+}));
+autoEl.addEventListener('change',()=>{
+  if(autoEl.checked){ turnEl.value=Math.round(360/(+sidesEl.value)); turnEl.disabled=true; }
+  else turnEl.disabled=false;
+  syncLabels(); draw(false);
+});
+$('drawBtn').onclick=()=>draw(true);
+$('clearBtn').onclick=()=>{ drawGrid(); $('verdict').className='verdict idle'; $('verdict').textContent='변·회전각을 정해 봐요'; };
+
+// missions: click to set sides
+document.querySelectorAll('.mission').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    sidesEl.value=btn.dataset.n;
+    if(autoEl.checked){ turnEl.value=Math.round(360/(+btn.dataset.n)); }
+    syncLabels(); draw(true);
+  });
+});
+
+// self-check O/X
+document.querySelectorAll('.qchk').forEach(group=>{
+  group.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const pressed=btn.getAttribute('aria-pressed')==='true';
+      group.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed', pressed?'false':'true');
+    });
+  });
+});
+
+syncLabels();
+draw(false);
+</script>
+</body>
+</html>

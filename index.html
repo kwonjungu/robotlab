@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신나는 로봇 창작랩 · 온라인 수업터</title>
+<style>
+:root{
+  --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+  --amber:#FFB800; --amber-soft:#FFF0C7;
+  --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+  --point:#3D5AFE; --point-soft:#E4E8FF;
+  --r:20px; --r-sm:13px;
+  --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color:var(--ink); background:var(--paper);
+  background-image:radial-gradient(var(--ink) .5px, transparent .5px);
+  background-size:22px 22px; line-height:1.5;
+}
+a{color:inherit}
+.wrap{max-width:1080px; margin:0 auto; padding:22px 18px 60px}
+/* nav */
+.topbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:26px}
+.pill{display:inline-flex; align-items:center; gap:7px; border:2.5px solid var(--ink); background:var(--surface);
+  border-radius:999px; padding:9px 15px; font-weight:800; font-size:14px; box-shadow:var(--hard-sm); text-decoration:none}
+.pill.point{background:var(--point-soft)}
+/* hero */
+.hero{border:3px solid var(--ink); background:var(--surface); border-radius:var(--r); box-shadow:var(--hard);
+  padding:26px 24px; margin-bottom:30px; position:relative; overflow:hidden}
+.kicker{display:inline-block; border:2px solid var(--ink); background:var(--amber-soft); border-radius:999px;
+  padding:5px 12px; font-weight:800; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:14px}
+.hero h1{margin:0 0 10px; font-size:clamp(28px,6.5vw,50px); font-weight:900; letter-spacing:-0.035em; line-height:1.05}
+.hero p{margin:0; color:var(--muted); font-weight:600; max-width:640px}
+.hero .robot{position:absolute; right:-8px; bottom:-14px; width:118px; height:118px; opacity:.92}
+@media(max-width:560px){.hero .robot{display:none}}
+/* section */
+.sec{margin:34px 0 12px; display:flex; align-items:center; gap:12px}
+.sec h2{margin:0; font-size:clamp(19px,4vw,25px); font-weight:900; letter-spacing:-0.02em}
+.sec .chip{border:2px solid var(--ink); border-radius:999px; padding:3px 11px; font-weight:800; font-size:12px; background:var(--point-soft)}
+.sec .line{flex:1; height:3px; background:var(--ink); border-radius:2px}
+.lead{color:var(--muted); font-weight:600; font-size:14px; margin:0 0 16px}
+/* grid */
+.grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(260px,100%),1fr)); gap:16px}
+.card{border:2.75px solid var(--ink); background:var(--surface); border-radius:var(--r-sm); box-shadow:var(--hard-sm);
+  padding:16px 16px 14px; display:flex; flex-direction:column; gap:9px; text-decoration:none; color:inherit;
+  transition:transform .12s, box-shadow .12s; min-height:118px}
+.card:hover{transform:translate(-2px,-2px); box-shadow:var(--hard)}
+.card:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink)}
+.card:focus-visible{outline:3px solid var(--point); outline-offset:3px}
+.card .ico{width:38px; height:38px; flex:none}
+.card .t{font-weight:900; font-size:16px; letter-spacing:-0.01em}
+.card .d{font-weight:600; font-size:13px; color:var(--muted); line-height:1.4}
+.card .tag{margin-top:auto; align-self:flex-start; border:2px solid var(--ink); border-radius:999px;
+  padding:2px 9px; font-weight:800; font-size:11px; background:var(--amber-soft)}
+.card.ext .t::after{content:" ↗"; color:var(--muted); font-size:12px}
+/* footer */
+footer{margin-top:44px; text-align:center; color:var(--muted); font-weight:600; font-size:13px}
+footer .pill{margin-bottom:14px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="pill point">🤖 로봇 창작랩 수업터</span>
+    <a class="pill" href="https://roborisen.com" target="_blank" rel="noopener">로보라이즌 ↗</a>
+  </div>
+
+  <section class="hero">
+    <span class="kicker">신나는 로봇 창작랩 · 온라인 수업터</span>
+    <h1>수업 중에 꺼내 쓰는<br>미니 게임 · 만들기 도구</h1>
+    <p>핑퐁로봇으로 배운 내용을 컴퓨터로 더 재미있게! 개념을 익히는 게임부터 직접 만드는 도구, 바깥 AI 도구 바로가기까지 한곳에 모았어요. 태블릿·PC 모두 됩니다.</p>
+    <svg class="robot" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <rect x="26" y="34" width="48" height="40" rx="9" fill="#E4E8FF" stroke="#141414" stroke-width="3.5"/>
+      <circle cx="41" cy="52" r="6" fill="#fff" stroke="#141414" stroke-width="3"/>
+      <circle cx="59" cy="52" r="6" fill="#fff" stroke="#141414" stroke-width="3"/>
+      <circle cx="41" cy="52" r="2.4" fill="#141414"/><circle cx="59" cy="52" r="2.4" fill="#141414"/>
+      <rect x="43" y="62" width="14" height="4" rx="2" fill="#141414"/>
+      <line x1="50" y1="34" x2="50" y2="24" stroke="#141414" stroke-width="3.5"/>
+      <circle cx="50" cy="21" r="4" fill="#FFB800" stroke="#141414" stroke-width="3"/>
+      <rect x="18" y="44" width="8" height="18" rx="4" fill="#FFB800" stroke="#141414" stroke-width="3"/>
+      <rect x="74" y="44" width="8" height="18" rx="4" fill="#FFB800" stroke="#141414" stroke-width="3"/>
+    </svg>
+  </section>
+
+  <div id="app"></div>
+
+  <footer>
+    <div><a class="pill" href="https://kwonjungu.github.io/AIclass/" target="_blank" rel="noopener">← AIclass 전체 허브</a></div>
+    개인정보 보호: 게임 기록은 각자 브라우저에만 저장돼요. 실명 대신 닉네임·번호를 권장합니다.
+  </div>
+</div>
+
+<script>
+const CATS = [
+  {key:'arcade',  title:'재미 아케이드 게임', chip:'즐기기', lead:'로봇 활동을 아케이드 게임으로! 단순하고 클래식하게 바로 즐겨요.'},
+  {key:'concept', title:'개념 게임',          chip:'배우기', lead:'수업 중 그 개념을 가르칠 때 꺼내 쓰는 미니 게임이에요.'},
+  {key:'tool',    title:'만들기 도구',        chip:'만들기', lead:'직접 그리고 만들고 코딩하는 창작 도구예요.'},
+  {key:'link',    title:'바깥 AI 도구 바로가기', chip:'바로가기', lead:'교재에 나오는 AI·창작 사이트로 바로 이동해요.'},
+];
+// href가 http로 시작하면 외부, 아니면 이 저장소의 하위 폴더(<slug>/)
+const GAMES = [
+  // ── 개념 게임 (이 저장소) ──
+  {cat:'concept', slug:'coding-blocks',  ico:'blocks', t:'코딩 3구조 놀이터', d:'블록을 쌓아 로봇을 별까지! 순차·반복·선택 체험', tag:'코딩'},
+  {cat:'concept', slug:'path-maze',      ico:'maze',   t:'청소 경로 알고리즘 미로', d:'먼지를 다 지나는 길을 계획·실행. 더 짧은 코드에 도전', tag:'알고리즘'},
+  {cat:'concept', slug:'music-notes',    ico:'note',   t:'계이름·리듬 게임', d:'건반으로 계이름 연주, 음표로 4박 한 마디 채우기', tag:'음악'},
+  {cat:'concept', slug:'song-structure', ico:'wave',   t:'곡 구조 탐정', d:'멜로디 A·B·C를 듣고 AB·ABA 구조 맞히고 작곡', tag:'음악'},
+  {cat:'concept', slug:'angle-polygon',  ico:'poly',   t:'외각으로 정다각형 그리기', d:'회전각을 쌓아 도형 그리며 외각=360°÷변 원리 확인', tag:'수학'},
+  {cat:'concept', slug:'tessellation',   ico:'tess',   t:'테셀레이션 놀이터', d:'도형으로 평면 채우기. 각의 합 360°일 때만 빈틈 없음', tag:'수학'},
+  {cat:'concept', slug:'tilt-sensor',    ico:'tilt',   t:'기울기 센서 시뮬레이터', d:'G큐브를 기울여 X·Y값을 읽고 조건 규칙 만들기', tag:'센서'},
+  {cat:'concept', slug:'condition-dice', ico:'dice',   t:'조건·랜덤 디지털 주사위', d:'무작위 1~6을 굴려 조건 규칙으로 로봇 움직이기', tag:'조건·랜덤'},
+  {cat:'concept', slug:'ai-classify',    ico:'ai',     t:'분류왕 로봇(데이터로 배워요)', d:'데이터를 모아 학습·분류하고 편향을 실험하는 AI 게임', tag:'AI'},
+  // ── 만들기 도구 (기존 앱) ──
+  {cat:'tool', slug:'https://kwonjungu.github.io/pixel--art/',  ico:'pixel',  t:'픽셀아트 만들기', d:'숫자 규칙으로 도트 그림 그리기', tag:'미술', ext:1},
+  {cat:'tool', slug:'https://kwonjungu.github.io/flowchart/',   ico:'flow',   t:'순서도 만들기', d:'알고리즘을 순서도로 짜보기', tag:'코딩', ext:1},
+  {cat:'tool', slug:'https://kwonjungu.github.io/missionmaker/',ico:'mission',t:'미션 맵 만들기', d:'로봇 코딩 미션 종이 만들기', tag:'코딩', ext:1},
+  {cat:'tool', slug:'https://kwonjungu.github.io/promptmaker/', ico:'prompt', t:'프롬프트 만들기', d:'AI 그림 프롬프트 연습', tag:'AI', ext:1},
+  {cat:'tool', slug:'https://kwonjungu.github.io/emotion/',     ico:'heart',  t:'감정 글쓰기 나라', d:'감정을 글로 표현하기', tag:'국어', ext:1},
+  // ── 바깥 AI 도구 ──
+  {cat:'link', slug:'https://www.autodraw.com/',                ico:'draw',   t:'AutoDraw', d:'낙서를 AI가 예쁜 그림으로', tag:'AI 그림', ext:1},
+  {cat:'link', slug:'https://quickdraw.withgoogle.com/',        ico:'quick',  t:'Quick, Draw!', d:'내 낙서를 AI가 맞히기', tag:'AI 그림', ext:1},
+  {cat:'link', slug:'https://teachablemachine.withgoogle.com/', ico:'ai',     t:'Teachable Machine', d:'나만의 AI 분류 모델 학습', tag:'AI', ext:1},
+  {cat:'link', slug:'https://suno.com/',                        ico:'note',   t:'Suno AI', d:'프롬프트로 노래 만들기', tag:'AI 음악', ext:1},
+  {cat:'link', slug:'https://tooning.io/magic',                 ico:'toon',   t:'투닝 매직', d:'AI로 4컷 만화 만들기', tag:'AI 만화', ext:1},
+];
+
+const ICON = {
+  blocks:'<rect x="8" y="8" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/><rect x="8" y="24" width="8" height="8" rx="2"/>',
+  maze:'<rect x="6" y="6" width="26" height="26" rx="3"/><path d="M6 15h12M18 15v10M18 25H32M13 6v14"/>',
+  note:'<circle cx="12" cy="27" r="5"/><path d="M17 27V9l12-3v15"/><circle cx="24" cy="24" r="5"/>',
+  wave:'<path d="M4 19c4-11 8-11 12 0s8 11 12 0 4-11 6-6"/>',
+  poly:'<path d="M19 5l13 10-5 16H11L6 15z"/>',
+  tess:'<path d="M8 8h10v10H8zM18 18h10v10H18zM18 8h10v10H18zM8 18h10v10H8z"/>',
+  tilt:'<rect x="9" y="9" width="22" height="22" rx="4" transform="rotate(12 20 20)"/><path d="M20 26v6"/>',
+  dice:'<rect x="7" y="7" width="26" height="26" rx="5"/><circle cx="14" cy="14" r="2.2" fill="currentColor"/><circle cx="26" cy="26" r="2.2" fill="currentColor"/><circle cx="20" cy="20" r="2.2" fill="currentColor"/>',
+  ai:'<rect x="9" y="9" width="22" height="22" rx="5"/><circle cx="16" cy="17" r="2.2"/><circle cx="24" cy="17" r="2.2"/><path d="M15 25h10"/>',
+  pixel:'<rect x="8" y="8" width="8" height="8"/><rect x="24" y="8" width="8" height="8"/><rect x="16" y="16" width="8" height="8"/><rect x="8" y="24" width="8" height="8"/><rect x="24" y="24" width="8" height="8"/>',
+  flow:'<rect x="13" y="5" width="14" height="9" rx="2"/><rect x="13" y="26" width="14" height="9" rx="2"/><path d="M20 14v12"/>',
+  mission:'<rect x="7" y="7" width="26" height="26" rx="3"/><path d="M13 20l5 5 9-11"/>',
+  prompt:'<rect x="6" y="10" width="28" height="20" rx="4"/><path d="M12 18h16M12 24h10"/>',
+  heart:'<path d="M20 31C8 23 8 13 14 11c4-1.5 6 2 6 2s2-3.5 6-2c6 2 6 12-6 20z"/>',
+  draw:'<path d="M7 28l16-16 5 5-16 16H7z"/><path d="M22 9l4-4 5 5-4 4"/>',
+  quick:'<path d="M6 26c8-14 14 6 24-8"/><circle cx="30" cy="12" r="3"/>',
+  toon:'<rect x="7" y="7" width="12" height="12" rx="2"/><rect x="21" y="7" width="12" height="12" rx="2"/><rect x="7" y="21" width="12" height="12" rx="2"/><rect x="21" y="21" width="12" height="12" rx="2"/>',
+};
+function svg(name){
+  return '<svg class="ico" viewBox="0 0 40 40" fill="none" stroke="#141414" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[name]||ICON.blocks)+'</svg>';
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function href(g){return g.ext ? g.slug : g.slug + '/';}
+function card(g){
+  const target = g.ext ? ' target="_blank" rel="noopener"' : '';
+  return '<a class="card'+(g.ext?' ext':'')+'" href="'+esc(href(g))+'"'+target+'>'
+    + svg(g.ico)
+    + '<div class="t">'+esc(g.t)+'</div>'
+    + '<div class="d">'+esc(g.d)+'</div>'
+    + '<span class="tag">'+esc(g.tag)+'</span>'
+    + '</a>';
+}
+const app = document.getElementById('app');
+let html = '';
+for(const c of CATS){
+  const items = GAMES.filter(g=>g.cat===c.key);
+  if(!items.length) continue;
+  html += '<div class="sec"><h2>'+esc(c.title)+'</h2><span class="chip">'+esc(c.chip)+'</span><span class="line"></span></div>';
+  html += '<p class="lead">'+esc(c.lead)+'</p>';
+  html += '<div class="grid">'+items.map(card).join('')+'</div>';
+}
+app.innerHTML = html;
+</script>
+</body>
+</html>

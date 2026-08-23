@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테셀레이션 놀이터 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#12B76A; --point-soft:#D6F5E6;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B; --line:#141414;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+    /* shape fill palette */
+    --c-tri:#FF8A5B; --c-sq:#3D5AFE; --c-hex:#FFB800; --c-pent:#B06CFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:15px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chapchips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+  .chip{font-weight:800;font-size:12.5px;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 12px}
+
+  .concept{display:flex;gap:12px;align-items:flex-start;background:var(--point-soft);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px;font-size:14px;font-weight:600;margin:22px 0 26px;line-height:1.5}
+  .concept svg{flex-shrink:0;margin-top:1px}
+  .concept b{font-weight:900;background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:26px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .studio{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:start}
+  @media(max-width:720px){.studio{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:16px}
+
+  .ctrl-h{font-size:12px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);margin:2px 0 10px}
+  .palette{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+  @media(max-width:720px){.palette{grid-template-columns:1fr 1fr 1fr 1fr}}
+  .shp{cursor:pointer;font-family:inherit;background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;
+    box-shadow:var(--hard-sm);padding:9px 5px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    transition:transform .1s,box-shadow .1s;min-height:70px;justify-content:center}
+  .shp:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .shp:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .shp[aria-pressed=true]{background:var(--amber-soft)}
+  .shp[aria-pressed=true]{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .shp .snm{font-size:12px;font-weight:900;letter-spacing:-.02em}
+  .shp .sang{font-size:10px;font-weight:700;color:var(--muted)}
+
+  .tool-h{font-size:12px;font-weight:900;color:var(--muted);text-transform:uppercase;margin:6px 0 8px}
+  .colors{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+  .col{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--ink);cursor:pointer;box-shadow:var(--hard-sm)}
+  .col[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
+  .togrow{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .tgl{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer}
+  .tgl input{width:18px;height:18px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;cursor:pointer;
+    font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--hard-sm);padding:10px;min-height:46px;
+    margin-bottom:8px;transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.save{background:var(--amber)}
+  .btn svg{flex-shrink:0}
+
+  .board-wrap{position:relative;background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);
+    box-shadow:var(--hard);overflow:hidden}
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+  .anglepill{position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;gap:7px;
+    font-weight:900;font-size:13px;background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;
+    padding:6px 13px;box-shadow:var(--hard-sm);max-width:74%}
+  .anglepill.good{background:var(--green);color:#fff}
+  .anglepill.bad{background:var(--red);color:#fff}
+  .anglepill.idle{background:var(--surface);color:var(--ink)}
+  .helpbar{position:absolute;left:12px;bottom:12px;font-size:12px;font-weight:700;background:var(--ink);color:var(--paper);
+    border-radius:999px;padding:5px 12px;opacity:.92}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;background:var(--surface);
+    border:3px solid var(--ink);border-radius:var(--r);overflow:hidden;box-shadow:var(--hard);font-weight:600}
+  thead th{background:var(--ink);color:var(--paper);font-size:13.5px;font-weight:900;padding:11px 8px}
+  td{padding:11px 8px;text-align:center;border-top:2px solid var(--ink)}
+  tbody tr td:first-child{background:var(--paper);font-weight:800}
+  td.ok{background:var(--point-soft);font-weight:900;color:#0a6b40}
+  td.no{background:#FFE3E3;font-weight:900;color:#b02020}
+  tr td{border-right:2px solid var(--ink)}
+  tr td:last-child{border-right:none}
+
+  .check{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:18px 20px;margin-top:26px}
+  .check h3{font-size:17px;font-weight:900;margin-bottom:4px}
+  .check .csub{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .qitem{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:2px dashed var(--ink)}
+  .qitem:first-of-type{border-top:none}
+  .qitem .qtx{flex:1;font-size:14.5px;font-weight:700}
+  .qchk{display:flex;gap:7px;flex-shrink:0}
+  .qchk button{cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);
+    background:var(--paper);border:2px solid var(--ink);border-radius:9px;padding:8px 12px;min-height:44px;min-width:52px;
+    transition:transform .1s,box-shadow .1s}
+  .qchk button:hover{transform:translate(-1px,-1px);box-shadow:var(--hard-sm)}
+  .qchk button:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .qchk button.yes[aria-pressed=true]{background:var(--green);color:#fff}
+  .qchk button.no[aria-pressed=true]{background:var(--red);color:#fff}
+
+  .badge-wrap{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:16px;border-top:2px solid var(--ink)}
+  .badge{width:64px;height:64px;flex-shrink:0;border:3px solid var(--ink);border-radius:50%;background:var(--paper);
+    display:grid;place-items:center;box-shadow:var(--hard-sm);opacity:.35;transition:opacity .3s,background .3s}
+  .badge.earned{opacity:1;background:var(--point)}
+  .badge-txt{font-size:13.5px;font-weight:700;color:var(--muted)}
+  .badge-txt b{color:var(--ink);font-weight:900}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">로봇 창작랩 · 도형</span>
+  </nav>
+
+  <header>
+    <span class="kicker">빈틈없이 채우는 도형의 비밀</span>
+    <h1>테셀레이션 <span class="u">놀이터</span></h1>
+    <p class="lead">바닥 타일처럼 도형으로 평면을 빈틈없이 채워 봐요. 어떤 도형은 되고 어떤 도형은 틈이 생겨요. 그 이유는 <b>한 점에 모인 각</b>에 있어요.</p>
+    <div class="chapchips">
+      <span class="chip">관련 차시 · 33–34 테셀레이션</span>
+    </div>
+  </header>
+
+  <div class="concept">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="2.4" fill="var(--point)"/><path d="M12 12 12 3M12 12 20 16M12 12 5 18" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>한 꼭짓점에 모인 <b>각의 합이 딱 360°</b>일 때 빈틈이 안 생겨요. 정삼각형(60°)·정사각형(90°)·정육각형(120°)은 360°를 나누어떨어지지만, <b>정오각형(108°)은 360°가 안 되어</b> 틈이 남아요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>타일 놀이터</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <div class="studio">
+    <section class="panel" aria-label="도구">
+      <div class="ctrl-h">도형 팔레트</div>
+      <div class="palette" id="palette" role="group" aria-label="도형 선택">
+        <button type="button" class="shp" data-shape="tri" data-ang="60" aria-pressed="false">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,4 26,25 4,25" fill="var(--c-tri)" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+          <span class="snm">정삼각형</span><span class="sang">내각 60°</span>
+        </button>
+        <button type="button" class="shp" data-shape="sq" data-ang="90" aria-pressed="false">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="5" y="5" width="20" height="20" fill="var(--c-sq)" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+          <span class="snm">정사각형</span><span class="sang">내각 90°</span>
+        </button>
+        <button type="button" class="shp" data-shape="hex" data-ang="120" aria-pressed="false">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,3 26,9 26,21 15,27 4,21 4,9" fill="var(--c-hex)" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+          <span class="snm">정육각형</span><span class="sang">내각 120°</span>
+        </button>
+        <button type="button" class="shp" data-shape="pent" data-ang="108" aria-pressed="false">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,3 27,12 22,26 8,26 3,12" fill="var(--c-pent)" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+          <span class="snm">정오각형</span><span class="sang">내각 108°</span>
+        </button>
+      </div>
+
+      <div class="tool-h">칠하기 색</div>
+      <div class="colors" id="colors" role="group" aria-label="색 선택">
+        <button type="button" class="col" data-col="#FF8A5B" style="background:#FF8A5B" aria-label="주황" aria-pressed="true"></button>
+        <button type="button" class="col" data-col="#3D5AFE" style="background:#3D5AFE" aria-label="파랑" aria-pressed="false"></button>
+        <button type="button" class="col" data-col="#FFB800" style="background:#FFB800" aria-label="노랑" aria-pressed="false"></button>
+        <button type="button" class="col" data-col="#12B76A" style="background:#12B76A" aria-label="초록" aria-pressed="false"></button>
+        <button type="button" class="col" data-col="#B06CFF" style="background:#B06CFF" aria-label="보라" aria-pressed="false"></button>
+        <button type="button" class="col" data-col="#FBF7EC" style="background:#FBF7EC" aria-label="크림" aria-pressed="false"></button>
+      </div>
+
+      <div class="togrow">
+        <label class="tgl"><input type="checkbox" id="snapTgl" checked> 격자에 맞춰 놓기</label>
+      </div>
+
+      <button class="btn" id="undoBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>되돌리기</button>
+      <button class="btn" id="clearBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>모두 지우기</button>
+      <button class="btn save" id="saveBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>그림 저장(PNG)</button>
+    </section>
+
+    <section class="board-wrap" aria-label="타일 캔버스">
+      <span class="anglepill idle" id="anglePill" role="status" aria-live="polite">도형을 골라 캔버스를 눌러 놓아요</span>
+      <canvas id="board" width="720" height="560" aria-label="테셀레이션 캔버스. 도형을 눌러 배치합니다."></canvas>
+      <span class="helpbar">눌러서 놓기 · 드래그로 이동 · 격자 꼭짓점에 도형 각의 합이 표시돼요</span>
+    </section>
+  </div>
+
+  <div class="cmp-head"><h2>왜 정오각형은 안 될까?</h2><span class="bar" aria-hidden="true"></span></div>
+  <table>
+    <thead><tr><th>정다각형</th><th>한 내각</th><th>360° ÷ 내각</th><th>혼자서 평면을 채울까?</th></tr></thead>
+    <tbody>
+      <tr><td>정삼각형</td><td>60°</td><td>6 (딱 떨어짐)</td><td class="ok">채워져요 (60°×6=360°)</td></tr>
+      <tr><td>정사각형</td><td>90°</td><td>4 (딱 떨어짐)</td><td class="ok">채워져요 (90°×4=360°)</td></tr>
+      <tr><td>정오각형</td><td>108°</td><td>3.33… (안 떨어짐)</td><td class="no">틈이 생겨요 (108°×3=324°)</td></tr>
+      <tr><td>정육각형</td><td>120°</td><td>3 (딱 떨어짐)</td><td class="ok">채워져요 (120°×3=360°)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>직접 놓아 봐요</b> — 정오각형을 한 점에 모아 보면 3개까지는 놓이지만(108°×3=324°) <b>36°만큼 틈</b>이 남고, 4개째는 겹쳐요. 각의 합이 정확히 <b>360°</b>가 되는 도형만 빈틈없이 이어져요. 각의 합 표시가 <b style="color:#7BE0B0">초록</b>이면 성공!</span>
+  </div>
+
+  <div class="check">
+    <h3>스스로 점검</h3>
+    <p class="csub">타일을 놓아 보고, 아래 문장이 맞으면 O를 눌러 봐요.</p>
+    <div class="qitem">
+      <div class="qtx">한 점에 모인 각의 합이 360°면 빈틈없이 채워진다.</div>
+      <div class="qchk" role="group" aria-label="점검 1"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+    <div class="qitem">
+      <div class="qtx">정삼각형·정사각형·정육각형은 혼자서도 평면을 채운다.</div>
+      <div class="qchk" role="group" aria-label="점검 2"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+    <div class="qitem">
+      <div class="qtx">정오각형은 내각이 108°라서 혼자서는 평면을 못 채운다.</div>
+      <div class="qchk" role="group" aria-label="점검 3"><button type="button" class="yes" aria-pressed="false">O</button><button type="button" class="no" aria-pressed="false">X</button></div>
+    </div>
+
+    <div class="badge-wrap">
+      <div class="badge" id="badge" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><polygon points="12,3 21,9 21,15 12,21 3,15 3,9" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="badge-txt" id="badgeTxt"><b>타일 장인 0/3</b> — 정삼각형·정사각형·정육각형으로 각각 “각의 합 360°”를 만들면 <b>타일 장인</b> 배지를 받아요.</div>
+    </div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로 돌아가기</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const board=$('board'), ctx=board.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+const CSS_W=720, CSS_H=560;
+board.width=CSS_W*DPR; board.height=CSS_H*DPR;
+board.style.aspectRatio=CSS_W+' / '+CSS_H;
+ctx.scale(DPR,DPR);
+
+const getCSS=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// shape definitions: interior angle used for vertex-sum
+const SHAPES={
+  tri:{ang:60, sides:3},
+  sq:{ang:90, sides:4},
+  hex:{ang:120, sides:6},
+  pent:{ang:108, sides:5}
+};
+const R=42; // circumradius base size
+let curShape='tri', curColor='#FF8A5B', snap=true;
+let placed=[]; // {shape,x,y,rot,color}
+const cleared={tri:false,sq:false,hex:false};
+
+// build polygon points for a placed shape (screen coords), for hit-test & drawing
+function polyPoints(p){
+  const def=SHAPES[p.shape];
+  const n=def.sides;
+  const pts=[];
+  // orient flat-ish: start angle so shapes look natural
+  const start = p.shape==='sq' ? Math.PI/4 : (p.shape==='hex'? 0 : -Math.PI/2);
+  for(let i=0;i<n;i++){
+    const a=start + p.rot + i*2*Math.PI/n;
+    pts.push([p.x + R*Math.cos(a), p.y + R*Math.sin(a)]);
+  }
+  return pts;
+}
+function drawGrid(){
+  ctx.clearRect(0,0,CSS_W,CSS_H);
+  ctx.save();
+  ctx.strokeStyle='rgba(20,20,20,.10)'; ctx.lineWidth=1;
+  for(let g=0; g<=CSS_W; g+=GRID){ ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,CSS_H);ctx.stroke(); }
+  for(let g=0; g<=CSS_H; g+=GRID){ ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(CSS_W,g);ctx.stroke(); }
+  ctx.restore();
+}
+const GRID=48;
+function snapPos(x,y){
+  if(!snap) return [x,y];
+  return [Math.round(x/GRID)*GRID, Math.round(y/GRID)*GRID];
+}
+function drawShape(p){
+  const pts=polyPoints(p);
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.closePath();
+  ctx.fillStyle=p.color; ctx.fill();
+  ctx.lineJoin='round'; ctx.lineWidth=2.5; ctx.strokeStyle=getCSS('--ink'); ctx.stroke();
+}
+function render(){
+  drawGrid();
+  placed.forEach(drawShape);
+  drawVertexBadges();
+}
+// vertex sum: cluster placed-shape corners near grid nodes, sum interior angles
+function drawVertexBadges(){
+  if(placed.length===0){ return; }
+  // collect all corner points with the shape's interior angle
+  const corners=[];
+  placed.forEach(p=>{
+    const def=SHAPES[p.shape];
+    polyPoints(p).forEach(([cx,cy])=>corners.push({x:cx,y:cy,ang:def.ang}));
+  });
+  // cluster by proximity
+  const clusters=[];
+  corners.forEach(c=>{
+    let cl=clusters.find(k=>Math.hypot(k.x-c.x,k.y-c.y)<14);
+    if(!cl){ cl={x:c.x,y:c.y,sum:0,count:0}; clusters.push(cl); }
+    cl.sum+=c.ang; cl.count++;
+    cl.x=(cl.x*(cl.count-1)+c.x)/cl.count;
+    cl.y=(cl.y*(cl.count-1)+c.y)/cl.count;
+  });
+  // draw badge on clusters where 2+ corners meet
+  clusters.forEach(cl=>{
+    if(cl.count<2) return;
+    const exact = Math.abs(cl.sum-360)<0.5;
+    const col = exact?getCSS('--green'):(cl.sum>360?getCSS('--red'):getCSS('--amber'));
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cl.x,cl.y,15,0,7); ctx.fillStyle=col; ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=getCSS('--ink'); ctx.stroke();
+    ctx.fillStyle=(exact||cl.sum>360)?'#fff':getCSS('--ink');
+    ctx.font='900 11px -apple-system,Segoe UI,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(cl.sum+'°', cl.x, cl.y);
+    ctx.restore();
+    if(exact) checkMissionAt(cl);
+  });
+}
+function checkMissionAt(cl){
+  // determine which single-shape type made a 360 (all corners same angle)
+  // find corners contributing
+  let type=null, same=true, firstAng=null;
+  placed.forEach(p=>{
+    const def=SHAPES[p.shape];
+    polyPoints(p).forEach(([cx,cy])=>{
+      if(Math.hypot(cx-cl.x,cy-cl.y)<14){
+        if(firstAng===null){firstAng=def.ang; type=p.shape;}
+        else if(def.ang!==firstAng) same=false;
+      }
+    });
+  });
+  if(same && cleared.hasOwnProperty(type) && !cleared[type]){
+    cleared[type]=true; updateBadge();
+  }
+}
+function updatePill(){
+  const pill=$('anglePill');
+  // find the "current focus" cluster: the max-sum multi-corner cluster
+  const corners=[];
+  placed.forEach(p=>{const def=SHAPES[p.shape];polyPoints(p).forEach(([cx,cy])=>corners.push({x:cx,y:cy,ang:def.ang}));});
+  const clusters=[];
+  corners.forEach(c=>{
+    let cl=clusters.find(k=>Math.hypot(k.x-c.x,k.y-c.y)<14);
+    if(!cl){cl={sum:0,count:0};clusters.push(cl);} cl.sum+=c.ang;cl.count++;
+  });
+  const multi=clusters.filter(k=>k.count>=2);
+  pill.classList.remove('good','bad','idle');
+  if(multi.length===0){ pill.classList.add('idle'); pill.textContent=placed.length? '꼭짓점을 서로 맞대어 놓아 봐요':'도형을 골라 캔버스를 눌러 놓아요'; return; }
+  const best=multi.reduce((a,b)=>b.sum>a.sum?b:a);
+  if(Math.abs(best.sum-360)<0.5){ pill.classList.add('good'); pill.textContent='각의 합 '+best.sum+'° · 빈틈없이 채워졌어요!'; }
+  else if(best.sum>360){ pill.classList.add('bad'); pill.textContent='각의 합 '+best.sum+'° · 겹쳤어요 (360° 초과)'; }
+  else { pill.classList.add('bad'); pill.textContent='각의 합 '+best.sum+'° · 틈이 남았어요 ('+(360-best.sum)+'° 부족)'; }
+}
+function refresh(){ render(); updatePill(); }
+
+// pointer interaction: place / drag
+let dragIdx=-1, dragDX=0, dragDY=0, downPt=null, moved=false;
+function evtPos(e){
+  const r=board.getBoundingClientRect();
+  const sx=CSS_W/r.width, sy=CSS_H/r.height;
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return [cx*sx, cy*sy];
+}
+function hitTest(x,y){
+  for(let i=placed.length-1;i>=0;i--){
+    const pts=polyPoints(placed[i]);
+    if(pointInPoly(x,y,pts)) return i;
+  }
+  return -1;
+}
+function pointInPoly(x,y,pts){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    if(((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function onDown(e){
+  e.preventDefault();
+  const [x,y]=evtPos(e);
+  downPt=[x,y]; moved=false;
+  const idx=hitTest(x,y);
+  if(idx>=0){ dragIdx=idx; dragDX=x-placed[idx].x; dragDY=y-placed[idx].y; }
+  else dragIdx=-1;
+}
+function onMove(e){
+  if(dragIdx<0) return;
+  e.preventDefault();
+  const [x,y]=evtPos(e);
+  if(Math.hypot(x-downPt[0],y-downPt[1])>3) moved=true;
+  let nx=x-dragDX, ny=y-dragDY;
+  [nx,ny]=snapPos(nx,ny);
+  placed[dragIdx].x=nx; placed[dragIdx].y=ny;
+  refresh();
+}
+function onUp(e){
+  const wasDrag=dragIdx>=0;
+  if(!wasDrag && downPt){
+    // place new shape at click
+    let [x,y]=snapPos(downPt[0],downPt[1]);
+    placed.push({shape:curShape,x,y,rot:0,color:curColor});
+    refresh();
+  } else if(wasDrag && !moved){
+    // tap on existing shape without drag: recolor it
+    placed[dragIdx].color=curColor; refresh();
+  }
+  dragIdx=-1; downPt=null;
+}
+board.addEventListener('mousedown',onDown);
+window.addEventListener('mousemove',onMove);
+window.addEventListener('mouseup',onUp);
+board.addEventListener('touchstart',onDown,{passive:false});
+board.addEventListener('touchmove',onMove,{passive:false});
+board.addEventListener('touchend',onUp);
+
+// palette
+document.querySelectorAll('.shp').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.shp').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    curShape=b.dataset.shape;
+  });
+});
+document.querySelector('.shp[data-shape="tri"]').setAttribute('aria-pressed','true');
+
+// colors
+document.querySelectorAll('.col').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.col').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    curColor=b.dataset.col;
+  });
+});
+
+$('snapTgl').addEventListener('change',e=>{ snap=e.target.checked; });
+$('undoBtn').onclick=()=>{ placed.pop(); refresh(); };
+$('clearBtn').onclick=()=>{ placed=[]; refresh(); };
+$('saveBtn').onclick=()=>{
+  // render onto an opaque export canvas
+  const ex=document.createElement('canvas'); ex.width=CSS_W; ex.height=CSS_H;
+  const ec=ex.getContext('2d');
+  ec.fillStyle=getCSS('--surface'); ec.fillRect(0,0,CSS_W,CSS_H);
+  ec.drawImage(board,0,0,CSS_W,CSS_H);
+  const a=document.createElement('a');
+  a.download='나의-테셀레이션.png'; a.href=ex.toDataURL('image/png'); a.click();
+};
+
+// self-check O/X
+document.querySelectorAll('.qchk').forEach(group=>{
+  group.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const pressed=btn.getAttribute('aria-pressed')==='true';
+      group.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed', pressed?'false':'true');
+    });
+  });
+});
+
+function updateBadge(){
+  const done=Object.values(cleared).filter(Boolean).length;
+  $('badgeTxt').innerHTML = done>=3
+    ? '<b>타일 장인 3/3 완료!</b> — 정삼각·정사각·정육각형으로 360°를 모두 만들었어요. <b>타일 장인</b> 배지 획득!'
+    : '<b>타일 장인 '+done+'/3</b> — 정삼각형·정사각형·정육각형으로 각각 “각의 합 360°”를 만들면 <b>타일 장인</b> 배지를 받아요.';
+  $('badge').classList.toggle('earned', done>=3);
+}
+
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기울기 센서 시뮬레이터 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-user-select:none;user-select:none;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  /* hero */
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .safe{display:flex;align-items:center;gap:10px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:11px 16px;font-size:13.5px;font-weight:600;margin:20px 0 26px}
+  .safe svg{flex-shrink:0}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  /* stage */
+  .stage{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}
+  @media(max-width:720px){.stage{grid-template-columns:1fr}}
+
+  .cubebox{background:var(--point-soft);touch-action:none}
+  .cubehint{font-size:12.5px;font-weight:800;color:var(--muted);text-align:center;margin-bottom:8px}
+  .cubesvg{display:block;width:100%;height:auto;cursor:grab}
+  .cubesvg:active{cursor:grabbing}
+
+  .vals{display:flex;gap:12px;margin-top:12px}
+  .valcard{flex:1;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:10px 12px;text-align:center}
+  .valcard .vk{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .valcard .vv{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .valcard .vu{font-size:12px;font-weight:800;color:var(--muted)}
+  .valcard.x .vv{color:var(--point)}
+  .valcard.y .vv{color:var(--amber)}
+
+  .sliders{margin-top:14px;display:grid;gap:10px}
+  .srow{display:flex;align-items:center;gap:10px}
+  .srow label{font-size:13px;font-weight:900;width:66px;flex-shrink:0}
+  .srow input[type=range]{flex:1;height:44px;-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer}
+  .srow input[type=range]:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .srow input[type=range]::-webkit-slider-runnable-track{height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px}
+  .srow input[type=range]::-moz-range-track{height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px}
+  .srow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;margin-top:-13px;
+    background:var(--point);border:2.5px solid var(--ink);border-radius:50%;box-shadow:var(--hard-sm)}
+  .srow input[type=range]::-moz-range-thumb{width:30px;height:30px;background:var(--point);border:2.5px solid var(--ink);border-radius:50%;box-shadow:var(--hard-sm)}
+
+  .btnrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;flex:1;min-width:130px;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:12px 14px;min-height:50px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn.ghost{background:var(--surface)}
+  .btn.on{background:var(--point);color:#fff}
+  .btn svg{flex-shrink:0}
+
+  /* right column: ball world + rule */
+  .world{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    height:180px;position:relative;overflow:hidden}
+  .floor{position:absolute;left:0;right:0;bottom:0;height:38px;background:repeating-linear-gradient(45deg,var(--point-soft),var(--point-soft) 10px,#fff 10px,#fff 20px);border-top:2.5px solid var(--ink)}
+  .ball{position:absolute;bottom:38px;left:50%;width:38px;height:38px;transform:translateX(-50%);
+    transition:left .12s linear;will-change:left}
+  .ball svg{display:block}
+  .door{position:absolute;top:10px;right:12px;width:44px;height:66px;background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:6px 6px 0 0;box-shadow:var(--hard-sm);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:opacity .3s,transform .3s}
+  .door .dknob{width:6px;height:6px;border-radius:50%;background:var(--ink);align-self:flex-end;margin-right:6px}
+  .door .dlab{font-size:9px;font-weight:900;color:var(--muted)}
+  .door.open{transform:translateX(6px) rotateY(20deg);opacity:.35}
+  .worldstate{text-align:center;font-size:13.5px;font-weight:800;margin-top:10px;min-height:22px}
+  .worldstate b{color:var(--point)}
+
+  /* rule editor */
+  .ruleeditor{margin-top:2px}
+  .ruleline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;font-weight:900;
+    background:var(--paper);border:2.5px dashed var(--ink);border-radius:var(--r-sm);padding:12px 14px;line-height:2.1}
+  .ruleline .kw{background:var(--ink);color:var(--paper);border-radius:6px;padding:1px 9px;font-size:13px;letter-spacing:.02em}
+  .ruleline select{font-family:inherit;font-size:14px;font-weight:900;color:var(--ink);background:var(--surface);
+    border:2.5px solid var(--ink);border-radius:9px;padding:6px 8px;min-height:40px;cursor:pointer;box-shadow:var(--hard-sm)}
+  .ruleline select:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .ruleline input[type=number]{font-family:inherit;font-size:14px;font-weight:900;width:66px;text-align:center;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:9px;padding:6px 4px;min-height:40px;box-shadow:var(--hard-sm)}
+  .ruleline input[type=number]:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+  .rulefire{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:800;
+    background:var(--point-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);padding:11px 14px;min-height:46px}
+  .rulefire.hit{background:var(--green);color:#fff}
+  .rulefire .dot{width:14px;height:14px;border-radius:50%;background:var(--muted);border:2px solid var(--ink);flex-shrink:0}
+  .rulefire.hit .dot{background:#fff}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .fallback{display:none;background:var(--amber-soft);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);padding:12px 16px;font-size:13.5px;font-weight:700;margin:0 0 4px}
+  .fallback.show{display:block}
+
+  /* self-check */
+  .checks{display:grid;gap:12px}
+  .checkitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px}
+  .checkitem .ctxt{font-size:14.5px;font-weight:700;flex:1}
+  .cbox{width:34px;height:34px;flex-shrink:0;cursor:pointer;background:var(--paper);border:2.5px solid var(--ink);
+    border-radius:9px;display:grid;place-items:center;padding:0}
+  .cbox svg{opacity:0;transition:opacity .12s}
+  .cbox[aria-pressed=true]{background:var(--green)}
+  .cbox[aria-pressed=true] svg{opacity:1}
+  .cbox:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">31-32차시 · 기울기 센서</span>
+  </nav>
+
+  <header>
+    <span class="kicker">센서가 숫자로 말해요</span>
+    <h1>기울기 센서 <span class="u">시뮬레이터</span></h1>
+    <p class="lead">G큐브를 기울이면 기울기 센서가 그 정도를 <b>X·Y 숫자값</b>으로 바꿔요. 내가 만든 <b>조건(만약 ~라면)</b>에 값이 딱 맞으면 사건이 일어나요. 직접 기울여 규칙을 만들어 봐요.</p>
+    <div class="chips">
+      <span class="chip pt">개념 · 센서값</span>
+      <span class="chip pt">개념 · 임계값 조건</span>
+      <span class="chip">관련 차시 · 핑퐁 G큐브 · 스크래치</span>
+    </div>
+  </header>
+
+  <div class="safe">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span>기기를 기울여도 되고, 슬라이더로 조절해도 돼요. 센서 사용은 버튼을 눌러 <b>내가 허락할 때만</b> 켜져요.</span>
+  </div>
+
+  <div class="fallback" id="fallback">이 기기·브라우저에서는 기울기 센서를 쓸 수 없어요. 걱정 마요 — 아래 <b>슬라이더</b>와 <b>드래그</b>로 똑같이 실험할 수 있어요.</div>
+
+  <div class="cmp-head"><h2>① G큐브를 기울여요</h2><span class="bar" aria-hidden="true"></span></div>
+
+  <section class="panel">
+    <div class="stage">
+      <!-- 왼쪽: 큐브 + 값 + 컨트롤 -->
+      <div>
+        <div class="cubebox panel" style="box-shadow:none;border:none;padding:14px;border-radius:var(--r-sm)">
+          <div class="cubehint">큐브를 마우스·손가락으로 드래그하거나, 아래 슬라이더로 기울여요</div>
+          <svg class="cubesvg" id="cube" viewBox="0 0 240 200" role="img" aria-label="기울기를 조절하는 G큐브">
+            <!-- 기준 수평선 -->
+            <line x1="20" y1="100" x2="220" y2="100" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 5" opacity="0.35"/>
+            <g id="cubeGroup" transform="translate(120,100)">
+              <!-- 큐브 3면 아이소메트릭 -->
+              <polygon points="-46,-24 0,-50 46,-24 0,2" fill="var(--point-soft)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+              <polygon points="-46,-24 0,2 0,52 -46,26" fill="#C7D0FF" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+              <polygon points="46,-24 0,2 0,52 46,26" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+              <!-- G 글자 -->
+              <text x="0" y="-16" text-anchor="middle" font-size="22" font-weight="900" fill="var(--ink)">G</text>
+              <!-- 화살표(아래 방향 = 중력) -->
+              <g id="gravArrow" opacity="0.9">
+                <line x1="0" y1="8" x2="0" y2="40" stroke="var(--amber)" stroke-width="3.5" stroke-linecap="round"/>
+                <polygon points="0,46 -6,36 6,36" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.5"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <div class="vals" aria-live="polite">
+          <div class="valcard x">
+            <div class="vk">X 기울기</div>
+            <div class="vv"><span id="valX">0</span></div>
+            <div class="vu">좌(-) ~ 우(+) 도(°)</div>
+          </div>
+          <div class="valcard y">
+            <div class="vk">Y 기울기</div>
+            <div class="vv"><span id="valY">0</span></div>
+            <div class="vu">앞(-) ~ 뒤(+) 도(°)</div>
+          </div>
+        </div>
+
+        <div class="sliders">
+          <div class="srow">
+            <label for="sldX">X 기울기</label>
+            <input type="range" id="sldX" min="-90" max="90" value="0" step="1" aria-label="X 기울기 조절">
+          </div>
+          <div class="srow">
+            <label for="sldY">Y 기울기</label>
+            <input type="range" id="sldY" min="-90" max="90" value="0" step="1" aria-label="Y 기울기 조절">
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn ghost" id="btnReset" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/><path d="M4 20v-5h5" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            수평으로 되돌리기</button>
+          <button class="btn" id="btnSensor" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="3" stroke="var(--ink)" stroke-width="2.2"/><circle cx="12" cy="17" r="1.6" fill="var(--ink)"/></svg>
+            <span id="sensorLabel">기기 센서 켜기</span></button>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 공 세계 + 규칙 -->
+      <div>
+        <div class="cubehint" style="text-align:left;margin-bottom:8px">기울인 쪽으로 공이 굴러가요</div>
+        <div class="world" id="world">
+          <div class="door" id="door"><div class="dknob"></div><div class="dlab">문</div></div>
+          <div class="ball" id="ball">
+            <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
+              <circle cx="19" cy="19" r="16" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+              <circle cx="13" cy="14" r="3" fill="var(--ink)"/><circle cx="25" cy="14" r="3" fill="var(--ink)"/>
+              <path d="M13 25c3 3 9 3 12 0" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="floor" aria-hidden="true"></div>
+        </div>
+        <div class="worldstate" id="worldstate" aria-live="polite">평평해요 — 공이 가만히 있어요</div>
+
+        <div class="cmp-head" style="margin:22px 0 12px"><h2 style="font-size:18px">② 나만의 규칙</h2><span class="bar" aria-hidden="true"></span></div>
+        <div class="ruleeditor">
+          <div class="ruleline">
+            <span class="kw">만약</span>
+            <select id="rAxis" aria-label="어떤 값">
+              <option value="x">X 기울기</option>
+              <option value="y">Y 기울기</option>
+            </select>
+            <select id="rOp" aria-label="비교">
+              <option value="lt">가 (&lt;)</option>
+              <option value="gt" selected>가 (&gt;)</option>
+            </select>
+            <input type="number" id="rThresh" value="30" min="-90" max="90" step="5" aria-label="임계값">
+            <span class="kw">이면</span>
+            <select id="rAct" aria-label="행동">
+              <option value="door">문 열림</option>
+              <option value="jump">공 점프</option>
+              <option value="color">공 색 바뀜</option>
+            </select>
+          </div>
+          <div class="rulefire" id="rulefire">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="rulefiretxt">아직 조건을 만족하지 않았어요. 큐브를 기울여 값을 조건에 맞춰 봐요.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="obs" id="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>관찰해 봐요</b> — 센서는 세상을 <b>숫자</b>로 바꿔요. 조금 기울여도 값이 바로 변하죠. 하지만 사건은 <b>임계값(예: 30°)</b>을 넘어야만 일어나요. 임계값을 10으로 낮추면 살짝만 기울여도 문이 열리고, 60으로 높이면 많이 기울여야 해요. 이게 바로 <b>조건(만약 값 &gt; 임계값)</b>이에요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks">
+    <div class="checkitem">
+      <span class="ctxt">큐브를 왼쪽으로 기울이면 X 값이 <b>작아지는(−)</b> 걸 확인했어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 1 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt">임계값을 바꾸면 사건이 일어나는 <b>기울기 정도</b>가 달라진다는 걸 알았어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 2 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt">‘만약 값 &gt; 임계값 이면 ~’ 라는 <b>조건</b>으로 로봇 동작을 만들 수 있어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 3 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="badge" id="badge">
+    <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><path d="m17 20 4 4 10-10" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><div class="bt">기울기 센서 박사 배지 획득!</div><div class="bd">센서값과 임계값 조건을 모두 이해했어요.</div></div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let tiltX=0, tiltY=0;     // 도 단위, -90~90
+let sensorOn=false;
+let ballPos=50;           // % (0 왼끝 ~ 100 오른끝)
+let ruleWasHit=false;
+
+// ── 값 반영 ──
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function setTilt(x,y){
+  tiltX=clamp(Math.round(x),-90,90);
+  tiltY=clamp(Math.round(y),-90,90);
+  render();
+}
+function render(){
+  $('valX').textContent=tiltX;
+  $('valY').textContent=tiltY;
+  $('sldX').value=tiltX;
+  $('sldY').value=tiltY;
+  // 큐브 회전: X→z축 기울임, Y→약간의 상하 스케일 느낌 대신 회전 조합
+  $('cubeGroup').setAttribute('transform',
+    'translate(120,100) rotate('+tiltX+') scale(1,'+(1-Math.min(0.35,Math.abs(tiltY)/260))+')');
+  // 중력 화살표는 항상 화면 아래(월드 기준)를 향하도록 큐브 회전 반대로
+  $('gravArrow').setAttribute('transform','rotate('+(-tiltX)+')');
+  updateWorld();
+  updateRule();
+}
+
+// ── 공 세계 ──
+function updateWorld(){
+  // X 기울기에 비례해 목표 위치 계산 (기울인 쪽으로 굴러감)
+  const target=clamp(50 + (tiltX/90)*46, 6, 94);
+  ballPos=target;
+  $('ball').style.left=ballPos+'%';
+  let msg;
+  if(Math.abs(tiltX)<6) msg='평평해요 — 공이 가만히 있어요';
+  else if(tiltX>0) msg='오른쪽으로 기울어 공이 <b>오른쪽</b>으로 굴러가요';
+  else msg='왼쪽으로 기울어 공이 <b>왼쪽</b>으로 굴러가요';
+  $('worldstate').innerHTML=msg;
+}
+
+// ── 규칙 판정 ──
+function currentVal(){ return $('rAxis').value==='x' ? tiltX : tiltY; }
+function updateRule(){
+  const axis=$('rAxis').value;
+  const op=$('rOp').value;
+  const th=parseInt($('rThresh').value,10)||0;
+  const v = axis==='x'?tiltX:tiltY;
+  const hit = op==='gt' ? v>th : v<th;
+  const fire=$('rulefire');
+  const axisName = axis==='x'?'X 기울기':'Y 기울기';
+  const opName = op==='gt'?'>':'<';
+  if(hit){
+    fire.classList.add('hit');
+    const actName={door:'문이 열렸어요!',jump:'공이 점프했어요!',color:'공 색이 바뀌었어요!'}[$('rAct').value];
+    $('rulefiretxt').innerHTML='조건 성립: '+axisName+' '+opName+' '+th+' (지금 '+v+') → <b>'+actName+'</b>';
+    applyAction($('rAct').value, true);
+    ruleWasHit=true; maybeBadge();
+  }else{
+    fire.classList.remove('hit');
+    $('rulefiretxt').innerHTML='조건: 만약 '+axisName+' '+opName+' '+th+' 이면 실행 (지금 '+axisName+'='+v+')';
+    applyAction($('rAct').value, false);
+  }
+}
+function applyAction(act, on){
+  // 모든 액션 초기화 후 현재 것만 적용
+  $('door').classList.toggle('open', act==='door' && on);
+  const ballSvgCircle=$('ball').querySelector('circle');
+  if(act==='color'){ ballSvgCircle.setAttribute('fill', on?'var(--green)':'var(--amber)'); }
+  else { ballSvgCircle.setAttribute('fill','var(--amber)'); }
+  if(act==='jump'){ $('ball').style.bottom = on ? '86px' : '38px'; }
+  else { $('ball').style.bottom='38px'; }
+}
+
+// ── 슬라이더 ──
+$('sldX').addEventListener('input',e=>{ setTilt(+e.target.value, tiltY); });
+$('sldY').addEventListener('input',e=>{ setTilt(tiltX, +e.target.value); });
+
+// ── 드래그로 큐브 기울이기 ──
+const cube=$('cube');
+let dragging=false;
+function pointFromEvent(e){
+  const r=cube.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const px=(e.touches?e.touches[0].clientX:e.clientX);
+  const py=(e.touches?e.touches[0].clientY:e.clientY);
+  return {dx:px-cx, dy:py-cy};
+}
+function dragMove(e){
+  if(!dragging) return;
+  e.preventDefault();
+  const p=pointFromEvent(e);
+  // 좌우 오프셋 → X 기울기, 상하 오프셋 → Y 기울기 (감도 조절)
+  setTilt(clamp(p.dx*0.7,-90,90), clamp(p.dy*0.7,-90,90));
+}
+cube.addEventListener('mousedown',e=>{dragging=true;dragMove(e);});
+cube.addEventListener('touchstart',e=>{dragging=true;dragMove(e);},{passive:false});
+window.addEventListener('mousemove',dragMove);
+window.addEventListener('touchmove',dragMove,{passive:false});
+window.addEventListener('mouseup',()=>dragging=false);
+window.addEventListener('touchend',()=>dragging=false);
+
+// ── 되돌리기 ──
+$('btnReset').onclick=()=>{ setTilt(0,0); };
+
+// ── 규칙 편집 반영 ──
+['rAxis','rOp','rThresh','rAct'].forEach(id=>{
+  $(id).addEventListener('input',()=>{ ruleWasHit=false; render(); });
+  $(id).addEventListener('change',()=>{ render(); });
+});
+
+// ── 기기 센서(deviceorientation) — 버튼 눌렀을 때만 권한 요청 ──
+function handleOrientation(e){
+  if(e.gamma==null && e.beta==null) return;
+  // gamma: 좌우(-90~90), beta: 앞뒤(-180~180)
+  const gx=e.gamma||0;
+  const gy=(e.beta||0);
+  setTilt(clamp(gx,-90,90), clamp(gy>90?90:(gy<-90?-90:gy),-90,90));
+}
+$('btnSensor').onclick=async function(){
+  if(sensorOn){
+    window.removeEventListener('deviceorientation',handleOrientation);
+    sensorOn=false; this.classList.remove('on');
+    $('sensorLabel').textContent='기기 센서 켜기';
+    return;
+  }
+  const hasDO = typeof DeviceOrientationEvent!=='undefined';
+  if(!hasDO){ $('fallback').classList.add('show'); return; }
+  try{
+    // iOS 13+ 권한 요청 (사용자 제스처 안에서만)
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      const res=await DeviceOrientationEvent.requestPermission();
+      if(res!=='granted'){ $('fallback').classList.add('show'); return; }
+    }
+    window.addEventListener('deviceorientation',handleOrientation);
+    sensorOn=true; this.classList.add('on'); $('sensorLabel').textContent='기기 센서 끄기';
+  }catch(err){ $('fallback').classList.add('show'); }
+};
+
+// ── 자기 점검 & 배지 ──
+document.querySelectorAll('.cbox').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=b.getAttribute('aria-pressed')==='true';
+    b.setAttribute('aria-pressed', p?'false':'true');
+    maybeBadge();
+  });
+});
+function maybeBadge(){
+  const all=[...document.querySelectorAll('.cbox')].every(b=>b.getAttribute('aria-pressed')==='true');
+  if(all && ruleWasHit){ $('badge').classList.add('show'); }
+}
+
+render();
+</script>
+</body>
+</html>

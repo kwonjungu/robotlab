@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>조건·랜덤 디지털 주사위 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#12B76A; --point-soft:#D6F5E6;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--paper);color:var(--ink);
+    font-size:17px;line-height:1.55;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 18px 64px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .lesson-tag{font-weight:900;font-size:14px;letter-spacing:-.01em;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;box-shadow:var(--hard-sm)}
+
+  .kicker{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);border:2.5px solid var(--ink);border-radius:8px;padding:4px 12px;box-shadow:var(--hard-sm);margin-bottom:16px}
+  h1{font-size:clamp(28px,7vw,50px);font-weight:900;letter-spacing:-.035em;line-height:1.04}
+  h1 .u{ -webkit-text-decoration:6px underline var(--point);text-decoration:6px underline var(--point);text-underline-offset:6px}
+  .lead{font-size:17px;color:var(--muted);margin-top:14px;max-width:640px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+  .chip{font-size:12.5px;font-weight:800;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:5px 13px}
+  .chip.pt{background:var(--point-soft)}
+
+  .cmp-head{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .cmp-head h2{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .cmp-head .bar{height:3px;background:var(--ink);flex:1;border-radius:2px}
+
+  .panel{background:var(--surface);border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);padding:22px;position:relative}
+
+  /* 알고리즘 순서 스테퍼 */
+  .steps{display:flex;align-items:stretch;gap:0;margin:0 0 20px;flex-wrap:nowrap}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;text-align:center}
+  .step .snum{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:15px;
+    border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);transition:background .18s,color .18s;box-shadow:var(--hard-sm)}
+  .step .slab{font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--muted);line-height:1.2;transition:color .18s}
+  .step:not(:last-child)::after{content:"";position:absolute;top:16px;left:calc(50% + 22px);right:calc(-50% + 22px);height:3px;background:var(--ink);opacity:.22}
+  .step.on .snum{background:var(--point);color:#fff}
+  .step.on .slab{color:var(--ink)}
+  .step.done .snum{background:var(--ink);color:#fff}
+
+  /* 주사위 */
+  .dicewrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+  @media(max-width:720px){.dicewrap{grid-template-columns:1fr}}
+  .dice{aspect-ratio:1/1;max-width:260px;margin:0 auto;width:100%;background:var(--point-soft);border:3px solid var(--ink);
+    border-radius:26px;box-shadow:var(--hard);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    padding:22px;gap:6px}
+  .dice.rolling{animation:shake .5s ease-in-out infinite}
+  @keyframes shake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,2px) rotate(-3deg)}75%{transform:translate(3px,-2px) rotate(3deg)}}
+  .pip{display:grid;place-items:center}
+  .pip span{width:100%;height:100%;max-width:38px;max-height:38px;border-radius:50%;background:var(--ink);
+    transform:scale(0);transition:transform .12s}
+  .pip.on span{transform:scale(1)}
+
+  .diceside{display:flex;flex-direction:column;justify-content:center;gap:12px}
+  .resultnum{text-align:center}
+  .resultnum .rk{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .resultnum .rv{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+  .resultnum .rv.q{color:var(--muted)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;width:100%;
+    font-family:inherit;font-size:17px;font-weight:900;letter-spacing:-.01em;color:var(--ink);background:var(--amber);
+    border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);padding:14px 14px;min-height:54px;
+    transition:transform .1s,box-shadow .1s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--surface);font-size:14px;min-height:46px}
+  .btn svg{flex-shrink:0}
+
+  /* 조건 규칙 선택 */
+  .rulepick{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:2.5px dashed var(--ink);
+    border-radius:var(--r-sm);padding:14px}
+  .rulepick .rh{font-size:13px;font-weight:900;margin-bottom:2px}
+  .ropt{display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:11px;padding:10px 13px;min-height:48px;font-size:14px;font-weight:800;transition:transform .1s,box-shadow .1s}
+  .ropt:hover{transform:translate(-1px,-1px);box-shadow:var(--hard-sm)}
+  .ropt input{position:absolute;opacity:0;width:0;height:0}
+  .ropt .rmark{width:22px;height:22px;flex-shrink:0;border:2.5px solid var(--ink);border-radius:50%;background:var(--surface);display:grid;place-items:center}
+  .ropt .rmark::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--point);transform:scale(0);transition:transform .12s}
+  .ropt:has(input:checked){background:var(--point-soft)}
+  .ropt:has(input:checked) .rmark::after{transform:scale(1)}
+  .ropt:has(input:focus-visible){outline:3px solid var(--point);outline-offset:2px}
+
+  /* 로봇 반응 */
+  .robotstage{background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);
+    height:150px;position:relative;overflow:hidden;margin-top:2px}
+  .track{position:absolute;left:0;right:0;bottom:0;height:34px;background:repeating-linear-gradient(90deg,var(--point-soft),var(--point-soft) 16px,#fff 16px,#fff 32px);border-top:2.5px solid var(--ink)}
+  .robot{position:absolute;bottom:34px;left:50%;width:56px;height:64px;transform:translateX(-50%);transition:left .5s cubic-bezier(.3,1.4,.5,1),bottom .3s}
+  .robotstate{text-align:center;font-size:14px;font-weight:800;margin-top:10px;min-height:22px}
+  .robotstate b{color:var(--point)}
+
+  /* 빈도 막대 */
+  .freq{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:150px;margin-top:6px;
+    background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:14px 12px 10px}
+  .fbar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px}
+  .fbar .fb{width:100%;min-height:4px;background:var(--point);border:2.5px solid var(--ink);border-radius:6px 6px 0 0;
+    transition:height .25s;height:4px}
+  .fbar .fc{font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+  .fbar .fn{font-size:13px;font-weight:900;background:var(--paper);border:2px solid var(--ink);border-radius:7px;
+    width:26px;height:26px;display:grid;place-items:center}
+  .frtotal{font-size:13px;font-weight:800;color:var(--muted);text-align:center;margin-top:8px}
+  .frtotal b{color:var(--ink)}
+
+  .obs{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--paper);
+    border-radius:var(--r);padding:18px 20px;font-size:14px;font-weight:600;margin:26px 0;line-height:1.55}
+  .obs svg{flex-shrink:0;margin-top:2px}
+  .obs b{color:var(--amber);font-weight:900}
+
+  .checks{display:grid;gap:12px}
+  .checkitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:var(--r-sm);box-shadow:var(--hard-sm);padding:13px 16px}
+  .checkitem .ctxt{font-size:14.5px;font-weight:700;flex:1}
+  .cbox{width:34px;height:34px;flex-shrink:0;cursor:pointer;background:var(--paper);border:2.5px solid var(--ink);
+    border-radius:9px;display:grid;place-items:center;padding:0}
+  .cbox svg{opacity:0;transition:opacity .12s}
+  .cbox[aria-pressed=true]{background:var(--green)}
+  .cbox[aria-pressed=true] svg{opacity:1}
+  .cbox:focus-visible{outline:3px solid var(--point);outline-offset:2px}
+
+  .badge{display:none;align-items:center;gap:12px;margin-top:16px;background:var(--amber-soft);border:3px solid var(--ink);
+    border-radius:var(--r);box-shadow:var(--hard);padding:16px 20px}
+  .badge.show{display:flex;animation:pop .4s ease}
+  @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .badge .bmedal{width:52px;height:52px;flex-shrink:0}
+  .badge .bt{font-size:16px;font-weight:900}
+  .badge .bd{font-size:13px;font-weight:600;color:var(--muted)}
+
+  footer{text-align:center;margin-top:34px}
+  footer a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:900;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:999px;padding:11px 22px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+  footer a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">35-36차시 · 디지털 주사위</span>
+  </nav>
+
+  <header>
+    <span class="kicker">랜덤과 조건으로 움직여요</span>
+    <h1>조건·랜덤 <span class="u">디지털 주사위</span></h1>
+    <p class="lead">버튼을 누르면 컴퓨터가 <b>무작위로 1~6</b> 중 하나를 골라요. 그 숫자를 보고 <b>조건(만약 짝수면 ~ 아니면 ~)</b>으로 로봇이 움직여요. 여러 번 굴려 랜덤이 매번 다름을 느껴 봐요.</p>
+    <div class="chips">
+      <span class="chip pt">개념 · 랜덤</span>
+      <span class="chip pt">개념 · 조건(만약~아니면)</span>
+      <span class="chip pt">개념 · 알고리즘 순서</span>
+    </div>
+  </header>
+
+  <div class="cmp-head"><h2>알고리즘 순서</h2><span class="bar" aria-hidden="true"></span></div>
+  <p class="lead" style="margin:-6px 0 14px;font-size:15px">주사위는 이 순서대로 움직여요. 굴릴 때 어느 단계인지 불이 켜져요.</p>
+  <div class="steps" id="steps" aria-hidden="true">
+    <div class="step" data-step="1"><span class="snum">1</span><span class="slab">굴리기</span></div>
+    <div class="step" data-step="2"><span class="snum">2</span><span class="slab">숫자 읽기</span></div>
+    <div class="step" data-step="3"><span class="snum">3</span><span class="slab">조건 판단</span></div>
+    <div class="step" data-step="4"><span class="snum">4</span><span class="slab">행동</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="dicewrap">
+      <!-- 주사위 -->
+      <div class="diceside">
+        <div class="dice" id="dice" role="img" aria-label="주사위" aria-hidden="false">
+          <!-- 9칸(3x3), 눈 위치별로 켜짐 -->
+          <div class="pip" data-p="0"><span></span></div>
+          <div class="pip" data-p="1"><span></span></div>
+          <div class="pip" data-p="2"><span></span></div>
+          <div class="pip" data-p="3"><span></span></div>
+          <div class="pip" data-p="4"><span></span></div>
+          <div class="pip" data-p="5"><span></span></div>
+          <div class="pip" data-p="6"><span></span></div>
+          <div class="pip" data-p="7"><span></span></div>
+          <div class="pip" data-p="8"><span></span></div>
+        </div>
+        <div class="resultnum" aria-live="polite">
+          <div class="rk">나온 눈</div>
+          <div class="rv q" id="resultNum">?</div>
+        </div>
+        <button class="btn" id="btnRoll" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" stroke="var(--ink)" stroke-width="2.4"/><circle cx="9" cy="9" r="1.6" fill="var(--ink)"/><circle cx="15" cy="15" r="1.6" fill="var(--ink)"/><circle cx="12" cy="12" r="1.6" fill="var(--ink)"/></svg>
+          주사위 굴리기</button>
+      </div>
+
+      <!-- 조건 + 로봇 -->
+      <div class="diceside">
+        <div class="rulepick" role="radiogroup" aria-label="조건 규칙 고르기">
+          <div class="rh">만약 나온 눈이 …</div>
+          <label class="ropt"><input type="radio" name="rule" value="evenodd" checked><span class="rmark" aria-hidden="true"></span><span>짝수면 <b>앞으로</b> · 홀수면 <b>뒤로</b></span></label>
+          <label class="ropt"><input type="radio" name="rule" value="bignum"><span class="rmark" aria-hidden="true"></span><span>4 이상이면 <b>점프</b> · 아니면 <b>제자리</b></span></label>
+          <label class="ropt"><input type="radio" name="rule" value="three"><span class="rmark" aria-hidden="true"></span><span>3의 배수면 <b>회전</b> · 아니면 <b>앞으로</b></span></label>
+        </div>
+        <div class="robotstage">
+          <div class="robot" id="robot">
+            <svg width="56" height="64" viewBox="0 0 56 64" aria-hidden="true">
+              <rect x="14" y="6" width="28" height="24" rx="7" fill="var(--point-soft)" stroke="var(--ink)" stroke-width="3"/>
+              <circle cx="23" cy="17" r="3.2" fill="var(--ink)"/><circle cx="33" cy="17" r="3.2" fill="var(--ink)"/>
+              <line x1="28" y1="6" x2="28" y2="0" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><circle cx="28" cy="1" r="2.4" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.5"/>
+              <rect x="18" y="32" width="20" height="18" rx="5" fill="var(--point)" stroke="var(--ink)" stroke-width="3"/>
+              <rect x="20" y="52" width="6" height="10" rx="3" fill="var(--ink)"/><rect x="30" y="52" width="6" height="10" rx="3" fill="var(--ink)"/>
+            </svg>
+          </div>
+          <div class="track" aria-hidden="true"></div>
+        </div>
+        <div class="robotstate" id="robotstate" aria-live="polite">주사위를 굴려 로봇을 움직여 봐요</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cmp-head"><h2>랜덤은 매번 달라요</h2><span class="bar" aria-hidden="true"></span></div>
+  <p class="lead" style="margin:-6px 0 14px;font-size:15px">굴린 결과가 아래 막대에 쌓여요. 여러 번 굴려 <b>어떤 눈이 나올지 미리 알 수 없다</b>는 걸 확인해요.</p>
+  <div class="freq" id="freq" aria-label="눈별 나온 횟수">
+    <div class="fbar"><div class="fc" id="fc1">0</div><div class="fb" data-n="1"></div><div class="fn">1</div></div>
+    <div class="fbar"><div class="fc" id="fc2">0</div><div class="fb" data-n="2"></div><div class="fn">2</div></div>
+    <div class="fbar"><div class="fc" id="fc3">0</div><div class="fb" data-n="3"></div><div class="fn">3</div></div>
+    <div class="fbar"><div class="fc" id="fc4">0</div><div class="fb" data-n="4"></div><div class="fn">4</div></div>
+    <div class="fbar"><div class="fc" id="fc5">0</div><div class="fb" data-n="5"></div><div class="fn">5</div></div>
+    <div class="fbar"><div class="fc" id="fc6">0</div><div class="fb" data-n="6"></div><div class="fn">6</div></div>
+  </div>
+  <div class="frtotal">지금까지 <b id="rollTotal">0</b>번 굴렸어요. <button class="btn ghost" id="btnClear" type="button" style="display:inline-flex;width:auto;padding:6px 14px;min-height:38px;margin-left:6px;vertical-align:middle">기록 지우기</button></div>
+
+  <div class="obs" id="obs">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="var(--amber)" stroke-width="2.4"/><path d="m16 16 5 5" stroke="var(--amber)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span><b>생각해 봐요</b> — 컴퓨터의 랜덤은 <b>공평한 주사위</b>와 같아요. 많이 굴릴수록 여섯 개 막대의 키가 서로 비슷해져요. 하지만 <b>다음에 무엇이 나올지</b>는 아무도 몰라요. 그래서 게임이 재미있죠. 로봇은 나온 숫자를 <b>조건</b>으로 판단해 늘 같은 규칙으로 반응해요.</span>
+  </div>
+
+  <div class="cmp-head"><h2>스스로 점검</h2><span class="bar" aria-hidden="true"></span></div>
+  <div class="checks">
+    <div class="checkitem">
+      <span class="ctxt">주사위를 여러 번 굴려 <b>매번 다른 숫자</b>가 나오는 걸 확인했어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 1 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt">조건 규칙을 바꾸면 <b>같은 숫자여도</b> 로봇이 다르게 움직이는 걸 봤어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 2 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="checkitem">
+      <span class="ctxt">‘굴리기 → 읽기 → 조건 판단 → 행동’ <b>알고리즘 순서</b>를 말할 수 있어요.</span>
+      <button class="cbox" type="button" aria-pressed="false" aria-label="확인 3 체크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="badge" id="badge">
+    <svg class="bmedal" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="20" r="14" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/><path d="m17 20 4 4 10-10" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="m16 32-4 12 12-6 12 6-4-12" fill="var(--point)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><div class="bt">디지털 주사위 박사 배지 획득!</div><div class="bd">랜덤·조건·알고리즘 순서를 모두 이해했어요.</div></div>
+  </div>
+
+  <footer><a href="../">← 수업터 홈으로</a></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// 주사위 눈 위치(3x3 인덱스 0~8)
+const PIPMAP={
+  1:[4],
+  2:[0,8],
+  3:[0,4,8],
+  4:[0,2,6,8],
+  5:[0,2,4,6,8],
+  6:[0,2,3,5,6,8]
+};
+function drawFace(n){
+  const on=new Set(PIPMAP[n]||[]);
+  document.querySelectorAll('#dice .pip').forEach(p=>{
+    p.classList.toggle('on', on.has(+p.dataset.p));
+  });
+}
+
+// 빈도 기록
+const counts={1:0,2:0,3:0,4:0,5:0,6:0};
+let total=0;
+let rolling=false;
+let didRoll=false, didRuleChange=false;
+
+// ── 알고리즘 스테퍼 ──
+function stepSet(n){
+  document.querySelectorAll('#steps .step').forEach(el=>{
+    const s=+el.dataset.step;
+    el.classList.toggle('on', s===n);
+    el.classList.toggle('done', s<n);
+  });
+}
+function stepReset(){ document.querySelectorAll('#steps .step').forEach(el=>el.classList.remove('on','done')); }
+
+// ── 굴리기 ──
+$('btnRoll').addEventListener('click',()=>{
+  if(rolling) return;
+  rolling=true;
+  $('btnRoll').disabled=true;
+  $('resultNum').classList.add('q');
+  $('resultNum').textContent='?';
+  $('dice').classList.add('rolling');
+  $('robotstate').textContent='주사위가 구르는 중…';
+  stepSet(1);
+
+  // 애니메이션: 무작위 눈 여러 번 → 최종
+  let ticks=0;
+  const spin=setInterval(()=>{
+    drawFace(1+Math.floor(Math.random()*6));  // 게임 로직용 난수
+    ticks++;
+    if(ticks>=10){
+      clearInterval(spin);
+      finishRoll();
+    }
+  },70);
+});
+
+function finishRoll(){
+  const n=1+Math.floor(Math.random()*6);   // 최종 결과(1~6)
+  drawFace(n);
+  $('dice').classList.remove('rolling');
+  $('resultNum').textContent=n;
+  $('resultNum').classList.remove('q');
+  stepSet(2);
+
+  // 빈도 갱신
+  counts[n]++; total++;
+  updateFreq();
+
+  // 조건 판단 → 행동
+  setTimeout(()=>{ stepSet(3); }, 350);
+  setTimeout(()=>{ stepSet(4); applyRule(n); }, 700);
+  setTimeout(()=>{
+    rolling=false; $('btnRoll').disabled=false; didRoll=true; maybeBadge();
+    stepReset();
+  }, 1500);
+}
+
+// ── 조건에 따른 로봇 행동 ──
+let robotX=50;
+function applyRule(n){
+  const rule=document.querySelector('input[name=rule]:checked').value;
+  const robot=$('robot');
+  let msg='';
+  // 초기화(회전/점프)
+  robot.style.bottom='34px';
+  robot.style.transform='translateX(-50%)';
+
+  if(rule==='evenodd'){
+    if(n%2===0){ robotX=Math.min(88,robotX+14); msg='눈 '+n+' 은 <b>짝수</b> → 앞으로!'; }
+    else { robotX=Math.max(12,robotX-14); msg='눈 '+n+' 은 <b>홀수</b> → 뒤로!'; }
+    robot.style.left=robotX+'%';
+  } else if(rule==='bignum'){
+    if(n>=4){ msg='눈 '+n+' 은 <b>4 이상</b> → 점프!'; robot.style.bottom='90px';
+      setTimeout(()=>{robot.style.bottom='34px';},450); }
+    else { msg='눈 '+n+' 은 <b>4 미만</b> → 제자리'; }
+  } else if(rule==='three'){
+    if(n%3===0){ msg='눈 '+n+' 은 <b>3의 배수</b> → 회전!'; robot.style.transform='translateX(-50%) rotate(360deg)';
+      setTimeout(()=>{robot.style.transition='none';robot.style.transform='translateX(-50%)';
+        requestAnimationFrame(()=>{robot.style.transition='';});},700); }
+    else { robotX=Math.min(88,robotX+14); msg='눈 '+n+' 은 <b>3의 배수 아님</b> → 앞으로!'; robot.style.left=robotX+'%'; }
+  }
+  $('robotstate').innerHTML=msg;
+}
+
+// ── 빈도 막대 ──
+function updateFreq(){
+  const max=Math.max(1,...Object.values(counts));
+  for(let n=1;n<=6;n++){
+    $('fc'+n).textContent=counts[n];
+    const bar=document.querySelector('.fb[data-n="'+n+'"]');
+    const pct=(counts[n]/max)*100;
+    bar.style.height=Math.max(4, pct)+'%';
+  }
+  $('rollTotal').textContent=total;
+}
+
+// ── 기록 지우기 ──
+$('btnClear').addEventListener('click',()=>{
+  for(let n=1;n<=6;n++) counts[n]=0;
+  total=0; updateFreq();
+});
+
+// ── 규칙 변경 감지 ──
+document.querySelectorAll('input[name=rule]').forEach(r=>{
+  r.addEventListener('change',()=>{ didRuleChange=true; maybeBadge(); });
+});
+
+// ── 자기 점검 & 배지 ──
+document.querySelectorAll('.cbox').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=b.getAttribute('aria-pressed')==='true';
+    b.setAttribute('aria-pressed', p?'false':'true');
+    maybeBadge();
+  });
+});
+function maybeBadge(){
+  const allChecked=[...document.querySelectorAll('.cbox')].every(b=>b.getAttribute('aria-pressed')==='true');
+  if(allChecked && didRoll){ $('badge').classList.add('show'); }
+}
+
+// 초기 표시
+drawFace(6);
+$('resultNum').classList.add('q');
+$('resultNum').textContent='?';
+</script>
+</body>
+</html>
