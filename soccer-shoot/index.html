@@ -297,7 +297,7 @@
       var res = evaluateBall(ball, keeper, GOAL);
       if (res){ endShot(res); }
       // ball ran out of steam without reaching goal
-      else if (Math.hypot(ball.vx, ball.vy) < 30 && ball.y > GOAL.y+GOAL.h){
+      else if (Math.hypot(ball.vx, ball.vy) < 30){
         endShot("miss");
       }
     } else if (state === "result"){

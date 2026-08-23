@@ -145,7 +145,7 @@
 
   // ---- game state ----
   var state = "start"; // start | play | over
-  var player, obstacles, stars, spawnTimer, starTimer, score, lives, elapsed, speedMul;
+  var player, obstacles, stars, spawnTimer, starTimer, score, scoreAcc, lives, elapsed, speedMul;
 
   var PLAYER_W = 46, PLAYER_H = 40;
 
@@ -156,9 +156,13 @@
     spawnTimer = 0;
     starTimer = 0;
     score = 0;
+    scoreAcc = 0;
     lives = 3;
     elapsed = 0;
     speedMul = 1;
+    // clear any held input so it doesn't leak across restarts
+    keyLeft = false; keyRight = false; dragging = false;
+    flash = 0; pop = 0;
     updateHud();
   }
 
@@ -322,8 +326,9 @@
       }
       if(s.y > H+40) stars.splice(i,1);
     }
-    // survival score trickle
-    score += Math.floor(dt*4);
+    // survival score trickle (accumulate fractional points so slow ticks still count)
+    scoreAcc += dt*4;
+    if(scoreAcc >= 1){ var add = Math.floor(scoreAcc); score += add; scoreAcc -= add; }
     scoreEl.textContent = score;
 
     if(flash>0) flash -= dt;

@@ -405,7 +405,7 @@ function checkMission(){
     card.classList.toggle('fail', !correct);
     const res=card.querySelector('.exres');
     if(correct){
-      res.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--green)"/><path d="m8 12 3 3 6-7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+(fired?'켜짐 ✓':'꺼짐 ✓');
+      res.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--green)"/><path d="m8 12 3 3 6-7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+(fired?'켜짐 맞음':'꺼짐 맞음');
     }else{
       res.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--red)"/><path d="M9 9l6 6M15 9l-6 6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>'+(fired?'켜짐(틀림)':'꺼짐(틀림)');
     }

@@ -107,6 +107,7 @@
   .dpad .right{grid-column:3;grid-row:2;}
   .dpad .down{grid-column:2;grid-row:3;}
   .dpad button.active{background:var(--amber);transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);}
+  :focus-visible{outline:3px solid var(--point);outline-offset:2px;}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -233,6 +234,16 @@
 
   var keys = {up:false,down:false,left:false,right:false};
 
+  // 상태 전환(클리어/재시작/시작) 시 눌린 입력이 남아 로봇이
+  // 저절로 움직이는 것을 막기 위해 입력 상태를 초기화한다.
+  function resetKeys(){
+    keys.up=keys.down=keys.left=keys.right=false;
+    if(dpad){
+      var bs = dpad.querySelectorAll("button.active");
+      for(var i=0;i<bs.length;i++){ bs[i].classList.remove("active"); }
+    }
+  }
+
   // ---- 최고기록 (try/catch) ----
   // 전체 완주 총 시간의 최단 기록. 매 프레임 localStorage를 읽지 않도록 캐시.
   var bestCache = null;
@@ -296,6 +307,7 @@
     dust = buildDust(s);
     robot.x = s.startX; robot.y = s.startY;
     robot.vx=0; robot.vy=0; robot.stun=0;
+    resetKeys();
     startTime = performance.now();
     elapsed = 0;
     hudStage.textContent = (i+1);
@@ -458,7 +470,10 @@
     lastTs=ts;
     if(dt>3) dt=3; // 탭 복귀 등 큰 점프 방지
     update(dt);
-    if(state===STATE_PLAY) draw();
+    // update() 안에서 클리어되면 state가 바뀌고 stopLoop()이 호출된다.
+    // 그 경우 프레임을 다시 예약하지 않아 stopLoop을 되살리지 않는다.
+    if(state!==STATE_PLAY){ return; }
+    draw();
     raf=requestAnimationFrame(loop);
   }
   function startLoop(){
@@ -472,6 +487,7 @@
   // ---- 흐름 ----
   function onStageClear(){
     stopLoop();
+    resetKeys();
     totalTime += elapsed;
     state = STATE_CLEAR;
     if(stageIdx < STAGES.length-1){

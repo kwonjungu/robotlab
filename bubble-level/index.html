@@ -446,7 +446,11 @@ function cleanup(){
 window.addEventListener('pagehide',cleanup);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden'){ cleanup(); }
-  else { startLoop(); }
+  else {
+    // 다시 돌아오면 게임 루프를 재개하고, 센서를 켜 뒀다면 리스너도 다시 붙인다
+    if(sensorOn){ window.addEventListener('deviceorientation',handleOrientation); }
+    startLoop();
+  }
 });
 
 // 슬라이더 값 동기화를 render 뒤에 붙이기

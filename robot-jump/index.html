@@ -53,6 +53,8 @@
     border-radius:var(--r-sm);padding:12px 26px;min-height:52px;box-shadow:var(--hard-sm);
     transition:transform .1s,box-shadow .1s;touch-action:none}
   .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .back:focus-visible,.btn:focus-visible,footer a:focus-visible{
+    outline:3px solid var(--point);outline-offset:3px}
   .btn.blue{background:var(--point);color:#fff}
   .hud{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
   .chip{flex:1;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);

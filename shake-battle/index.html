@@ -452,7 +452,12 @@ function cleanup(){
 }
 window.addEventListener("pagehide", cleanup);
 document.addEventListener("visibilitychange", function(){
-  if(document.visibilityState === "hidden"){ cleanup(); }
+  if(document.visibilityState === "hidden"){
+    // 라운드 중이면 결과 화면으로 마무리해 먹통 방지, 아니면 정리만
+    if(running){ endRound(); }
+    detachMotion();
+    clearTimeout(motionCheckTimer);
+  }
 });
 
 /* ===== init ===== */

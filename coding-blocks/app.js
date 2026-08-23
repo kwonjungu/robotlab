@@ -222,9 +222,9 @@ const OPINFO={
   fwd:{lab:"앞으로",color:"#3D5AFE"},
   left:{lab:"왼쪽 90°",color:"#7C3AED"},
   right:{lab:"오른쪽 90°",color:"#F59E0B"},
-  loopStart:{lab:"🔁 반복 시작",color:"#12B76A"},
+  loopStart:{lab:"반복 시작",color:"#12B76A"},
   loopEnd:{lab:"반복 끝",color:"#12B76A"},
-  ifStart:{lab:"❓ 만약 앞이 막혔다면",color:"#FF4D4D"},
+  ifStart:{lab:"만약 앞이 막혔다면",color:"#FF4D4D"},
   ifElse:{lab:"아니면",color:"#FF4D4D"},
   ifEnd:{lab:"만약 끝",color:"#FF4D4D"}
 };

@@ -329,7 +329,6 @@ const TOTAL=QUIZ.length;
 // 문제에서 정답 항 + 오답 보기 3개를 만든다
 function buildOptions(kind,ans){
   const opts=[ans];
-  const seen=new Set([JSON.stringify(ans)]);
   let guard=0;
   while(opts.length<4 && guard<50){
     guard++;
@@ -338,8 +337,8 @@ function buildOptions(kind,ans){
     else if(ans.t==='color'){ const keys=Object.keys(PALETTE); cand={t:'color',v:keys[Math.floor(Math.random()*keys.length)]}; }
     else if(ans.t==='arrow'){ const d=[0,90,180,270][Math.floor(Math.random()*4)]; cand={t:'arrow',deg:d}; }
     else if(ans.t==='grow'){ const s=[0.4,0.55,0.7,0.85,1.0][Math.floor(Math.random()*5)]; cand={t:'grow',size:s}; }
-    const key=JSON.stringify(cand);
-    if(!seen.has(key)){ seen.add(key); opts.push(cand); }
+    // 정답/기존 보기와 (회전·크기 정규화까지 반영해) 시각적으로 겹치면 버린다
+    if(!opts.some(o=>itemEqual(o,cand))){ opts.push(cand); }
   }
   // 섞기
   for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
@@ -447,6 +446,7 @@ $('btnRetry').addEventListener('click',()=>{
 });
 
 // ── 내가 패턴 만들기 ──
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 function renderMaker(){
   const kind=document.querySelector('input[name=mk]:checked').value;
   const seq=genPattern(kind, 8);
@@ -456,7 +456,7 @@ function renderMaker(){
     c.className='cell';
     c.innerHTML=itemHTML(it);
     box.appendChild(c);
-    if(document.body.dataset.motion!=='off'){
+    if(!reduceMotion){
       c.style.opacity='0';
       setTimeout(()=>{ c.style.transition='opacity .2s'; c.style.opacity='1'; }, i*90);
     }

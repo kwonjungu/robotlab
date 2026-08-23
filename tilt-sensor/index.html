@@ -29,7 +29,7 @@
   .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:10px}
   .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
     font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
-    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+    border-radius:999px;padding:8px 16px;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s;min-height:44px}
   .back:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
   .back:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
   .back:focus-visible{outline:3px solid var(--point);outline-offset:3px}
@@ -481,6 +481,20 @@ function maybeBadge(){
   const all=[...document.querySelectorAll('.cbox')].every(b=>b.getAttribute('aria-pressed')==='true');
   if(all && ruleWasHit){ $('badge').classList.add('show'); }
 }
+
+// ── 정리(누수 방지): 화면을 벗어나면 센서 리스너 해제 ──
+function cleanup(){
+  window.removeEventListener('deviceorientation',handleOrientation);
+  sensorOn=false;
+}
+window.addEventListener('pagehide',cleanup);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden' && sensorOn){
+    window.removeEventListener('deviceorientation',handleOrientation);
+  }else if(document.visibilityState==='visible' && sensorOn){
+    window.addEventListener('deviceorientation',handleOrientation);
+  }
+});
 
 render();
 </script>

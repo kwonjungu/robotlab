@@ -611,7 +611,7 @@
     startScreen.classList.add("hide");
     overScreen.classList.add("hide");
     ac(); // unlock audio on user gesture
-    if(mode==="light"){ L.times=[]; L.round=0; updateLightHud(); startLightRound(); }
+    if(mode==="light"){ L.times=[]; L.round=0; running=true; updateLightHud(); startLightRound(); }
     else if(mode==="catch"){ startCatch(); }
     else if(mode==="dir"){ startDir(); }
   }
@@ -620,7 +620,13 @@
   // Mode 1: click/tap anywhere on light panel
   lightPanel.addEventListener("pointerdown", function(e){ e.preventDefault(); lightPress(); });
   lightPanel.addEventListener("keydown", function(e){
-    if(e.key===" " || e.key==="Enter"){ e.preventDefault(); lightPress(); }
+    // only handle keys during active play; when an overlay is up, let the
+    // window handler run so space/Enter starts/restarts the game.
+    var overlayUp = !startScreen.classList.contains("hide") || !overScreen.classList.contains("hide");
+    if(!overlayUp && (e.key===" " || e.key==="Enter")){
+      // stop the window-level handler from also firing lightPress() for the same key
+      e.preventDefault(); e.stopPropagation(); lightPress();
+    }
   });
 
   // keyboard: space (mode1 & start), arrows (mode3)
@@ -658,11 +664,24 @@
   startBtn.addEventListener("click", startCurrent);
   againBtn.addEventListener("click", startCurrent);
 
-  // pause safety: if tab hidden mid-round in timed modes, just stop cleanly to avoid weird timers
+  // pause safety: if tab hidden mid-round, abort cleanly so throttled/leaked timers
+  // and stale performance.now() measurements can't corrupt the result on return.
   document.addEventListener("visibilitychange", function(){
-    if(document.hidden && running && (mode==="catch")){
-      // freeze catch by not touching; intervals keep ticking in bg is fine but be safe:
-      // (do nothing drastic; timers stay consistent)
+    if(document.hidden && (running || phase!=="idle")){
+      stopAll();
+      startTitle.textContent = META[mode].title;
+      startDesc.textContent  = META[mode].desc;
+      startHint.textContent  = META[mode].hint;
+      // reset per-mode visuals to their idle look
+      setLightClass("idle");
+      lightHuge.textContent = META[mode].title;
+      lightSub.textContent  = META[mode].desc;
+      lightRounds.innerHTML = "";
+      dirArrow.className = "arrow"; dirArrow.textContent = "→";
+      dirMsg.textContent = "방향이 뜨면 그 방향키를 눌러요";
+      refreshBestStat();
+      overScreen.classList.add("hide");
+      startScreen.classList.remove("hide");
     }
   });
 

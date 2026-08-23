@@ -366,7 +366,7 @@ function onMatchKey(i){
   if(colorMatchesNote(matchIdx, i)){
     solved=true; score++;
     $('feedback').className='feedback ok';
-    $('feedback').innerHTML='정답! <b>'+NOTES[matchIdx].col+'</b> = <b>'+NOTES[matchIdx].note+'</b> 🎵';
+    $('feedback').innerHTML='정답! <b>'+NOTES[matchIdx].col+'</b> = <b>'+NOTES[matchIdx].note+'</b>';
     doneMatch=true;
     afterSolved();
   } else {
@@ -439,7 +439,7 @@ function onSeqKey(i){
   if(input.length===target.length){
     accepting=false; solved=true; score++;
     $('feedback').className='feedback ok';
-    $('feedback').innerHTML='정답! 색 순서대로 완주했어요 🎉';
+    $('feedback').innerHTML='정답! 색 순서대로 완주했어요!';
     doneSeq=true;
     afterSolvedSeq(true);
   }

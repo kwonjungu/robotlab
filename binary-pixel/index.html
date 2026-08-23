@@ -464,7 +464,7 @@ function finishMission(ok, fbEl, correctStr){
   if(ok){
     score++;
     fbEl.className='feedback ok';
-    fbEl.innerHTML='정답! <b>'+correctStr+'</b> 완성 🎉';
+    fbEl.innerHTML='정답! <b>'+correctStr+'</b> 완성!';
     if(mode==='draw') doneDraw=true; else doneRead=true;
   } else {
     fbEl.className='feedback no';

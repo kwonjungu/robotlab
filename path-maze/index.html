@@ -359,11 +359,19 @@ const OPINFO={
 function stage(){return STAGES[stageIdx];}
 function isWall(s,x,y){return s.walls.some(w=>w.x===x&&w.y===y);}
 
+function computeCell(size){
+  const wrap=$('board').parentElement;
+  const avail=wrap && wrap.clientWidth ? wrap.clientWidth : 340;
+  let px=Math.floor((avail-6)/size);
+  px=Math.min(56, px);
+  px=Math.max(30, px);
+  return px;
+}
 function buildBoard(){
   const s=stage();
   const board=$('board'); board.innerHTML='';
   board.style.gridTemplateColumns=`repeat(${s.size},1fr)`;
-  const px=Math.min(56, Math.floor(340/s.size));
+  const px=computeCell(s.size);
   for(let y=0;y<s.size;y++)for(let x=0;x<s.size;x++){
     const c=document.createElement('div');
     c.className='cell'; c.dataset.x=x; c.dataset.y=y;
@@ -562,6 +570,14 @@ document.querySelectorAll('.selfcheck .cbx').forEach(cb=>{
 });
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+let resizeRAF=0;
+function onResize(){
+  if(resizeRAF||running) return;
+  resizeRAF=requestAnimationFrame(()=>{ resizeRAF=0; if(!running) buildBoard(); });
+}
+window.addEventListener('resize',onResize);
+window.addEventListener('orientationchange',onResize);
 
 loadStage(0);
 

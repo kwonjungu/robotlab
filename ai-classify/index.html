@@ -657,7 +657,7 @@ $('testBtn').addEventListener('click',()=>{
   const v=$('verdict');
   v.className='verdict '+(ok?'good':'bad');
   v.innerHTML = ok
-    ? 'AI 예측 <span class="tag">'+predName+'</span> 정답! 🎉'
+    ? 'AI 예측 <span class="tag">'+predName+'</span> 정답!'
     : 'AI 예측 <span class="tag">'+predName+'</span> 실제는 <span class="tag">'+trueName+'</span> — 틀렸어요';
 });
 
