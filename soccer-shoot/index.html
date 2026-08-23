@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>축구 슛 게임 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#12B76A; --point-soft:#D6F5E6;
+    --amber:#FFB800; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--paper);
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;
+    touch-action:manipulation;
+  }
+  nav{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;
+    padding:12px 14px 4px}
+  .back{display:inline-flex;align-items:center;gap:4px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 14px;min-height:40px;box-shadow:var(--hard-sm);
+    transition:transform .1s,box-shadow .1s}
+  .back:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .badge{font-weight:900;font-size:13px;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:8px 14px;box-shadow:var(--hard-sm)}
+  h1{font-size:clamp(22px,6vw,32px);font-weight:900;letter-spacing:-.03em;margin:4px 0 0}
+  .kicker{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink);background:var(--amber);
+    border:2px solid var(--ink);border-radius:999px;padding:3px 10px;margin-bottom:6px}
+  .wrap{width:100%;max-width:520px;padding:8px 14px 24px;text-align:center}
+  .stage{position:relative;width:100%;margin-top:10px}
+  canvas{width:100%;height:auto;display:block;background:#5BB450;
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);
+    touch-action:none}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;
+    background:rgba(20,20,20,.72);border-radius:var(--r);color:#fff;padding:20px}
+  .overlay.hidden{display:none}
+  .overlay h2{margin:0;font-size:clamp(24px,7vw,38px);font-weight:900;letter-spacing:-.03em}
+  .overlay p{margin:0;font-size:15px;font-weight:700;line-height:1.6;color:#f2f2f2}
+  .btn{font-family:inherit;font-weight:900;font-size:17px;cursor:pointer;
+    background:var(--amber);color:var(--ink);border:3px solid var(--ink);
+    border-radius:var(--r-sm);padding:12px 26px;min-height:52px;box-shadow:var(--hard-sm);
+    transition:transform .1s,box-shadow .1s;touch-action:none}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn.green{background:var(--point);color:#fff}
+  .hud{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
+  .chip{flex:1;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    padding:8px 6px;box-shadow:var(--hard-sm)}
+  .chip b{display:block;font-size:22px;font-weight:900}
+  .chip span{font-size:11px;font-weight:800;color:var(--muted)}
+  .hint{margin-top:12px;font-size:13px;font-weight:700;color:var(--muted);line-height:1.6}
+  footer{margin-top:6px;padding:12px}
+  footer a{text-decoration:none;color:var(--muted);font-weight:800;font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="back" href="../">← 수업터 홈</a>
+  <span class="badge">⚽ 축구 슛</span>
+</nav>
+<div class="wrap">
+  <span class="kicker">ROBOT LAB · SOCCER</span>
+  <h1>축구 슛 게임</h1>
+  <div class="stage">
+    <canvas id="cv" width="480" height="600" aria-label="축구 슛 게임 화면"></canvas>
+    <div class="overlay" id="startScreen">
+      <h2>⚽ 축구 슛!</h2>
+      <p>공을 <b>당겼다 놓아</b> 슛하세요.<br>골키퍼를 피해 골대에 넣어요.<br>기회는 <b>5번</b>!</p>
+      <button class="btn green" id="startBtn">시작하기</button>
+    </div>
+    <div class="overlay hidden" id="endScreen">
+      <h2 id="endTitle">경기 끝!</h2>
+      <p id="endMsg"></p>
+      <button class="btn" id="againBtn">다시 하기</button>
+    </div>
+  </div>
+  <div class="hud">
+    <div class="chip"><b id="scoreV">0</b><span>득점</span></div>
+    <div class="chip"><b id="shotV">5</b><span>남은 슛</span></div>
+    <div class="chip"><b id="bestV">0</b><span>최고</span></div>
+  </div>
+  <p class="hint" id="hint">공을 드래그해서 방향과 세기를 정하고 놓으세요.<br>키보드: ← → 방향 · 스페이스로 슛</p>
+</div>
+<footer><a href="../">← 신나는 로봇 창작랩 수업터 홈</a></footer>
+
+<script>
+"use strict";
+(function(){
+  var BEST_KEY = "robotlab_soccer_best";
+  var canvas = document.getElementById("cv");
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+
+  var scoreEl = document.getElementById("scoreV");
+  var shotEl  = document.getElementById("shotV");
+  var bestEl  = document.getElementById("bestV");
+  var hintEl  = document.getElementById("hint");
+  var startScreen = document.getElementById("startScreen");
+  var endScreen = document.getElementById("endScreen");
+  var endTitle = document.getElementById("endTitle");
+  var endMsg = document.getElementById("endMsg");
+
+  // --- Field geometry ---
+  var GOAL = { x: W*0.5, y: 70, w: 260, h: 90 };   // goal mouth
+  var START = { x: W*0.5, y: H-90 };               // ball rest position
+  var BALL_R = 16;
+
+  var best = 0;
+  try { best = Number(localStorage.getItem(BEST_KEY) || 0) || 0; } catch(e){}
+  bestEl.textContent = best;
+
+  function saveBest(v){
+    try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){}
+  }
+
+  var state = "idle"; // idle | aim | flying | result | over
+  var score = 0, shots = 5;
+  var ball = { x:START.x, y:START.y, vx:0, vy:0, r:BALL_R };
+  var keeper = { x:W*0.5, y:GOAL.y+GOAL.h-8, w:70, h:16, dir:1, speed:150 };
+  var aim = { active:false, sx:0, sy:0, cx:0, cy:0 };
+  var resultText = "", resultColor = "#fff", resultTimer = 0;
+
+  var MAX_PULL = 150;    // max drag distance (px in canvas coords)
+  var POWER = 5.2;       // pull -> velocity multiplier factor
+
+  function resetBall(){
+    ball.x = START.x; ball.y = START.y; ball.vx = 0; ball.vy = 0;
+  }
+
+  function startGame(){
+    score = 0; shots = 5; resultText = "";
+    keeper.speed = 150; keeper.dir = 1; keeper.x = W*0.5;
+    resetBall();
+    state = "idle";
+    startScreen.classList.add("hidden");
+    endScreen.classList.add("hidden");
+    updateHud();
+    hintEl.innerHTML = "공을 드래그해서 방향과 세기를 정하고 놓으세요.<br>키보드: ← → 방향 · 스페이스로 슛";
+  }
+
+  function updateHud(){
+    scoreEl.textContent = score;
+    shotEl.textContent = shots;
+    bestEl.textContent = best;
+  }
+
+  // Compute shot velocity from a pull vector (drag from ball backwards)
+  // pull vector = (start - current). Returns {vx, vy} in px/sec.
+  function velocityFromPull(dx, dy){
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > MAX_PULL) { var s = MAX_PULL/dist; dx*=s; dy*=s; }
+    return { vx: dx * POWER, vy: dy * POWER };
+  }
+
+  // --- Input: pointer (mouse + touch) ---
+  function toCanvas(clientX, clientY){
+    var r = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - r.left) * (W / r.width),
+      y: (clientY - r.top) * (H / r.height)
+    };
+  }
+
+  function pointerDown(e){
+    if (state !== "idle") return;
+    var p = toCanvas(e.clientX, e.clientY);
+    // must grab near ball
+    var d = Math.hypot(p.x - ball.x, p.y - ball.y);
+    if (d < 70){
+      aim.active = true; state = "aim";
+      aim.sx = ball.x; aim.sy = ball.y; aim.cx = p.x; aim.cy = p.y;
+      e.preventDefault();
+    }
+  }
+  function pointerMove(e){
+    if (state !== "aim" || !aim.active) return;
+    var p = toCanvas(e.clientX, e.clientY);
+    aim.cx = p.x; aim.cy = p.y;
+    e.preventDefault();
+  }
+  function pointerUp(e){
+    if (state !== "aim" || !aim.active) return;
+    aim.active = false;
+    // pull = from current back to start (slingshot)
+    var dx = aim.sx - aim.cx;
+    var dy = aim.sy - aim.cy;
+    var dist = Math.hypot(dx, dy);
+    if (dist < 12){ state = "idle"; return; } // too small, cancel
+    var v = velocityFromPull(dx, dy);
+    shoot(v.vx, v.vy);
+    e.preventDefault();
+  }
+
+  canvas.addEventListener("pointerdown", pointerDown);
+  canvas.addEventListener("pointermove", pointerMove);
+  window.addEventListener("pointerup", pointerUp);
+
+  // --- Keyboard aiming ---
+  var kbAngle = -Math.PI/2; // straight up
+  var kbPower = 0.7;        // 0..1
+  function shootKeyboard(){
+    if (state !== "idle") return;
+    var mag = MAX_PULL * kbPower;
+    var dx = Math.cos(kbAngle) * mag;
+    var dy = Math.sin(kbAngle) * mag;
+    var v = velocityFromPull(dx, dy);
+    shoot(v.vx, v.vy);
+  }
+  window.addEventListener("keydown", function(e){
+    if (state === "idle"){
+      if (e.key === "ArrowLeft"){ kbAngle -= 0.12; if(kbAngle < -Math.PI+0.3) kbAngle=-Math.PI+0.3; e.preventDefault(); }
+      else if (e.key === "ArrowRight"){ kbAngle += 0.12; if(kbAngle > -0.3) kbAngle=-0.3; e.preventDefault(); }
+      else if (e.key === "ArrowUp"){ kbPower = Math.min(1, kbPower+0.08); e.preventDefault(); }
+      else if (e.key === "ArrowDown"){ kbPower = Math.max(0.25, kbPower-0.08); e.preventDefault(); }
+      else if (e.key === " " || e.key === "Enter"){ shootKeyboard(); e.preventDefault(); }
+    } else if ((state === "over") && (e.key === " " || e.key === "Enter")){
+      startGame(); e.preventDefault();
+    }
+  });
+
+  function shoot(vx, vy){
+    ball.vx = vx; ball.vy = vy;
+    state = "flying";
+  }
+
+  // --- Collision / scoring helpers (also used by tests) ---
+  // Returns "goal","save","miss", or null (still flying)
+  function evaluateBall(b, k, goal){
+    // reached goal line?
+    if (b.y - b.r <= goal.y){
+      var left = goal.x - goal.w/2;
+      var right = goal.x + goal.w/2;
+      if (b.x < left || b.x > right) return "miss";  // outside posts
+      // within goal mouth: keeper block?
+      var kl = k.x - k.w/2, kr = k.x + k.w/2;
+      if (b.x + b.r >= kl && b.x - b.r <= kr) return "save";
+      return "goal";
+    }
+    return null;
+  }
+
+  function endShot(kind){
+    if (kind === "goal"){
+      score++; resultText = "골! ⚽"; resultColor = "#FFB800";
+      if (score > best){ best = score; saveBest(best); }
+    } else if (kind === "save"){
+      resultText = "골키퍼 선방!"; resultColor = "#FF4D4D";
+    } else {
+      resultText = "빗나감!"; resultColor = "#FF4D4D";
+    }
+    shots--;
+    resultTimer = 1.1;
+    state = "result";
+    updateHud();
+  }
+
+  function finishGame(){
+    state = "over";
+    var msg = "최종 득점 <b>" + score + "</b>점!";
+    if (score >= best && score > 0) msg += "<br>🏆 최고 기록!";
+    endTitle.textContent = score >= 4 ? "명 슈터! 🎉" : "경기 끝!";
+    endMsg.innerHTML = msg + "<br>최고: " + best + "점";
+    endScreen.classList.remove("hidden");
+  }
+
+  // --- Update loop ---
+  function update(dt){
+    // keeper always patrols within goal mouth
+    var kl = GOAL.x - GOAL.w/2 + keeper.w/2 + 4;
+    var kr = GOAL.x + GOAL.w/2 - keeper.w/2 - 4;
+    keeper.x += keeper.dir * keeper.speed * dt;
+    if (keeper.x > kr){ keeper.x = kr; keeper.dir = -1; }
+    if (keeper.x < kl){ keeper.x = kl; keeper.dir = 1; }
+
+    if (state === "flying"){
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+      // gentle friction / deceleration
+      ball.vx *= (1 - 0.6*dt);
+      ball.vy *= (1 - 0.35*dt);
+      // side wall bounce (keep ball on field)
+      if (ball.x - ball.r < 6){ ball.x = 6+ball.r; ball.vx = -ball.vx*0.6; }
+      if (ball.x + ball.r > W-6){ ball.x = W-6-ball.r; ball.vx = -ball.vx*0.6; }
+
+      var res = evaluateBall(ball, keeper, GOAL);
+      if (res){ endShot(res); }
+      // ball ran out of steam without reaching goal
+      else if (Math.hypot(ball.vx, ball.vy) < 30 && ball.y > GOAL.y+GOAL.h){
+        endShot("miss");
+      }
+    } else if (state === "result"){
+      // save moves ball a touch, then settle
+      resultTimer -= dt;
+      if (resultTimer <= 0){
+        if (shots <= 0){ finishGame(); }
+        else { resetBall(); state = "idle"; }
+      }
+    }
+  }
+
+  // --- Draw ---
+  function drawField(){
+    ctx.fillStyle = "#5BB450"; ctx.fillRect(0,0,W,H);
+    // mow stripes
+    ctx.fillStyle = "#54A94A";
+    for (var i=0;i<H;i+=60){ ctx.fillRect(0,i,W,30); }
+    // penalty box
+    ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 3;
+    ctx.strokeRect(W*0.5-150, GOAL.y+GOAL.h, 300, 150);
+  }
+
+  function drawGoal(){
+    var left = GOAL.x - GOAL.w/2, right = GOAL.x + GOAL.w/2;
+    // net
+    ctx.fillStyle = "rgba(255,255,255,.14)";
+    ctx.fillRect(left, GOAL.y, GOAL.w, GOAL.h);
+    ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1;
+    for (var x=left; x<=right; x+=14){ ctx.beginPath(); ctx.moveTo(x,GOAL.y); ctx.lineTo(x,GOAL.y+GOAL.h); ctx.stroke(); }
+    for (var y=GOAL.y; y<=GOAL.y+GOAL.h; y+=14){ ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke(); }
+    // posts
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(left, GOAL.y+GOAL.h); ctx.lineTo(left, GOAL.y);
+    ctx.lineTo(right, GOAL.y); ctx.lineTo(right, GOAL.y+GOAL.h);
+    ctx.stroke();
+  }
+
+  function drawKeeper(){
+    var k = keeper;
+    ctx.fillStyle = "#141414";
+    // body
+    ctx.fillRect(k.x-k.w/2, k.y-k.h/2, k.w, k.h);
+    ctx.fillStyle = "#FF4D4D";
+    ctx.fillRect(k.x-k.w/2, k.y-k.h/2, k.w, 6);
+    // head
+    ctx.beginPath(); ctx.fillStyle="#F6C89A";
+    ctx.arc(k.x, k.y-k.h/2-8, 8, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#141414"; ctx.lineWidth=2; ctx.stroke();
+  }
+
+  function drawBall(){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+    ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = "#141414"; ctx.stroke();
+    // pentagon marks
+    ctx.fillStyle = "#141414";
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, 4, 0, Math.PI*2); ctx.fill();
+    for (var a=0;a<5;a++){
+      var ang = a*Math.PI*2/5 - Math.PI/2;
+      var px = ball.x + Math.cos(ang)*8, py = ball.y + Math.sin(ang)*8;
+      ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawAim(){
+    if (state !== "aim") return;
+    var dx = aim.sx - aim.cx, dy = aim.sy - aim.cy;
+    var dist = Math.hypot(dx, dy);
+    if (dist > MAX_PULL){ var s = MAX_PULL/dist; dx*=s; dy*=s; }
+    var tx = ball.x + dx, ty = ball.y + dy; // shot direction preview
+    // power color
+    var pw = Math.min(1, dist/MAX_PULL);
+    var col = pw < 0.5 ? "#12B76A" : pw < 0.8 ? "#FFB800" : "#FF4D4D";
+    ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.setLineDash([10,8]);
+    ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    // arrowhead
+    var ang = Math.atan2(ty-ball.y, tx-ball.x);
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - 14*Math.cos(ang-0.4), ty - 14*Math.sin(ang-0.4));
+    ctx.lineTo(tx - 14*Math.cos(ang+0.4), ty - 14*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawKbAim(){
+    if (state !== "idle") return;
+    var mag = MAX_PULL * kbPower;
+    var tx = ball.x + Math.cos(kbAngle)*mag;
+    var ty = ball.y + Math.sin(kbAngle)*mag;
+    ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 3; ctx.setLineDash([6,6]);
+    ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawResult(){
+    if (state !== "result") return;
+    ctx.save();
+    ctx.font = "900 40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = resultColor;
+    ctx.strokeStyle = "#141414"; ctx.lineWidth = 5;
+    ctx.strokeText(resultText, W/2, H/2);
+    ctx.fillText(resultText, W/2, H/2);
+    ctx.restore();
+  }
+
+  function render(){
+    drawField();
+    drawGoal();
+    drawKeeper();
+    drawKbAim();
+    drawBall();
+    drawAim();
+    drawResult();
+  }
+
+  // --- Main loop with delta-time, pause on hidden tab ---
+  var last = 0, running = true;
+  function frame(ts){
+    if (!last) last = ts;
+    var dt = (ts - last)/1000;
+    last = ts;
+    if (dt > 0.05) dt = 0.05; // clamp
+    if (running && (state==="flying"||state==="result"||state==="idle"||state==="aim")){
+      update(dt);
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener("visibilitychange", function(){
+    running = !document.hidden;
+    last = 0;
+  });
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("againBtn").addEventListener("click", startGame);
+
+  // initial idle render
+  requestAnimationFrame(frame);
+
+  // Expose for tests
+  if (typeof module !== "undefined" && module.exports){
+    module.exports = { evaluateBall: evaluateBall, velocityFromPull: velocityFromPull,
+      GOAL: GOAL, MAX_PULL: MAX_PULL };
+  }
+})();
+</script>
+</body>
+</html>

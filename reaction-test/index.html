@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>로봇 조종사 반응속도 테스트 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.5;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 40px}
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:13px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:7px 14px;box-shadow:var(--hard-sm)}
+  .back:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .lesson-tag{font-weight:900;font-size:13px;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:var(--hard-sm)}
+  h1{font-size:clamp(23px,6vw,34px);font-weight:900;letter-spacing:-.035em;line-height:1.05;margin-bottom:6px}
+  .lead{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:14px}
+
+  /* mode tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{flex:1;min-width:96px;min-height:46px;font-family:inherit;font-weight:900;font-size:14px;
+    color:var(--ink);background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);cursor:pointer;padding:8px 6px;line-height:1.15}
+  .tab:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .tab[aria-selected="true"]{background:var(--point);color:#fff}
+  .tab .em{display:block;font-size:11px;font-weight:700;opacity:.85;margin-top:2px}
+
+  /* HUD */
+  .hud{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .stat{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:6px 13px;font-weight:900;font-size:14px;box-shadow:var(--hard-sm)}
+  .stat .lb{font-weight:800;font-size:12px;color:var(--muted)}
+
+  /* stage */
+  .stage{position:relative;width:100%;aspect-ratio:3/4;max-height:70vh;margin:0 auto;
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);overflow:hidden;
+    background:var(--surface);touch-action:manipulation;user-select:none}
+
+  /* MODE 1: light panel */
+  .light{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:20px;gap:12px;cursor:pointer}
+  .light.wait{background:#3a1414;color:#ffd4d4}
+  .light.ready{background:#7a1a1a;color:#fff}
+  .light.go{background:#0f6b3d;color:#fff}
+  .light.idle{background:var(--surface);color:var(--ink)}
+  .light.result{background:var(--point-soft);color:var(--ink)}
+  .light.tooearly{background:#b23a00;color:#fff}
+  .light .huge{font-size:clamp(30px,9vw,54px);font-weight:900;letter-spacing:-.03em}
+  .light .sub{font-size:15px;font-weight:700;max-width:320px}
+  .light .rounds{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center}
+  .dot{width:26px;height:26px;border-radius:50%;border:2.5px solid currentColor;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;opacity:.5}
+  .dot.done{opacity:1;background:currentColor}
+  .dot.done b{color:#0f6b3d}
+
+  /* MODE 2 & 3 arena */
+  .arena{position:absolute;inset:0;background:#0e1330;overflow:hidden}
+  .grid-bg{position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:30px 30px}
+  .target{position:absolute;width:64px;height:64px;border-radius:16px;
+    background:var(--amber);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:34px;line-height:1;transform:translate(-50%,-50%);touch-action:manipulation}
+  .target.tap{animation:pop .25s ease}
+  @keyframes pop{0%{transform:translate(-50%,-50%) scale(.4)}70%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
+
+  /* MODE 3 arrow */
+  .arrowbox{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;color:#fff;gap:14px;text-align:center;padding:16px}
+  .arrow{font-size:clamp(70px,26vw,150px);line-height:1;font-weight:900}
+  .arrow.hit{color:var(--green)} .arrow.miss{color:var(--red)}
+  .arrowmsg{font-size:16px;font-weight:800;min-height:22px}
+
+  /* overlay screens */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:22px;gap:12px;background:rgba(20,20,20,.9);color:#fff}
+  .screen.hide{display:none}
+  .screen h2{font-size:clamp(24px,7vw,38px);font-weight:900;letter-spacing:-.03em}
+  .screen p{font-size:14px;font-weight:600;color:#e6e6e6;max-width:340px}
+  .screen .big{font-size:22px;font-weight:900;color:var(--amber)}
+  .screen .grade{font-size:20px;font-weight:900;color:#fff;background:var(--point);
+    border:2.5px solid #fff;border-radius:999px;padding:6px 18px}
+  .btn{font-family:inherit;font-weight:900;font-size:17px;color:var(--ink);background:var(--amber);
+    border:3px solid var(--ink);border-radius:14px;padding:13px 26px;box-shadow:var(--hard-sm);cursor:pointer;
+    min-height:48px;min-width:150px}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn.point{background:var(--point);color:#fff}
+
+  /* on-screen direction pad (mode 3) */
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+    gap:8px;margin-top:12px;max-width:280px;margin-left:auto;margin-right:auto}
+  .pad button{font-family:inherit;font-weight:900;font-size:24px;color:var(--ink);background:var(--surface);
+    border:3px solid var(--ink);border-radius:14px;box-shadow:var(--hard-sm);min-height:56px;cursor:pointer;
+    user-select:none;touch-action:manipulation}
+  .pad button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);background:var(--point-soft)}
+  .pad .up{grid-column:2;grid-row:1}
+  .pad .left{grid-column:1;grid-row:2}
+  .pad .down{grid-column:2;grid-row:2}
+  .pad .right{grid-column:3;grid-row:2}
+  .pad.hide{display:none}
+
+  .help{margin-top:16px;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);padding:13px 16px;font-size:13px;font-weight:600;color:#333}
+  .help b{color:var(--ink)}
+  .help+.help{margin-top:10px}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  :focus-visible{outline:3px solid var(--point);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">반응속도 테스트</span>
+  </div>
+
+  <h1>로봇 조종사 반응속도 테스트</h1>
+  <p class="lead">로봇을 잘 조종하려면 눈과 손이 빨라야 해요. 여러분의 반응속도를 재 봐요!</p>
+
+  <div class="tabs" role="tablist" aria-label="게임 모드 선택">
+    <button class="tab" role="tab" id="tab-light" aria-selected="true" data-mode="light">불 켜지면 누르기<span class="em">반응시간 측정</span></button>
+    <button class="tab" role="tab" id="tab-catch" aria-selected="false" data-mode="catch">나타나면 잡기<span class="em">30초 잡기</span></button>
+    <button class="tab" role="tab" id="tab-dir" aria-selected="false" data-mode="dir">신호 방향 반응<span class="em">방향키 반응</span></button>
+  </div>
+
+  <div class="hud" id="hud">
+    <span class="stat"><span class="lb" id="stat1Lb">평균</span><span id="stat1">-</span></span>
+    <span class="stat"><span class="lb" id="stat2Lb">최고</span><span id="stat2">-</span></span>
+    <span class="stat"><span class="lb" id="stat3Lb">진행</span><span id="stat3">-</span></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- MODE 1 -->
+    <div class="light idle" id="lightPanel" role="button" tabindex="0" aria-label="반응 패널">
+      <div class="huge" id="lightHuge">불 켜지면 누르기</div>
+      <div class="sub" id="lightSub">초록색 "지금!"이 뜨면 최대한 빨리 눌러요.</div>
+      <div class="rounds" id="lightRounds" aria-hidden="true"></div>
+    </div>
+
+    <!-- MODE 2 -->
+    <div class="arena" id="catchArena" style="display:none">
+      <div class="grid-bg"></div>
+    </div>
+
+    <!-- MODE 3 -->
+    <div class="arena" id="dirArena" style="display:none">
+      <div class="grid-bg"></div>
+      <div class="arrowbox">
+        <div class="arrow" id="dirArrow">→</div>
+        <div class="arrowmsg" id="dirMsg">방향이 뜨면 그 방향키를 눌러요</div>
+      </div>
+    </div>
+
+    <!-- start / over overlays -->
+    <div class="screen" id="startScreen">
+      <h2 id="startTitle">불 켜지면 누르기</h2>
+      <p id="startDesc">준비(빨강) → 지금!(초록) 으로 바뀌면 최대한 빨리 눌러요. 5번의 평균 반응시간을 재요.</p>
+      <button class="btn" id="startBtn">시작하기 ▶</button>
+      <p style="font-size:12px" id="startHint">화면 클릭 · 스페이스바로 반응해요</p>
+    </div>
+
+    <div class="screen hide" id="overScreen">
+      <h2 id="overTitle">결과</h2>
+      <p class="big" id="overScore">-</p>
+      <span class="grade" id="overGrade">-</span>
+      <p id="overBest"></p>
+      <button class="btn point" id="againBtn">다시 하기 ↻</button>
+    </div>
+  </div>
+
+  <!-- direction pad for mode 3 (touch) -->
+  <div class="pad hide" id="dirPad" aria-label="방향 버튼">
+    <button class="up"    data-dir="up"    aria-label="위쪽">▲</button>
+    <button class="left"  data-dir="left"  aria-label="왼쪽">◀</button>
+    <button class="down"  data-dir="down"  aria-label="아래쪽">▼</button>
+    <button class="right" data-dir="right" aria-label="오른쪽">▶</button>
+  </div>
+
+  <div class="help" id="helpText">
+    <b>불 켜지면 누르기</b> · 빨간 "준비" 화면에서 기다렸다가, 초록 "지금!"이 뜨면 <b>바로</b> 화면을 누르거나 <b>스페이스바</b>를 눌러요. 초록 전에 누르면 "너무 빨라요"가 떠요. 5번의 평균 반응시간(ms)을 재요.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- persistence (try/catch required) ----------
+  var KEYS = {
+    light: "reactiontest_light_best_v1",  // lower is better (avg ms)
+    catch: "reactiontest_catch_best_v1",  // higher is better (count)
+    dir:   "reactiontest_dir_best_v1"     // lower is better (avg ms)
+  };
+  function loadBest(key){
+    try { var v = localStorage.getItem(key); return v===null ? null : Number(v); } catch(e){ return null; }
+  }
+  function saveBest(key, v){
+    try { localStorage.setItem(key, String(v)); } catch(e){}
+  }
+
+  // ---------- pure logic (node-checkable) ----------
+  function average(arr){
+    if(!arr || arr.length===0) return 0;
+    var s = 0;
+    for(var i=0;i<arr.length;i++) s += arr[i];
+    return s / arr.length;
+  }
+  // grade by average reaction time (ms). lower = better.
+  function gradeByTime(ms){
+    if(ms <= 250) return "번개 조종사 ⚡";
+    if(ms <= 350) return "베테랑 조종사";
+    if(ms <= 450) return "정식 조종사";
+    return "견습 조종사";
+  }
+  // grade by catch count in 30s. higher = better.
+  function gradeByCount(n){
+    if(n >= 28) return "번개 조종사 ⚡";
+    if(n >= 20) return "베테랑 조종사";
+    if(n >= 12) return "정식 조종사";
+    return "견습 조종사";
+  }
+  // is a "too early" press? (green not yet shown)
+  function isTooEarly(phase){ return phase === "wait" || phase === "ready"; }
+
+  // expose for node tests
+  if(typeof module!=="undefined" && module.exports){
+    module.exports = { average:average, gradeByTime:gradeByTime, gradeByCount:gradeByCount, isTooEarly:isTooEarly };
+    return;
+  }
+
+  // ---------- DOM ----------
+  var stage      = document.getElementById("stage");
+  var lightPanel = document.getElementById("lightPanel");
+  var lightHuge  = document.getElementById("lightHuge");
+  var lightSub   = document.getElementById("lightSub");
+  var lightRounds= document.getElementById("lightRounds");
+  var catchArena = document.getElementById("catchArena");
+  var dirArena   = document.getElementById("dirArena");
+  var dirArrow   = document.getElementById("dirArrow");
+  var dirMsg     = document.getElementById("dirMsg");
+  var dirPad     = document.getElementById("dirPad");
+
+  var startScreen= document.getElementById("startScreen");
+  var overScreen = document.getElementById("overScreen");
+  var startTitle = document.getElementById("startTitle");
+  var startDesc  = document.getElementById("startDesc");
+  var startHint  = document.getElementById("startHint");
+  var startBtn   = document.getElementById("startBtn");
+  var againBtn   = document.getElementById("againBtn");
+  var overTitle  = document.getElementById("overTitle");
+  var overScore  = document.getElementById("overScore");
+  var overGrade  = document.getElementById("overGrade");
+  var overBest   = document.getElementById("overBest");
+  var helpText   = document.getElementById("helpText");
+
+  var stat1=document.getElementById("stat1"), stat2=document.getElementById("stat2"), stat3=document.getElementById("stat3");
+  var stat1Lb=document.getElementById("stat1Lb"), stat2Lb=document.getElementById("stat2Lb"), stat3Lb=document.getElementById("stat3Lb");
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+
+  // ---------- timer manager: track & clear all timers/intervals ----------
+  var timers = [];
+  function later(fn, ms){ var id = setTimeout(fn, ms); timers.push(id); return id; }
+  function every(fn, ms){ var id = setInterval(fn, ms); timers.push(id); return id; }
+  function clearTimers(){
+    for(var i=0;i<timers.length;i++){ clearTimeout(timers[i]); clearInterval(timers[i]); }
+    timers = [];
+  }
+
+  // ---------- audio (optional, muted-safe) ----------
+  var AC = null;
+  function ac(){ if(AC) return AC; try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } return AC; }
+  function beep(freq, dur, type){
+    var a = ac(); if(!a) return;
+    try{
+      if(a.state==="suspended") a.resume();
+      var o=a.createOscillator(), g=a.createGain();
+      o.type=type||"square"; o.frequency.value=freq; g.gain.value=0.06;
+      o.connect(g); g.connect(a.destination);
+      var t=a.currentTime; o.start(t);
+      g.gain.setValueAtTime(0.06,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.stop(t+dur);
+    }catch(e){}
+  }
+
+  // ---------- global state ----------
+  var mode = "light";           // light | catch | dir
+  var phase = "idle";           // per-mode phase machine
+  var running = false;          // is a round active (blocks tab-swap mid-run? no, we just reset)
+
+  // per-mode data
+  var HELP = {
+    light: '<b>불 켜지면 누르기</b> · 빨간 "준비" 화면에서 기다렸다가, 초록 "지금!"이 뜨면 <b>바로</b> 화면을 누르거나 <b>스페이스바</b>를 눌러요. 초록 전에 누르면 "너무 빨라요"가 떠요. 5번의 평균 반응시간(ms)을 재요.',
+    catch: '<b>나타나면 잡기</b> · 화면에 <b>로봇 표적</b>이 하나씩 나타나요. 최대한 빨리 <b>탭(클릭)</b> 하면 다음 표적이 다른 곳에 나타나요. <b>30초</b> 동안 몇 개를 잡는지 세어요.',
+    dir:   '<b>신호 방향 반응</b> · 큰 <b>화살표</b>가 뜨면 그 방향의 <b>방향키</b>(← ↑ → ↓)나 아래 <b>방향 버튼</b>을 눌러요. 10번 동안 맞힌 개수와 평균 반응시간을 재요.'
+  };
+  var META = {
+    light: { title:"불 켜지면 누르기", desc:'준비(빨강) → 지금!(초록) 으로 바뀌면 최대한 빨리 눌러요. 5번의 평균 반응시간을 재요.', hint:"화면 클릭 · 스페이스바로 반응해요" },
+    catch: { title:"나타나면 잡기", desc:"나타나는 로봇 표적을 빠르게 탭! 30초 동안 몇 개를 잡을 수 있을까요?", hint:"표적을 탭 · 클릭해서 잡아요" },
+    dir:   { title:"신호 방향 반응", desc:"화살표가 가리키는 방향키를 빠르게 눌러요. 10번의 정확도와 평균 반응시간을 재요.", hint:"방향키 ← ↑ → ↓ · 아래 버튼도 돼요" }
+  };
+
+  // ===== MODE 1: light =====
+  var L = { round:0, total:5, times:[], startTime:0 };
+  function renderLightDots(){
+    var html = "";
+    for(var i=0;i<L.total;i++){
+      var done = i < L.times.length;
+      html += '<span class="dot'+(done?' done':'')+'">'+(done?'<b>'+Math.round(L.times[i])+'</b>':(i+1))+'</span>';
+    }
+    lightRounds.innerHTML = html;
+  }
+  function setLightClass(cls){ lightPanel.className = "light " + cls; }
+  function startLightRound(){
+    phase = "wait";
+    setLightClass("wait");
+    lightHuge.textContent = "준비…";
+    lightSub.textContent = "초록색이 뜰 때까지 기다려요";
+    renderLightDots();
+    // random delay 1.2s ~ 3.5s, then go green
+    var delay = 1200 + Math.random()*2300;
+    later(function(){
+      if(phase!=="wait") return;
+      phase = "ready"; // brief buffer state still "before green" -> but we go green immediately
+      goGreen();
+    }, delay);
+  }
+  function goGreen(){
+    phase = "go";
+    setLightClass("go");
+    lightHuge.textContent = "지금!";
+    lightSub.textContent = "빨리 눌러요!";
+    L.startTime = performance.now();
+    beep(880, 0.08, "square");
+  }
+  function lightPress(){
+    if(mode!=="light") return;
+    if(phase==="idle") return;
+    if(isTooEarly(phase)){
+      // too early
+      phase = "tooearly";
+      clearTimers();
+      setLightClass("tooearly");
+      lightHuge.textContent = "너무 빨라요!";
+      lightSub.textContent = "초록불이 뜨기 전에 눌렀어요. 다시 시작해요.";
+      beep(140,0.25,"sawtooth");
+      later(function(){ if(mode==="light"){ L.times=[]; L.round=0; startLightRound(); } }, 1400);
+      return;
+    }
+    if(phase==="go"){
+      var rt = performance.now() - L.startTime;
+      L.times.push(rt);
+      L.round++;
+      beep(660,0.06,"square");
+      updateLightHud();
+      if(L.round >= L.total){
+        finishLight();
+      } else {
+        // brief feedback then next round
+        phase="between";
+        setLightClass("result");
+        lightHuge.textContent = Math.round(rt) + " ms";
+        lightSub.textContent = (L.round) + " / " + L.total + " 완료 · 잠시 후 다음";
+        renderLightDots();
+        later(function(){ if(mode==="light") startLightRound(); }, 900);
+      }
+    }
+  }
+  function updateLightHud(){
+    var avg = L.times.length ? average(L.times) : 0;
+    stat1.textContent = L.times.length ? Math.round(avg)+"ms" : "-";
+    stat3.textContent = L.round + "/" + L.total;
+  }
+  function finishLight(){
+    phase = "idle"; running = false;
+    var avg = Math.round(average(L.times));
+    var best = loadBest(KEYS.light);
+    var isNew = (best===null || avg < best);
+    if(isNew){ saveBest(KEYS.light, avg); best = avg; }
+    overTitle.textContent = "반응속도 결과";
+    overScore.textContent = "평균 " + avg + " ms";
+    overGrade.textContent = gradeByTime(avg);
+    overBest.textContent = isNew ? "🎉 최고 기록 갱신! (가장 빠른 평균)" : ("최고 기록 " + best + " ms");
+    stat2.textContent = best + "ms";
+    overScreen.classList.remove("hide");
+  }
+
+  // ===== MODE 2: catch =====
+  var C = { count:0, timeLeft:30, target:null, endInterval:null, appearTime:0 };
+  var currentTarget = null;
+  function clearCatchTargets(){
+    var t = catchArena.querySelectorAll(".target");
+    for(var i=0;i<t.length;i++) t[i].parentNode.removeChild(t[i]);
+    currentTarget = null;
+  }
+  function spawnTarget(){
+    clearCatchTargets();
+    var el = document.createElement("div");
+    el.className = "target tap";
+    el.textContent = Math.random()<0.5 ? "🤖" : "⭐";
+    el.setAttribute("aria-label","표적 잡기");
+    // position: keep inside with margin (target is 64px, translate -50%)
+    var rect = stage.getBoundingClientRect();
+    var margin = 12, half = 34;
+    var maxX = rect.width  - margin - half;
+    var maxY = rect.height - margin - half;
+    var minX = margin + half, minY = margin + half;
+    var x = minX + Math.random()*Math.max(1,(maxX-minX));
+    var y = minY + Math.random()*Math.max(1,(maxY-minY));
+    // as percentage so it scales with container
+    el.style.left = (x/rect.width*100) + "%";
+    el.style.top  = (y/rect.height*100) + "%";
+    C.appearTime = performance.now();
+    var onHit = function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(mode!=="catch" || phase!=="play") return;
+      C.count++;
+      beep(760,0.06,"square");
+      stat1.textContent = C.count;
+      spawnTarget();
+    };
+    el.addEventListener("pointerdown", onHit);
+    catchArena.appendChild(el);
+    currentTarget = el;
+  }
+  function startCatch(){
+    C.count=0; C.timeLeft=30; phase="play"; running=true;
+    stat1.textContent = "0"; stat3.textContent = "30s";
+    clearCatchTargets();
+    spawnTarget();
+    every(function(){
+      C.timeLeft--;
+      stat3.textContent = C.timeLeft + "s";
+      if(C.timeLeft<=0){ finishCatch(); }
+    }, 1000);
+  }
+  function finishCatch(){
+    clearTimers(); clearCatchTargets();
+    phase="idle"; running=false;
+    var n = C.count;
+    var best = loadBest(KEYS.catch);
+    var isNew = (best===null || n > best);
+    if(isNew){ saveBest(KEYS.catch, n); best=n; }
+    overTitle.textContent = "잡기 결과";
+    overScore.textContent = n + " 개 잡음";
+    overGrade.textContent = gradeByCount(n);
+    overBest.textContent = isNew ? "🎉 최고 기록 갱신! (가장 많이 잡음)" : ("최고 기록 " + best + " 개");
+    stat2.textContent = best;
+    overScreen.classList.remove("hide");
+  }
+
+  // ===== MODE 3: dir =====
+  var DIRS = ["up","down","left","right"];
+  var ARROW = { up:"↑", down:"↓", left:"←", right:"→" };
+  var D = { round:0, total:10, hits:0, times:[], want:null, showTime:0 };
+  function nextDirRound(){
+    if(D.round >= D.total){ finishDir(); return; }
+    phase = "dwait";
+    dirArrow.className = "arrow";
+    dirArrow.textContent = "•";
+    dirMsg.textContent = "준비…";
+    D.want = null;
+    var delay = 600 + Math.random()*1400;
+    later(function(){
+      if(phase!=="dwait" || mode!=="dir") return;
+      phase = "dgo";
+      D.want = DIRS[Math.floor(Math.random()*DIRS.length)];
+      dirArrow.textContent = ARROW[D.want];
+      dirArrow.className = "arrow";
+      dirMsg.textContent = "지금 이 방향!";
+      D.showTime = performance.now();
+      beep(880,0.06,"square");
+    }, delay);
+  }
+  function dirInput(dir){
+    if(mode!=="dir") return;
+    if(phase==="dwait"){
+      // pressed too early: count as miss for this round
+      clearTimers();
+      phase="dbetween";
+      D.round++;
+      dirArrow.className="arrow miss";
+      dirArrow.textContent="✕";
+      dirMsg.textContent="너무 빨라요! (놓침)";
+      beep(150,0.18,"sawtooth");
+      stat3.textContent = D.round+"/"+D.total;
+      later(nextDirRound, 800);
+      return;
+    }
+    if(phase!=="dgo") return;
+    var rt = performance.now() - D.showTime;
+    D.round++;
+    if(dir===D.want){
+      D.hits++;
+      D.times.push(rt);
+      dirArrow.className="arrow hit";
+      dirMsg.textContent="정확! " + Math.round(rt) + " ms";
+      beep(660,0.06,"square");
+    } else {
+      dirArrow.className="arrow miss";
+      dirMsg.textContent="틀렸어요!";
+      beep(180,0.15,"sawtooth");
+    }
+    phase="dbetween";
+    stat1.textContent = D.hits + "/" + D.total;
+    stat3.textContent = D.round + "/" + D.total;
+    later(nextDirRound, 700);
+  }
+  function startDir(){
+    D.round=0; D.hits=0; D.times=[]; D.want=null; running=true;
+    stat1.textContent="0/"+D.total; stat3.textContent="0/"+D.total;
+    nextDirRound();
+  }
+  function finishDir(){
+    clearTimers();
+    phase="idle"; running=false;
+    var avg = D.times.length ? Math.round(average(D.times)) : 0;
+    var best = loadBest(KEYS.dir); // best avg among "all correct"? we store best avg when hits>=1
+    var scoreLine = D.hits + " / " + D.total + " 정확";
+    var isNew = false;
+    if(D.hits >= 1){
+      if(best===null || avg < best){ saveBest(KEYS.dir, avg); best=avg; isNew=true; }
+    }
+    overTitle.textContent = "방향 반응 결과";
+    overScore.textContent = scoreLine + (D.times.length? " · 평균 "+avg+"ms" : "");
+    overGrade.textContent = D.times.length ? gradeByTime(avg) : "견습 조종사";
+    if(best!==null){
+      overBest.textContent = isNew ? "🎉 최고 기록 갱신! (맞힌 것 중 가장 빠른 평균)" : ("최고 평균 " + best + " ms");
+      stat2.textContent = best + "ms";
+    } else {
+      overBest.textContent = "하나 이상 맞히면 기록이 저장돼요.";
+      stat2.textContent = "-";
+    }
+    overScreen.classList.remove("hide");
+  }
+
+  // ---------- shared: stop everything ----------
+  function stopAll(){
+    clearTimers();
+    clearCatchTargets();
+    phase = "idle"; running = false;
+  }
+
+  // ---------- mode switching ----------
+  function showModeUI(){
+    lightPanel.style.display = (mode==="light") ? "" : "none";
+    catchArena.style.display = (mode==="catch") ? "" : "none";
+    dirArena.style.display   = (mode==="dir")   ? "" : "none";
+    dirPad.classList.toggle("hide", mode!=="dir");
+
+    // HUD labels
+    if(mode==="light"){ stat1Lb.textContent="평균"; stat2Lb.textContent="최고"; stat3Lb.textContent="진행"; }
+    else if(mode==="catch"){ stat1Lb.textContent="잡은수"; stat2Lb.textContent="최고"; stat3Lb.textContent="시간"; }
+    else { stat1Lb.textContent="정확"; stat2Lb.textContent="최고"; stat3Lb.textContent="진행"; }
+  }
+  function refreshBestStat(){
+    var best;
+    if(mode==="light"){ best=loadBest(KEYS.light); stat2.textContent = best===null?"-":best+"ms"; stat1.textContent="-"; stat3.textContent="0/5"; }
+    else if(mode==="catch"){ best=loadBest(KEYS.catch); stat2.textContent = best===null?"-":best; stat1.textContent="0"; stat3.textContent="30s"; }
+    else { best=loadBest(KEYS.dir); stat2.textContent = best===null?"-":best+"ms"; stat1.textContent="0/10"; stat3.textContent="0/10"; }
+  }
+  function selectMode(m){
+    stopAll();
+    mode = m;
+    for(var i=0;i<tabs.length;i++){
+      var on = tabs[i].getAttribute("data-mode")===m;
+      tabs[i].setAttribute("aria-selected", on ? "true" : "false");
+    }
+    var meta = META[m];
+    startTitle.textContent = meta.title;
+    startDesc.textContent  = meta.desc;
+    startHint.textContent  = meta.hint;
+    helpText.innerHTML     = HELP[m];
+    showModeUI();
+    refreshBestStat();
+    // reset mode-1 idle look
+    setLightClass("idle");
+    lightHuge.textContent = meta.title;
+    lightSub.textContent = meta.desc;
+    lightRounds.innerHTML = "";
+    // reset arrow look
+    dirArrow.className="arrow"; dirArrow.textContent="→"; dirMsg.textContent="방향이 뜨면 그 방향키를 눌러요";
+    // overlays
+    overScreen.classList.add("hide");
+    startScreen.classList.remove("hide");
+  }
+
+  // ---------- start / restart ----------
+  function startCurrent(){
+    stopAll();
+    startScreen.classList.add("hide");
+    overScreen.classList.add("hide");
+    ac(); // unlock audio on user gesture
+    if(mode==="light"){ L.times=[]; L.round=0; updateLightHud(); startLightRound(); }
+    else if(mode==="catch"){ startCatch(); }
+    else if(mode==="dir"){ startDir(); }
+  }
+
+  // ---------- input wiring ----------
+  // Mode 1: click/tap anywhere on light panel
+  lightPanel.addEventListener("pointerdown", function(e){ e.preventDefault(); lightPress(); });
+  lightPanel.addEventListener("keydown", function(e){
+    if(e.key===" " || e.key==="Enter"){ e.preventDefault(); lightPress(); }
+  });
+
+  // keyboard: space (mode1 & start), arrows (mode3)
+  window.addEventListener("keydown", function(e){
+    var k = e.key;
+    // if overlay visible, space/enter starts/restarts
+    if(!startScreen.classList.contains("hide")){
+      if(k===" " || k==="Enter"){ e.preventDefault(); startCurrent(); }
+      return;
+    }
+    if(!overScreen.classList.contains("hide")){
+      if(k===" " || k==="Enter"){ e.preventDefault(); startCurrent(); }
+      return;
+    }
+    if(mode==="light"){
+      if(k===" "){ e.preventDefault(); lightPress(); }
+    } else if(mode==="dir"){
+      var d=null;
+      if(k==="ArrowUp") d="up"; else if(k==="ArrowDown") d="down";
+      else if(k==="ArrowLeft") d="left"; else if(k==="ArrowRight") d="right";
+      if(d){ e.preventDefault(); dirInput(d); }
+    }
+  });
+
+  // Mode 3 on-screen pad
+  Array.prototype.forEach.call(dirPad.querySelectorAll("button"), function(b){
+    b.addEventListener("pointerdown", function(e){ e.preventDefault(); dirInput(b.getAttribute("data-dir")); });
+  });
+
+  // tab buttons
+  tabs.forEach(function(t){
+    t.addEventListener("click", function(){ selectMode(t.getAttribute("data-mode")); });
+  });
+
+  startBtn.addEventListener("click", startCurrent);
+  againBtn.addEventListener("click", startCurrent);
+
+  // pause safety: if tab hidden mid-round in timed modes, just stop cleanly to avoid weird timers
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden && running && (mode==="catch")){
+      // freeze catch by not touching; intervals keep ticking in bg is fine but be safe:
+      // (do nothing drastic; timers stay consistent)
+    }
+  });
+
+  // ---------- init ----------
+  selectMode("light");
+})();
+</script>
+</body>
+</html>

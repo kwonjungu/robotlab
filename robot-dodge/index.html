@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>핑퐁로봇 무빙 게임 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --amber-soft:#FFF0C7;
+    --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.5;
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;background-position:-11px -11px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 40px}
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:13px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:7px 14px;box-shadow:var(--hard-sm)}
+  .lesson-tag{font-weight:900;font-size:13px;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:var(--hard-sm)}
+  h1{font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-.035em;line-height:1.05;margin-bottom:6px}
+  .lead{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:14px}
+
+  /* HUD */
+  .hud{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .stat{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:6px 13px;font-weight:900;font-size:14px;box-shadow:var(--hard-sm)}
+  .stat .lb{font-weight:800;font-size:12px;color:var(--muted)}
+  .lives{letter-spacing:2px;font-size:16px}
+
+  /* stage */
+  .stage{position:relative;width:100%;aspect-ratio:3/4;max-height:74vh;margin:0 auto;
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);overflow:hidden;background:#0e1330}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+
+  /* overlay screens */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:24px;gap:14px;background:rgba(14,19,48,.86);color:#fff;backdrop-filter:blur(2px)}
+  .screen.hide{display:none}
+  .screen h2{font-size:clamp(26px,7vw,40px);font-weight:900;letter-spacing:-.03em}
+  .screen p{font-size:14px;font-weight:600;color:#cdd3f0;max-width:340px}
+  .screen .big{font-size:20px;font-weight:900;color:var(--amber)}
+  .btn{font-family:inherit;font-weight:900;font-size:17px;color:var(--ink);background:var(--amber);
+    border:3px solid var(--ink);border-radius:14px;padding:13px 26px;box-shadow:var(--hard-sm);cursor:pointer;
+    min-height:48px;min-width:150px}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn.point{background:var(--point);color:#fff}
+
+  /* touch controls */
+  .pad{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .pad button{font-family:inherit;font-weight:900;font-size:26px;color:var(--ink);background:var(--surface);
+    border:3px solid var(--ink);border-radius:16px;box-shadow:var(--hard-sm);min-height:64px;cursor:pointer;
+    user-select:none;touch-action:none}
+  .pad button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);background:var(--point-soft)}
+
+  .help{margin-top:16px;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    box-shadow:var(--hard-sm);padding:13px 16px;font-size:13px;font-weight:600;color:#333}
+  .help b{color:var(--ink)}
+  .help svg{vertical-align:-3px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  :focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a class="back" href="../">← 수업터 홈</a>
+    <span class="lesson-tag">재미 아케이드</span>
+  </div>
+
+  <h1>핑퐁로봇 무빙 게임</h1>
+  <p class="lead">위에서 떨어지는 것을 피하고 별을 모아요. 로봇을 좌우로 움직여 보세요!</p>
+
+  <div class="hud">
+    <span class="stat"><span class="lb">점수</span><span id="score">0</span></span>
+    <span class="stat"><span class="lb">최고</span><span id="best">0</span></span>
+    <span class="stat"><span class="lb">라이프</span><span class="lives" id="lives">♥♥♥</span></span>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv" width="360" height="480" aria-label="게임 화면"></canvas>
+
+    <div class="screen" id="startScreen">
+      <h2>핑퐁로봇 무빙</h2>
+      <p>떨어지는 <b style="color:#ff8a8a">장애물</b>은 피하고 <b style="color:#ffd84d">별 ⭐</b>은 모아요.<br>시간이 지날수록 점점 빨라져요!</p>
+      <button class="btn" id="startBtn">게임 시작 ▶</button>
+      <p style="font-size:12px">← → 또는 A · D 로 이동 · 터치로 로봇을 끌어도 돼요</p>
+    </div>
+
+    <div class="screen hide" id="overScreen">
+      <h2>게임 오버</h2>
+      <p class="big">점수 <span id="finalScore">0</span></p>
+      <p id="bestMsg"></p>
+      <button class="btn point" id="againBtn">다시 하기 ↻</button>
+    </div>
+  </div>
+
+  <div class="pad" aria-hidden="false">
+    <button id="leftBtn" aria-label="왼쪽으로 이동">◀</button>
+    <button id="rightBtn" aria-label="오른쪽으로 이동">▶</button>
+  </div>
+
+  <div class="help">
+    <b>조작법</b> · 키보드 <b>← →</b> 또는 <b>A · D</b> · 화면 아래 <b>◀ ▶</b> 버튼 · 캔버스를 <b>터치·드래그</b>하면 로봇이 따라와요.<br>
+    장애물에 맞으면 라이프 하나가 줄고, 별을 먹으면 점수가 올라요. 라이프 3개가 다 없어지면 끝!
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var BEST_KEY = "robotdodge_best_v1";
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+
+  var scoreEl = document.getElementById("score");
+  var bestEl  = document.getElementById("best");
+  var livesEl = document.getElementById("lives");
+  var startScreen = document.getElementById("startScreen");
+  var overScreen  = document.getElementById("overScreen");
+  var finalScoreEl= document.getElementById("finalScore");
+  var bestMsgEl   = document.getElementById("bestMsg");
+
+  // ---- persistence (try/catch required) ----
+  function loadBest(){
+    try { return Number(localStorage.getItem(BEST_KEY) || 0) || 0; } catch(e){ return 0; }
+  }
+  function saveBest(v){
+    try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){}
+  }
+  var best = loadBest();
+  bestEl.textContent = best;
+
+  // ---- game state ----
+  var state = "start"; // start | play | over
+  var player, obstacles, stars, spawnTimer, starTimer, score, lives, elapsed, speedMul;
+
+  var PLAYER_W = 46, PLAYER_H = 40;
+
+  function reset(){
+    player = { x: (W-PLAYER_W)/2, y: H-PLAYER_H-14, w: PLAYER_W, h: PLAYER_H, vx: 0 };
+    obstacles = [];
+    stars = [];
+    spawnTimer = 0;
+    starTimer = 0;
+    score = 0;
+    lives = 3;
+    elapsed = 0;
+    speedMul = 1;
+    updateHud();
+  }
+
+  function updateHud(){
+    scoreEl.textContent = score;
+    livesEl.textContent = lives > 0 ? "♥".repeat(lives) : "·";
+  }
+
+  // ---- collision helper (unit tested) ----
+  function rectsOverlap(a, b){
+    return a.x < b.x + b.w && a.x + a.w > b.x &&
+           a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  // spawn intervals scale down (faster) with speedMul
+  function baseObstacleInterval(){ return Math.max(0.42, 1.05 / speedMul); }
+  function baseStarInterval(){ return 1.35; }
+
+  function spawnObstacle(){
+    var w = 26 + Math.random()*26;
+    obstacles.push({
+      x: Math.random()*(W-w), y: -w, w: w, h: w,
+      vy: (90 + Math.random()*60) * speedMul,
+      spin: Math.random()*Math.PI, sv:(Math.random()-0.5)*4
+    });
+  }
+  function spawnStar(){
+    var s = 24;
+    stars.push({ x: Math.random()*(W-s), y: -s, w: s, h: s, vy:(70+Math.random()*40)*speedMul, t:0 });
+  }
+
+  // ---- input ----
+  var keyLeft=false, keyRight=false;
+  function onKey(e, down){
+    var k = e.key;
+    if(k==="ArrowLeft" || k==="a" || k==="A"){ keyLeft=down; e.preventDefault(); }
+    else if(k==="ArrowRight" || k==="d" || k==="D"){ keyRight=down; e.preventDefault(); }
+    else if(down && (k===" " || k==="Enter")){
+      if(state==="start"){ startGame(); e.preventDefault(); }
+      else if(state==="over"){ startGame(); e.preventDefault(); }
+    }
+  }
+  window.addEventListener("keydown", function(e){ onKey(e,true); });
+  window.addEventListener("keyup",   function(e){ onKey(e,false); });
+
+  // touch/mouse drag on canvas -> set player x directly
+  var dragging=false;
+  function canvasX(clientX){
+    var r = cv.getBoundingClientRect();
+    return (clientX - r.left) / r.width * W;
+  }
+  function pointerMove(clientX){
+    var gx = canvasX(clientX);
+    player.x = gx - player.w/2;
+    clampPlayer();
+  }
+  cv.addEventListener("pointerdown", function(e){
+    if(state!=="play") return;
+    dragging=true; pointerMove(e.clientX); cv.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  cv.addEventListener("pointermove", function(e){
+    if(dragging && state==="play"){ pointerMove(e.clientX); e.preventDefault(); }
+  });
+  cv.addEventListener("pointerup",   function(){ dragging=false; });
+  cv.addEventListener("pointercancel",function(){ dragging=false; });
+
+  // on-screen buttons (hold to move)
+  function holdBtn(id, dir){
+    var el = document.getElementById(id);
+    var set = function(v){ return function(e){ if(dir<0)keyLeft=v; else keyRight=v; e.preventDefault(); }; };
+    el.addEventListener("pointerdown", set(true));
+    el.addEventListener("pointerup",   set(false));
+    el.addEventListener("pointerleave",set(false));
+    el.addEventListener("pointercancel",set(false));
+  }
+  holdBtn("leftBtn", -1);
+  holdBtn("rightBtn", 1);
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("againBtn").addEventListener("click", startGame);
+
+  function clampPlayer(){
+    if(player.x < 0) player.x = 0;
+    if(player.x > W-player.w) player.x = W-player.w;
+  }
+
+  function startGame(){
+    reset();
+    state = "play";
+    startScreen.classList.add("hide");
+    overScreen.classList.add("hide");
+    lastT = 0;
+  }
+
+  function gameOver(){
+    state = "over";
+    if(score > best){ best = score; saveBest(best); bestEl.textContent = best; bestMsgEl.textContent = "🎉 최고 점수 갱신!"; }
+    else { bestMsgEl.textContent = "최고 점수 " + best; }
+    finalScoreEl.textContent = score;
+    overScreen.classList.remove("hide");
+    beep(160, 0.28, "sawtooth");
+  }
+
+  // ---- tiny web audio (optional, muted-safe) ----
+  var AC = null;
+  function ac(){
+    if(AC) return AC;
+    try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ AC=null; }
+    return AC;
+  }
+  function beep(freq, dur, type){
+    var a = ac(); if(!a) return;
+    try{
+      if(a.state==="suspended") a.resume();
+      var o=a.createOscillator(), g=a.createGain();
+      o.type=type||"square"; o.frequency.value=freq;
+      g.gain.value=0.06; o.connect(g); g.connect(a.destination);
+      var t=a.currentTime; o.start(t);
+      g.gain.setValueAtTime(0.06,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.stop(t+dur);
+    }catch(e){}
+  }
+
+  // ---- update & draw ----
+  function update(dt){
+    elapsed += dt;
+    speedMul = 1 + elapsed * 0.045; // gradually faster
+
+    // move player by keys
+    var speed = 260;
+    player.vx = (keyRight?1:0) - (keyLeft?1:0);
+    player.x += player.vx * speed * dt;
+    clampPlayer();
+
+    // spawn
+    spawnTimer -= dt;
+    if(spawnTimer <= 0){ spawnObstacle(); spawnTimer = baseObstacleInterval() * (0.7 + Math.random()*0.6); }
+    starTimer -= dt;
+    if(starTimer <= 0){ spawnStar(); starTimer = baseStarInterval() * (0.7 + Math.random()*0.8); }
+
+    var i;
+    // obstacles
+    for(i=obstacles.length-1;i>=0;i--){
+      var o=obstacles[i];
+      o.y += o.vy*dt; o.spin += o.sv*dt;
+      if(rectsOverlap(player, o)){
+        obstacles.splice(i,1);
+        lives--; updateHud(); beep(120,0.18,"sawtooth");
+        flash = 0.18;
+        if(lives<=0){ gameOver(); return; }
+        continue;
+      }
+      if(o.y > H+40) obstacles.splice(i,1);
+    }
+    // stars
+    for(i=stars.length-1;i>=0;i--){
+      var s=stars[i]; s.y += s.vy*dt; s.t += dt;
+      if(rectsOverlap(player, s)){
+        stars.splice(i,1); score += 10; updateHud(); beep(880,0.10,"square"); pop=0.2;
+        continue;
+      }
+      if(s.y > H+40) stars.splice(i,1);
+    }
+    // survival score trickle
+    score += Math.floor(dt*4);
+    scoreEl.textContent = score;
+
+    if(flash>0) flash -= dt;
+    if(pop>0) pop -= dt;
+  }
+
+  var flash=0, pop=0;
+
+  function draw(){
+    // background
+    ctx.fillStyle = "#0e1330"; ctx.fillRect(0,0,W,H);
+    // subtle grid
+    ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1;
+    for(var gx=0;gx<W;gx+=30){ ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke(); }
+    for(var gy=(elapsed*40)%30;gy<H;gy+=30){ ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke(); }
+
+    // stars
+    for(var i=0;i<stars.length;i++){ drawStar(stars[i]); }
+    // obstacles
+    for(i=0;i<obstacles.length;i++){ drawObstacle(obstacles[i]); }
+    // player
+    drawRobot(player, pop>0);
+
+    // hit flash
+    if(flash>0){ ctx.fillStyle="rgba(255,77,77,"+(flash*1.6)+")"; ctx.fillRect(0,0,W,H); }
+  }
+
+  function drawStar(s){
+    var cx=s.x+s.w/2, cy=s.y+s.h/2, r=s.w/2;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(s.t*2);
+    ctx.beginPath();
+    for(var k=0;k<5;k++){
+      var a=-Math.PI/2 + k*2*Math.PI/5;
+      ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+      var a2=a+Math.PI/5;
+      ctx.lineTo(Math.cos(a2)*r*0.45, Math.sin(a2)*r*0.45);
+    }
+    ctx.closePath();
+    ctx.fillStyle="#FFD84D"; ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle="#141414"; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawObstacle(o){
+    var cx=o.x+o.w/2, cy=o.y+o.h/2;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(o.spin);
+    ctx.fillStyle="#FF6B6B"; ctx.strokeStyle="#141414"; ctx.lineWidth=2.5;
+    ctx.beginPath();
+    ctx.moveTo(0,-o.h/2);
+    ctx.lineTo(o.w/2,0); ctx.lineTo(0,o.h/2); ctx.lineTo(-o.w/2,0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // angry eyes
+    ctx.fillStyle="#141414";
+    ctx.fillRect(-6,-3,4,4); ctx.fillRect(2,-3,4,4);
+    ctx.restore();
+  }
+
+  function drawRobot(p, happy){
+    var x=p.x, y=p.y, w=p.w, h=p.h;
+    ctx.save();
+    // body
+    ctx.fillStyle="#E4E8FF"; ctx.strokeStyle="#141414"; ctx.lineWidth=3;
+    roundRect(x, y+8, w, h-8, 8); ctx.fill(); ctx.stroke();
+    // antenna
+    ctx.beginPath(); ctx.moveTo(x+w/2, y+8); ctx.lineTo(x+w/2, y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x+w/2, y-2, 3.5, 0, Math.PI*2);
+    ctx.fillStyle="#FFB800"; ctx.fill(); ctx.stroke();
+    // eyes
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(x+w*0.33, y+22, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x+w*0.67, y+22, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle="#141414";
+    ctx.beginPath(); ctx.arc(x+w*0.33, y+22, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+w*0.67, y+22, 2, 0, Math.PI*2); ctx.fill();
+    // mouth
+    ctx.strokeStyle="#141414"; ctx.lineWidth=2.5;
+    ctx.beginPath();
+    if(happy){ ctx.arc(x+w/2, y+28, 6, 0, Math.PI); }
+    else { ctx.moveTo(x+w*0.4, y+31); ctx.lineTo(x+w*0.6, y+31); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---- loop with delta time + tab-visibility pause ----
+  var lastT = 0, running = true;
+  function frame(t){
+    requestAnimationFrame(frame);
+    if(state!=="play"){ if(state==="start" || state==="over"){ draw(); } lastT=t; return; }
+    if(!running){ lastT=t; return; }
+    if(!lastT) lastT=t;
+    var dt = (t-lastT)/1000; lastT=t;
+    if(dt>0.05) dt=0.05; // clamp (tab regains focus, big jumps)
+    update(dt);
+    if(state==="play") draw();
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    running = !document.hidden;
+    if(running) lastT = 0;
+  });
+
+  // initial paint
+  reset();
+  draw();
+  requestAnimationFrame(frame);
+
+  // expose for tests (node)
+  if(typeof module!=="undefined" && module.exports){
+    module.exports = { rectsOverlap: rectsOverlap };
+  }
+})();
+</script>
+</body>
+</html>

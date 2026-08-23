@@ -77,14 +77,21 @@
   .goaltxt b{background:linear-gradient(transparent 62%,var(--amber-soft) 0);padding:0 1px;font-weight:900}
 
   /* grid board */
-  .boardwrap{display:flex;justify-content:center;margin-bottom:8px}
-  .board{display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
-    background:var(--paper);touch-action:manipulation}
-  .cell{position:relative;background:var(--paper);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
+  .boardwrap{display:flex;justify-content:center;margin-bottom:8px;width:100%}
+  /* --cell: 셀 한 변 픽셀 (JS가 컨테이너 폭에 맞춰 설정) --n: 격자 크기 */
+  .board{position:relative;display:grid;gap:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:var(--hard-sm);
+    background:var(--paper);touch-action:manipulation;
+    grid-template-columns:repeat(var(--n,6),var(--cell,48px));
+    grid-auto-rows:var(--cell,48px);
+    width:calc(var(--n,6) * var(--cell,48px) + 6px)}
+  .cell{position:relative;width:var(--cell,48px);height:var(--cell,48px);
+    background:var(--paper);border-right:1px solid rgba(20,20,20,.14);border-bottom:1px solid rgba(20,20,20,.14)}
   .cell.wall{background:var(--ink);background-image:repeating-linear-gradient(45deg,#000,#000 4px,#2a2a2a 4px,#2a2a2a 8px)}
   .cell .star,.cell .flag{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
   .cell .star svg{width:64%;height:64%}
-  .robot{position:absolute;inset:0;display:grid;place-items:center;transition:left .28s ease,top .28s ease,transform .28s ease;z-index:5;pointer-events:none}
+  /* 로봇: 좌상단(0,0) 셀에 고정 크기로 두고 transform으로 셀 단위 이동 → 격자와 항상 정렬 */
+  .robot{position:absolute;left:0;top:0;width:var(--cell,48px);height:var(--cell,48px);
+    display:grid;place-items:center;transition:transform .28s ease;z-index:5;pointer-events:none;will-change:transform}
   .robot svg{width:70%;height:70%;filter:drop-shadow(2px 2px 0 rgba(20,20,20,.25))}
   @media(prefers-reduced-motion:reduce){.robot{transition:none}}
 
@@ -184,6 +191,19 @@
   footer a:focus-visible{outline:3px solid var(--point);outline-offset:3px}
 
   .drag-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.9;transform:translate(-50%,-50%)}
+
+  /* 반응형: 좁은 화면에서 여백을 줄여 격자/팔레트/프로그램이 넘치지 않게 */
+  @media(max-width:560px){
+    .wrap{padding:12px 12px 48px}
+    .panel{padding:14px}
+    .palette{gap:6px}
+    .blk{font-size:13px;padding:8px 10px}
+    .btn{min-width:0}
+  }
+  @media(max-width:380px){
+    .panel{padding:11px}
+    .blk{flex:1 1 calc(50% - 6px);justify-content:center}
+  }
 
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
@@ -377,17 +397,40 @@ const OPINFO={
 function stage(){return STAGES[stageIdx];}
 function isWall(s,x,y){ return s.walls.some(w=>w.x===x&&w.y===y); }
 
+/* 현재 로봇 위치를 기억(리사이즈 시 재배치용) */
+let robotPose={x:0,y:0,dir:1};
+
+/* 컨테이너 폭에 맞춰 정사각형 셀 크기(px)를 계산.
+   격자 전체 폭 = size*cell + 6(테두리 3px×2). 보드는 .boardwrap(패널 안) 폭을 넘지 않게. */
+function computeCell(size){
+  const wrap=$('board').parentElement;      // .boardwrap
+  const avail=wrap ? wrap.clientWidth : 360;
+  const usable=Math.max(0, avail-6);        // 좌우 테두리 제외
+  // 화면이 넓어도 셀은 최대 52px, 좁으면 컨테이너에 맞춰 축소(최소 26px 보장)
+  let cell=Math.floor(usable/size);
+  cell=Math.min(52, cell);
+  cell=Math.max(26, cell);
+  return cell;
+}
+
+function applyCell(){
+  const s=stage();
+  const board=$('board');
+  const cell=computeCell(s.size);
+  board.style.setProperty('--n', s.size);
+  board.style.setProperty('--cell', cell+'px');
+  board.dataset.cell=cell;
+}
+
 function buildBoard(){
   const s=stage();
   const board=$('board');
   board.innerHTML='';
-  board.style.gridTemplateColumns=`repeat(${s.size},1fr)`;
-  const px=Math.min(52, Math.floor(360/s.size));
+  applyCell();
   for(let y=0;y<s.size;y++){
     for(let x=0;x<s.size;x++){
       const c=document.createElement('div');
       c.className='cell';
-      c.style.width=px+'px'; c.style.height=px+'px';
       if(isWall(s,x,y)) c.classList.add('wall');
       if(s.star.x===x&&s.star.y===y){
         c.innerHTML='<span class="star"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/></svg></span>';
@@ -400,18 +443,36 @@ function buildBoard(){
   r.className='robot'; r.id='robot';
   r.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="7" width="14" height="11" rx="3" fill="var(--point)" stroke="var(--ink)" stroke-width="2"/><circle cx="9.5" cy="12" r="1.6" fill="#fff"/><circle cx="14.5" cy="12" r="1.6" fill="#fff"/><path d="M12 7V3M9 3h6" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M12 18v2" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M20 12l2 0" stroke="var(--point)" stroke-width="0"/><path d="M17.5 10.5l3 1.5-3 1.5z" fill="var(--amber)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>';
   board.appendChild(r);
-  board.dataset.px=px;
   placeRobot(s.start.x,s.start.y,s.start.dir,false);
 }
+
+/* 셀→픽셀 변환은 오직 transform으로. 셀 (x,y)의 좌상단 = (x*cell, y*cell).
+   경계(0~size-1) 클램프 후 배치 → 항상 셀 중앙 정렬 유지. */
 function placeRobot(x,y,dir,anim){
+  const s=stage();
+  x=Math.max(0,Math.min(s.size-1,x));
+  y=Math.max(0,Math.min(s.size-1,y));
+  robotPose={x,y,dir};
   const board=$('board');
-  const px=+board.dataset.px;
+  const cell=+board.dataset.cell||48;
   const r=$('robot');
+  if(!r) return;
   if(!anim){ r.style.transition='none'; requestAnimationFrame(()=>{r.style.transition='';}); }
-  r.style.left=(x*px)+'px'; r.style.top=(y*px)+'px';
-  r.style.width=px+'px'; r.style.height=px+'px';
-  r.style.transform='rotate('+(dir*90)+'deg)';
+  r.style.transform='translate('+(x*cell)+'px,'+(y*cell)+'px) rotate('+(dir*90)+'deg)';
 }
+
+/* 리사이즈: 셀 크기만 다시 계산하고 로봇을 현재 논리 위치에 재배치(애니메이션 없이) */
+let resizeRAF=0;
+function onResize(){
+  if(resizeRAF) return;
+  resizeRAF=requestAnimationFrame(()=>{
+    resizeRAF=0;
+    applyCell();
+    placeRobot(robotPose.x,robotPose.y,robotPose.dir,false);
+  });
+}
+window.addEventListener('resize',onResize);
+window.addEventListener('orientationchange',onResize);
 
 /* ── 프로그램 → 실행 명령 펼치기 (반복 전개) ──
    반복(loop)은 "바로 앞 블록 1개"를 count회 실행.

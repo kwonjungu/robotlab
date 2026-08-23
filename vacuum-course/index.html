@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>로봇청소기 코스 조종</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --amber:#FFB800; --green:#12B76A; --red:#FF4D4D; --muted:#6B6B6B;
+    --point:#12B76A;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,'Malgun Gothic',sans-serif;
+    background:var(--paper);
+    background-image:radial-gradient(var(--ink) .5px, transparent .5px);
+    background-size:22px 22px;
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;
+    overflow:hidden;
+    touch-action:manipulation;
+    user-select:none;
+  }
+  a.home{
+    position:fixed;top:12px;left:12px;z-index:30;
+    text-decoration:none;color:var(--ink);
+    background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;
+    box-shadow:3px 3px 0 var(--ink);
+    min-height:44px;display:inline-flex;align-items:center;
+  }
+  a.home:active{transform:translate(3px,3px);box-shadow:none;}
+  .hud{
+    width:100%;max-width:560px;
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    margin:60px 0 8px;padding:0 12px;
+  }
+  .chip{
+    background:var(--surface);border:2.5px solid var(--ink);border-radius:12px;
+    box-shadow:3px 3px 0 var(--ink);
+    padding:6px 12px;font-weight:800;font-size:14px;min-width:76px;text-align:center;
+  }
+  .chip b{color:var(--point);}
+  .stage-wrap{
+    width:100%;max-width:560px;padding:0 12px;position:relative;
+  }
+  canvas{
+    background:var(--surface);
+    border:3px solid var(--ink);
+    border-radius:20px;
+    box-shadow:5px 5px 0 var(--ink);
+    touch-action:none;
+    display:block;width:100%;aspect-ratio:1/1;
+  }
+  .panel{
+    position:absolute;inset:0;
+    display:none;align-items:center;justify-content:center;
+    padding:14px;
+  }
+  .panel.show{display:flex;}
+  .card{
+    background:var(--surface);border:3px solid var(--ink);border-radius:20px;
+    box-shadow:5px 5px 0 var(--ink);
+    padding:24px 20px;max-width:420px;width:100%;text-align:center;
+  }
+  .kicker{
+    display:inline-block;border:2.5px solid var(--ink);border-radius:999px;
+    padding:4px 12px;font-size:12px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;background:var(--amber);margin-bottom:12px;
+  }
+  h1{font-size:clamp(22px,6.5vw,34px);font-weight:900;letter-spacing:-.03em;margin:0 0 8px;}
+  .msg{font-weight:800;font-size:20px;margin:6px 0;}
+  .sub{color:var(--muted);font-weight:600;font-size:14px;line-height:1.6;margin:8px 0;}
+  .best{color:var(--point);font-weight:800;font-size:15px;margin-top:6px;}
+  button{
+    font-family:inherit;cursor:pointer;
+    border:3px solid var(--ink);border-radius:14px;
+    background:var(--amber);color:var(--ink);
+    font-weight:800;font-size:18px;padding:14px 26px;
+    box-shadow:3px 3px 0 var(--ink);
+    min-height:52px;min-width:120px;margin-top:8px;
+  }
+  button:active{transform:translate(3px,3px);box-shadow:none;}
+  .keyrow{display:inline-flex;gap:4px;margin:4px 0;}
+  .key{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border:2.5px solid var(--ink);border-radius:8px;
+    background:var(--surface);font-weight:800;box-shadow:2px 2px 0 var(--ink);
+  }
+  /* 방향패드 */
+  .dpad{
+    width:100%;max-width:560px;padding:14px 12px 18px;
+    display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);
+    gap:8px;justify-content:center;
+  }
+  .dpad button{
+    margin:0;width:72px;height:72px;min-width:0;min-height:0;padding:0;
+    font-size:26px;border-radius:16px;background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    touch-action:none;
+  }
+  .dpad .up{grid-column:2;grid-row:1;}
+  .dpad .left{grid-column:1;grid-row:2;}
+  .dpad .right{grid-column:3;grid-row:2;}
+  .dpad .down{grid-column:2;grid-row:3;}
+  .dpad button.active{background:var(--amber);transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<a class="home" href="../">← 수업터 홈</a>
+
+<div class="hud">
+  <div class="chip">스테이지 <b id="hudStage">1</b>/3</div>
+  <div class="chip">먼지 <b id="hudDust">0</b></div>
+  <div class="chip">시간 <b id="hudTime">0.0</b></div>
+</div>
+
+<div class="stage-wrap">
+  <canvas id="cv" width="520" height="520" aria-label="청소 방 화면"></canvas>
+
+  <div class="panel show" id="startPanel">
+    <div class="card">
+      <span class="kicker">청소 로봇 챌린지</span>
+      <h1>로봇청소기 코스 조종</h1>
+      <p class="sub">방향키로 청소기를 움직여<br>먼지를 <b>모두</b> 빨아들여요.<br>벽에 세게 부딪히면 잠깐 튕겨요!</p>
+      <div class="keyrow">
+        <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span>
+      </div>
+      <p class="sub">모바일은 아래 방향패드를 눌러요.</p>
+      <div class="best" id="startBest"></div>
+      <button id="startBtn">시작</button>
+    </div>
+  </div>
+
+  <div class="panel" id="clearPanel">
+    <div class="card">
+      <span class="kicker" id="clearKicker">스테이지 클리어</span>
+      <div class="msg" id="clearMsg">깨끗해졌어요!</div>
+      <p class="sub" id="clearSub"></p>
+      <div class="best" id="clearBest"></div>
+      <button id="clearBtn">다음</button>
+    </div>
+  </div>
+</div>
+
+<div class="dpad" id="dpad" aria-label="방향 패드">
+  <button class="up" data-dir="up" aria-label="위로">▲</button>
+  <button class="left" data-dir="left" aria-label="왼쪽">◀</button>
+  <button class="right" data-dir="right" aria-label="오른쪽">▶</button>
+  <button class="down" data-dir="down" aria-label="아래로">▼</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BEST_KEY = "robotlab_vacuum_best_time";
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+
+  var hudStage = document.getElementById("hudStage");
+  var hudDust = document.getElementById("hudDust");
+  var hudTime = document.getElementById("hudTime");
+  var startPanel = document.getElementById("startPanel");
+  var clearPanel = document.getElementById("clearPanel");
+  var startBtn = document.getElementById("startBtn");
+  var clearBtn = document.getElementById("clearBtn");
+  var startBest = document.getElementById("startBest");
+  var clearBest = document.getElementById("clearBest");
+  var clearMsg = document.getElementById("clearMsg");
+  var clearSub = document.getElementById("clearSub");
+  var clearKicker = document.getElementById("clearKicker");
+  var dpad = document.getElementById("dpad");
+
+  var STATE_START=0, STATE_PLAY=1, STATE_CLEAR=2, STATE_DONE=3;
+  var state = STATE_START;
+
+  // ---- 스테이지 정의 ----
+  // walls: 사각형 장애물 {x,y,w,h}. 바깥 테두리는 자동.
+  // start: 청소기 시작 위치. dust: 먼지 좌표 배열(그리드로 생성).
+  var STAGES = [
+    { walls: [], startX:70, startY:70 },
+    { walls: [ {x:200,y:0,w:40,h:320}, {x:280,y:200,w:40,h:320} ], startX:70, startY:70 },
+    { walls: [ {x:150,y:120,w:220,h:40}, {x:150,y:360,w:220,h:40}, {x:240,y:160,w:40,h:200} ], startX:60, startY:60 }
+  ];
+
+  var R = 18;          // 청소기 반지름
+  var DUST_R = 6;      // 먼지 반지름
+  var ACCEL = 0.55;    // 가속
+  var FRICTION = 0.90; // 마찰(관성)
+  var MAX_V = 4.2;     // 최고 속도
+
+  var stageIdx = 0;
+  var robot = {x:0,y:0,vx:0,vy:0,stun:0};
+  var dust = [];
+  var walls = [];
+  var startTime = 0;
+  var elapsed = 0;
+  var totalTime = 0; // 3스테이지 누적
+  var raf = null;
+  var lastTs = 0;
+
+  var keys = {up:false,down:false,left:false,right:false};
+
+  // ---- 최고기록 (try/catch) ----
+  function loadBest(){
+    try { var v = Number(localStorage.getItem(BEST_KEY)); return (v>0)?v:0; }
+    catch(e){ return 0; }
+  }
+  function saveBest(v){ try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){} }
+
+  // ---- 충돌 판정 (순수 함수, 테스트 대상) ----
+  // 원(cx,cy,r)과 사각형(rect) 충돌 시 밀어내고 반사. 반환: 부딪혔으면 true.
+  function resolveCircleRect(cxp, cyp, r, rect){
+    var nx = Math.max(rect.x, Math.min(cxp, rect.x+rect.w));
+    var ny = Math.max(rect.y, Math.min(cyp, rect.y+rect.h));
+    var dx = cxp-nx, dy = cyp-ny;
+    var d2 = dx*dx+dy*dy;
+    if(d2 < r*r){
+      var d = Math.sqrt(d2) || 0.0001;
+      return {hit:true, nx:dx/d, ny:dy/d, depth:r-d, cornerX:nx, cornerY:ny};
+    }
+    return {hit:false};
+  }
+
+  // 먼지 흡입 판정: 청소기 중심과 먼지 거리 < R+DUST_R 이면 먹음
+  function eatDust(cxp, cyp, r, dlist){
+    var eaten=0;
+    for(var i=dlist.length-1;i>=0;i--){
+      var dx=cxp-dlist[i].x, dy=cyp-dlist[i].y;
+      if(dx*dx+dy*dy < (r+DUST_R)*(r+DUST_R)){
+        dlist.splice(i,1); eaten++;
+      }
+    }
+    return eaten;
+  }
+
+  // 먼지를 벽/장애물 안에 겹치지 않게 격자로 생성
+  function buildDust(stage){
+    var arr=[];
+    var step=52, margin=44;
+    for(var gx=margin; gx<=W-margin; gx+=step){
+      for(var gy=margin; gy<=H-margin; gy+=step){
+        var ok=true;
+        for(var w=0;w<stage.walls.length;w++){
+          var rr=stage.walls[w];
+          if(gx>rr.x-10 && gx<rr.x+rr.w+10 && gy>rr.y-10 && gy<rr.y+rr.h+10){ ok=false; break; }
+        }
+        // 시작 지점 근처는 비움
+        if(Math.abs(gx-stage.startX)<40 && Math.abs(gy-stage.startY)<40) ok=false;
+        if(ok) arr.push({x:gx,y:gy});
+      }
+    }
+    return arr;
+  }
+
+  function loadStage(i){
+    stageIdx = i;
+    var s = STAGES[i];
+    walls = s.walls.slice();
+    dust = buildDust(s);
+    robot.x = s.startX; robot.y = s.startY;
+    robot.vx=0; robot.vy=0; robot.stun=0;
+    startTime = performance.now();
+    elapsed = 0;
+    hudStage.textContent = (i+1);
+    updateHud();
+  }
+
+  function updateHud(){
+    hudDust.textContent = dust.length;
+    hudTime.textContent = (totalTime + elapsed).toFixed(1);
+  }
+
+  // ---- 업데이트 ----
+  function update(dt){
+    // dt: 프레임 배율(1 = 60fps 기준)
+    if(robot.stun>0){
+      robot.stun -= dt;
+      if(robot.stun<0) robot.stun=0;
+    } else {
+      var ax=0, ay=0;
+      if(keys.left) ax-=1;
+      if(keys.right) ax+=1;
+      if(keys.up) ay-=1;
+      if(keys.down) ay+=1;
+      // 대각선 정규화
+      if(ax!==0 && ay!==0){ var inv=0.7071; ax*=inv; ay*=inv; }
+      robot.vx += ax*ACCEL*dt;
+      robot.vy += ay*ACCEL*dt;
+    }
+
+    // 마찰
+    var fr = Math.pow(FRICTION, dt);
+    robot.vx *= fr; robot.vy *= fr;
+
+    // 속도 제한
+    var sp = Math.sqrt(robot.vx*robot.vx+robot.vy*robot.vy);
+    if(sp > MAX_V){ robot.vx = robot.vx/sp*MAX_V; robot.vy = robot.vy/sp*MAX_V; }
+
+    // 이동
+    robot.x += robot.vx*dt;
+    robot.y += robot.vy*dt;
+
+    // 바깥 테두리 충돌
+    var bounced=false;
+    if(robot.x < R){ robot.x=R; if(robot.vx<0){ robot.vx=-robot.vx*0.4; bounced=true; } }
+    if(robot.x > W-R){ robot.x=W-R; if(robot.vx>0){ robot.vx=-robot.vx*0.4; bounced=true; } }
+    if(robot.y < R){ robot.y=R; if(robot.vy<0){ robot.vy=-robot.vy*0.4; bounced=true; } }
+    if(robot.y > H-R){ robot.y=H-R; if(robot.vy>0){ robot.vy=-robot.vy*0.4; bounced=true; } }
+
+    // 장애물 충돌
+    for(var w=0;w<walls.length;w++){
+      var res = resolveCircleRect(robot.x, robot.y, R, walls[w]);
+      if(res.hit){
+        robot.x += res.nx*res.depth;
+        robot.y += res.ny*res.depth;
+        var dot = robot.vx*res.nx + robot.vy*res.ny;
+        if(dot<0){
+          robot.vx -= 2*dot*res.nx*0.7; // 반사(감쇠)
+          robot.vy -= 2*dot*res.ny*0.7;
+          if(Math.abs(dot)>2.4) bounced=true; // 세게 부딪힘
+        }
+      }
+    }
+
+    // 세게 부딪히면 잠깐 스턴(살짝 튕김, 감점 없음)
+    if(bounced && robot.stun<=0){
+      robot.stun = 12; // 프레임(약 0.2초)
+    }
+
+    // 먼지 흡입
+    var got = eatDust(robot.x, robot.y, R, dust);
+    if(got>0) updateHud();
+
+    // 시간
+    elapsed = (performance.now()-startTime)/1000;
+    updateHud();
+
+    // 클리어 판정
+    if(dust.length===0){
+      onStageClear();
+    }
+  }
+
+  // ---- 그리기 ----
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // 바닥 타일 느낌 (연한 격자)
+    ctx.save();
+    ctx.strokeStyle="rgba(20,20,20,0.05)";
+    ctx.lineWidth=1;
+    for(var g=52; g<W; g+=52){
+      ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();
+    }
+    ctx.restore();
+
+    // 먼지
+    ctx.save();
+    ctx.fillStyle="#B9A98A";
+    for(var i=0;i<dust.length;i++){
+      ctx.beginPath();
+      ctx.arc(dust[i].x, dust[i].y, DUST_R, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 장애물
+    ctx.save();
+    ctx.fillStyle="#FFF0C7";
+    ctx.strokeStyle="#141414";
+    ctx.lineWidth=3;
+    for(var w=0;w<walls.length;w++){
+      var r=walls[w];
+      roundRect(r.x,r.y,r.w,r.h,8);
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+
+    // 청소기 로봇
+    ctx.save();
+    ctx.translate(robot.x, robot.y);
+    // 스턴이면 살짝 떨림
+    if(robot.stun>0){
+      ctx.rotate((Math.random()-0.5)*0.18);
+    }
+    ctx.fillStyle = robot.stun>0 ? "#FF4D4D" : "#12B76A";
+    ctx.strokeStyle="#141414";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(0,0,R,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // 방향 표시(진행 방향)
+    var sp=Math.sqrt(robot.vx*robot.vx+robot.vy*robot.vy);
+    var ang = sp>0.2 ? Math.atan2(robot.vy,robot.vx) : 0;
+    ctx.rotate(ang);
+    ctx.fillStyle="#141414";
+    ctx.beginPath();
+    ctx.moveTo(R-4,0);ctx.lineTo(2,-6);ctx.lineTo(2,6);ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---- 루프 ----
+  function loop(ts){
+    if(state!==STATE_PLAY){ raf=null; return; }
+    if(!lastTs) lastTs=ts;
+    var dt=(ts-lastTs)/16.6667;
+    lastTs=ts;
+    if(dt>3) dt=3; // 탭 복귀 등 큰 점프 방지
+    update(dt);
+    if(state===STATE_PLAY) draw();
+    raf=requestAnimationFrame(loop);
+  }
+  function startLoop(){
+    lastTs=0;
+    if(!raf) raf=requestAnimationFrame(loop);
+  }
+  function stopLoop(){
+    if(raf){ cancelAnimationFrame(raf); raf=null; }
+  }
+
+  // ---- 흐름 ----
+  function onStageClear(){
+    stopLoop();
+    totalTime += elapsed;
+    state = STATE_CLEAR;
+    if(stageIdx < STAGES.length-1){
+      clearKicker.textContent = "스테이지 클리어";
+      clearMsg.textContent = "스테이지 " + (stageIdx+1) + " 완료!";
+      clearSub.textContent = "여기까지 " + totalTime.toFixed(1) + "초. 다음 방으로!";
+      clearBest.textContent = "";
+      clearBtn.textContent = "다음";
+    } else {
+      // 전체 완료
+      state = STATE_DONE;
+      clearKicker.textContent = "모두 클리어";
+      clearMsg.textContent = "모든 방을 청소했어요! 🎉";
+      var best = loadBest();
+      var t = totalTime;
+      if(best===0 || t < best){
+        best = t; saveBest(best);
+        clearBest.textContent = "새 최단 기록! 🏆 " + best.toFixed(1) + "초";
+      } else {
+        clearBest.textContent = "최단 기록: " + best.toFixed(1) + "초";
+      }
+      clearSub.textContent = "총 걸린 시간 " + t.toFixed(1) + "초";
+      clearBtn.textContent = "다시 처음부터";
+    }
+    clearPanel.classList.add("show");
+  }
+
+  function onClearBtn(){
+    clearPanel.classList.remove("show");
+    if(state===STATE_DONE){
+      // 처음부터
+      totalTime=0;
+      state=STATE_PLAY;
+      loadStage(0);
+      startLoop();
+    } else {
+      state=STATE_PLAY;
+      loadStage(stageIdx+1);
+      startLoop();
+    }
+  }
+
+  function onStart(){
+    startPanel.classList.remove("show");
+    totalTime=0;
+    state=STATE_PLAY;
+    loadStage(0);
+    startLoop();
+  }
+
+  function showStart(){
+    state=STATE_START;
+    var best=loadBest();
+    startBest.textContent = best>0 ? ("최단 기록: " + best.toFixed(1) + "초") : "";
+    startPanel.classList.add("show");
+    // 첫 화면 배경으로 스테이지1 미리 그려두기
+    loadStagePreview(0);
+  }
+  function loadStagePreview(i){
+    var s=STAGES[i];
+    walls=s.walls.slice();
+    dust=buildDust(s);
+    robot.x=s.startX; robot.y=s.startY; robot.vx=0; robot.vy=0; robot.stun=0;
+    draw();
+  }
+
+  // ---- 입력: 키보드 ----
+  function keyDown(e){
+    var k=e.key;
+    var handled=true;
+    if(k==="ArrowUp"||k==="w"||k==="W") keys.up=true;
+    else if(k==="ArrowDown"||k==="s"||k==="S") keys.down=true;
+    else if(k==="ArrowLeft"||k==="a"||k==="A") keys.left=true;
+    else if(k==="ArrowRight"||k==="d"||k==="D") keys.right=true;
+    else if((k===" "||k==="Enter") && (state===STATE_START)) { onStart(); }
+    else if((k===" "||k==="Enter") && (state===STATE_CLEAR||state===STATE_DONE)) { onClearBtn(); }
+    else handled=false;
+    if(handled) e.preventDefault();
+  }
+  function keyUp(e){
+    var k=e.key;
+    if(k==="ArrowUp"||k==="w"||k==="W") keys.up=false;
+    else if(k==="ArrowDown"||k==="s"||k==="S") keys.down=false;
+    else if(k==="ArrowLeft"||k==="a"||k==="A") keys.left=false;
+    else if(k==="ArrowRight"||k==="d"||k==="D") keys.right=false;
+  }
+  window.addEventListener("keydown", keyDown);
+  window.addEventListener("keyup", keyUp);
+
+  // ---- 입력: 방향패드 (터치/마우스) ----
+  function bindPad(btn){
+    var dir = btn.getAttribute("data-dir");
+    function on(e){ e.preventDefault(); keys[dir]=true; btn.classList.add("active"); }
+    function off(e){ e.preventDefault(); keys[dir]=false; btn.classList.remove("active"); }
+    btn.addEventListener("touchstart", on, {passive:false});
+    btn.addEventListener("touchend", off, {passive:false});
+    btn.addEventListener("touchcancel", off, {passive:false});
+    btn.addEventListener("mousedown", on);
+    btn.addEventListener("mouseup", off);
+    btn.addEventListener("mouseleave", off);
+  }
+  var padBtns = dpad.querySelectorAll("button");
+  for(var b=0;b<padBtns.length;b++){ bindPad(padBtns[b]); }
+
+  startBtn.addEventListener("click", onStart);
+  clearBtn.addEventListener("click", onClearBtn);
+
+  // 탭 비활성 시 멈춤
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden){
+      stopLoop();
+    } else if(state===STATE_PLAY){
+      // 시간 보정: 멈춰있던 동안 시간 흐름 방지
+      startTime = performance.now() - elapsed*1000;
+      startLoop();
+    }
+  });
+
+  // 초기화
+  showStart();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>핑퐁로봇 점프 · 신나는 로봇 창작랩</title>
+<style>
+  :root{
+    --ink:#141414; --paper:#FBF7EC; --surface:#FFFFFF;
+    --point:#3D5AFE; --point-soft:#E4E8FF;
+    --amber:#FFB800; --red:#FF4D4D; --muted:#6B6B6B;
+    --r:20px; --r-sm:13px;
+    --hard:5px 5px 0 var(--ink); --hard-sm:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--paper);
+    background-image:radial-gradient(var(--ink) .5px,transparent .5px);
+    background-size:22px 22px;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;
+    touch-action:manipulation;
+  }
+  nav{width:100%;max-width:640px;display:flex;justify-content:space-between;align-items:center;
+    padding:12px 14px 4px}
+  .back{display:inline-flex;align-items:center;gap:4px;text-decoration:none;color:var(--ink);
+    font-weight:800;font-size:14px;background:var(--surface);border:2.5px solid var(--ink);
+    border-radius:999px;padding:8px 14px;min-height:40px;box-shadow:var(--hard-sm);
+    transition:transform .1s,box-shadow .1s}
+  .back:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .badge{font-weight:900;font-size:13px;background:var(--point);color:#fff;
+    border:2.5px solid var(--ink);border-radius:999px;padding:8px 14px;box-shadow:var(--hard-sm)}
+  h1{font-size:clamp(22px,6vw,32px);font-weight:900;letter-spacing:-.03em;margin:4px 0 0}
+  .kicker{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink);background:var(--amber);
+    border:2px solid var(--ink);border-radius:999px;padding:3px 10px;margin-bottom:6px}
+  .wrap{width:100%;max-width:640px;padding:8px 14px 24px;text-align:center}
+  .stage{position:relative;width:100%;margin-top:10px}
+  canvas{width:100%;height:auto;display:block;background:#BFE3FF;
+    border:3px solid var(--ink);border-radius:var(--r);box-shadow:var(--hard);
+    touch-action:none;cursor:pointer}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;
+    background:rgba(20,20,20,.72);border-radius:var(--r);color:#fff;padding:20px}
+  .overlay.hidden{display:none}
+  .overlay h2{margin:0;font-size:clamp(24px,7vw,38px);font-weight:900;letter-spacing:-.03em}
+  .overlay p{margin:0;font-size:15px;font-weight:700;line-height:1.6;color:#f2f2f2}
+  .btn{font-family:inherit;font-weight:900;font-size:17px;cursor:pointer;
+    background:var(--amber);color:var(--ink);border:3px solid var(--ink);
+    border-radius:var(--r-sm);padding:12px 26px;min-height:52px;box-shadow:var(--hard-sm);
+    transition:transform .1s,box-shadow .1s;touch-action:none}
+  .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .btn.blue{background:var(--point);color:#fff}
+  .hud{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
+  .chip{flex:1;background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--r-sm);
+    padding:8px 6px;box-shadow:var(--hard-sm)}
+  .chip b{display:block;font-size:22px;font-weight:900}
+  .chip span{font-size:11px;font-weight:800;color:var(--muted)}
+  .hint{margin-top:12px;font-size:13px;font-weight:700;color:var(--muted);line-height:1.6}
+  footer{margin-top:6px;padding:12px}
+  footer a{text-decoration:none;color:var(--muted);font-weight:800;font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="back" href="../">← 수업터 홈</a>
+  <span class="badge">🤖 핑퐁 점프</span>
+</nav>
+<div class="wrap">
+  <span class="kicker">ROBOT LAB · RUNNER</span>
+  <h1>핑퐁로봇 점프 게임</h1>
+  <div class="stage">
+    <canvas id="cv" width="640" height="320" aria-label="핑퐁로봇 점프 게임 화면"></canvas>
+    <div class="overlay" id="startScreen">
+      <h2>🤖 점프!</h2>
+      <p>로봇이 자동으로 달려요.<br><b>스페이스 · 탭</b>으로 점프해서 장애물을 넘으세요.<br>길게 누르면 더 높이 점프!</p>
+      <button class="btn blue" id="startBtn">시작하기</button>
+    </div>
+    <div class="overlay hidden" id="endScreen">
+      <h2>게임 오버!</h2>
+      <p id="endMsg"></p>
+      <button class="btn" id="againBtn">다시 하기</button>
+    </div>
+  </div>
+  <div class="hud">
+    <div class="chip"><b id="scoreV">0</b><span>점수</span></div>
+    <div class="chip"><b id="bestV">0</b><span>최고 기록</span></div>
+    <div class="chip"><b id="spdV">1.0x</b><span>속도</span></div>
+  </div>
+  <p class="hint">스페이스/↑/탭 = 점프 · 화면을 눌러도 점프해요</p>
+</div>
+<footer><a href="../">← 신나는 로봇 창작랩 수업터 홈</a></footer>
+
+<script>
+"use strict";
+(function(){
+  var BEST_KEY = "robotlab_robotjump_best";
+  var canvas = document.getElementById("cv");
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+  var GROUND = H - 46;
+
+  var scoreEl = document.getElementById("scoreV");
+  var bestEl  = document.getElementById("bestV");
+  var spdEl   = document.getElementById("spdV");
+  var endMsg  = document.getElementById("endMsg");
+  var startScreen = document.getElementById("startScreen");
+  var endScreen = document.getElementById("endScreen");
+
+  var best = 0;
+  try { best = Number(localStorage.getItem(BEST_KEY) || 0) || 0; } catch(e){}
+  bestEl.textContent = best;
+  function saveBest(v){ try { localStorage.setItem(BEST_KEY, String(v)); } catch(e){} }
+
+  // --- physics constants ---
+  var GRAVITY = 2000;          // px/s^2
+  var JUMP_V = -680;           // initial jump velocity (px/s)
+  var HOLD_GRAVITY = 900;      // reduced gravity while holding & rising (variable jump)
+  var BASE_SPEED = 320;        // px/s scroll speed
+  var MAX_SPEED = 720;
+
+  var robot = { x:70, y:GROUND, w:38, h:42, vy:0, onGround:true };
+  var obstacles = [];
+  var state = "start"; // start | play | over
+  var speed = BASE_SPEED;
+  var distance = 0;    // accumulates -> score
+  var spawnTimer = 0;
+  var holding = false; // jump key/pointer held
+  var legPhase = 0;
+
+  function reset(){
+    robot.y = GROUND; robot.vy = 0; robot.onGround = true;
+    obstacles = [];
+    speed = BASE_SPEED;
+    distance = 0;
+    spawnTimer = 0.8;
+    holding = false;
+  }
+
+  function startGame(){
+    reset();
+    state = "play";
+    startScreen.classList.add("hidden");
+    endScreen.classList.add("hidden");
+    updateHud();
+  }
+
+  function updateHud(){
+    scoreEl.textContent = Math.floor(distance);
+    bestEl.textContent = best;
+    spdEl.textContent = (speed/BASE_SPEED).toFixed(1) + "x";
+  }
+
+  function jump(){
+    if (state !== "play") return;
+    if (robot.onGround){
+      robot.vy = JUMP_V;
+      robot.onGround = false;
+      holding = true;
+    }
+  }
+  function releaseJump(){ holding = false; }
+
+  // --- input: keyboard ---
+  window.addEventListener("keydown", function(e){
+    if (e.repeat) { if (e.key===" "||e.key==="ArrowUp") e.preventDefault(); return; }
+    if (e.key === " " || e.key === "ArrowUp" || e.key === "Enter"){
+      if (state === "start"){ startGame(); }
+      else if (state === "over"){ startGame(); }
+      else { jump(); }
+      e.preventDefault();
+    }
+  });
+  window.addEventListener("keyup", function(e){
+    if (e.key === " " || e.key === "ArrowUp"){ releaseJump(); }
+  });
+
+  // --- input: pointer (mouse + touch) ---
+  canvas.addEventListener("pointerdown", function(e){
+    if (state === "start"){ startGame(); }
+    else if (state === "over"){ startGame(); }
+    else { jump(); }
+    e.preventDefault();
+  });
+  window.addEventListener("pointerup", function(){ releaseJump(); });
+
+  // --- Collision test (rect vs rect). Exposed for tests. ---
+  function hit(r, o){
+    return r.x < o.x + o.w &&
+           r.x + r.w > o.x &&
+           r.y - r.h < o.y &&      // robot y is its FEET (bottom); top = y-h
+           r.y > o.y - o.h;        // obstacle y is its bottom too
+  }
+
+  // --- spawn an obstacle: cone or block ---
+  function spawn(){
+    var kind = Math.random() < 0.55 ? "cone" : "block";
+    var ow, oh;
+    if (kind === "cone"){ ow = 26; oh = 30; }
+    else { ow = 30; oh = 22 + Math.floor(Math.random()*20); }
+    obstacles.push({ x: W + 20, y: GROUND, w: ow, h: oh, kind: kind });
+  }
+
+  function update(dt){
+    if (state !== "play") return;
+
+    // speed ramps up slowly
+    speed = Math.min(MAX_SPEED, BASE_SPEED + distance * 1.2);
+
+    // score by distance
+    distance += speed * dt * 0.05;
+
+    // robot physics — variable-height jump
+    var g = (holding && robot.vy < 0) ? HOLD_GRAVITY : GRAVITY;
+    robot.vy += g * dt;
+    robot.y += robot.vy * dt;
+    if (robot.y >= GROUND){
+      robot.y = GROUND; robot.vy = 0; robot.onGround = true;
+    }
+
+    // spawn logic — gap shrinks with speed but stays fair
+    spawnTimer -= dt;
+    if (spawnTimer <= 0){
+      spawn();
+      var base = 1.15 - (speed - BASE_SPEED)/1400;
+      if (base < 0.62) base = 0.62;
+      spawnTimer = base + Math.random()*0.7;
+    }
+
+    // move obstacles
+    for (var i=obstacles.length-1;i>=0;i--){
+      obstacles[i].x -= speed * dt;
+      if (obstacles[i].x + obstacles[i].w < -10){ obstacles.splice(i,1); continue; }
+      if (hit(robot, obstacles[i])){ gameOver(); return; }
+    }
+
+    legPhase += dt * speed * 0.04;
+    updateHud();
+  }
+
+  function gameOver(){
+    state = "over";
+    var sc = Math.floor(distance);
+    var isBest = false;
+    if (sc > best){ best = sc; saveBest(best); isBest = true; }
+    endMsg.innerHTML = "점수 <b>" + sc + "</b>점" + (isBest ? "<br>🏆 최고 기록 달성!" : "<br>최고: " + best + "점");
+    endScreen.classList.remove("hidden");
+    bestEl.textContent = best;
+  }
+
+  // --- Draw ---
+  function drawBg(){
+    ctx.fillStyle = "#BFE3FF"; ctx.fillRect(0,0,W,GROUND);
+    // clouds (scroll slowly)
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    var cx = (distance*2) % (W+120);
+    for (var c=0;c<3;c++){
+      var x = ((c*260) - cx + W+120) % (W+120) - 60;
+      ctx.beginPath();
+      ctx.arc(x, 50+c*14, 16, 0, Math.PI*2);
+      ctx.arc(x+20, 50+c*14, 22, 0, Math.PI*2);
+      ctx.arc(x+44, 50+c*14, 16, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // ground
+    ctx.fillStyle = "#7DBB57"; ctx.fillRect(0,GROUND,W,H-GROUND);
+    ctx.fillStyle = "#141414"; ctx.fillRect(0,GROUND,W,4);
+    // moving dashes on ground
+    ctx.fillStyle = "rgba(20,20,20,.25)";
+    var off = (distance*5) % 40;
+    for (var d=-off; d<W; d+=40){ ctx.fillRect(d, GROUND+18, 20, 4); }
+  }
+
+  function drawRobot(){
+    var x = robot.x, y = robot.y, w = robot.w, h = robot.h;
+    var top = y - h;
+    ctx.save();
+    ctx.strokeStyle = "#141414"; ctx.lineWidth = 3;
+    // body
+    ctx.fillStyle = "#3D5AFE";
+    roundRect(x, top+8, w, h-8, 8); ctx.fill(); ctx.stroke();
+    // head
+    ctx.fillStyle = "#E4E8FF";
+    roundRect(x+6, top-6, w-12, 16, 5); ctx.fill(); ctx.stroke();
+    // eye
+    ctx.fillStyle = "#141414";
+    ctx.beginPath(); ctx.arc(x+w/2, top+2, 3.5, 0, Math.PI*2); ctx.fill();
+    // antenna
+    ctx.beginPath(); ctx.moveTo(x+w/2, top-6); ctx.lineTo(x+w/2, top-14); ctx.stroke();
+    ctx.fillStyle = "#FFB800";
+    ctx.beginPath(); ctx.arc(x+w/2, top-16, 3, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // legs (animate when on ground)
+    ctx.strokeStyle = "#141414"; ctx.lineWidth = 4;
+    var swing = robot.onGround ? Math.sin(legPhase)*6 : 4;
+    ctx.beginPath();
+    ctx.moveTo(x+10, y-2); ctx.lineTo(x+10+swing, y);
+    ctx.moveTo(x+w-10, y-2); ctx.lineTo(x+w-10-swing, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawObstacle(o){
+    var top = o.y - o.h;
+    ctx.strokeStyle = "#141414"; ctx.lineWidth = 3;
+    if (o.kind === "cone"){
+      ctx.fillStyle = "#FF7A00";
+      ctx.beginPath();
+      ctx.moveTo(o.x + o.w/2, top);
+      ctx.lineTo(o.x + o.w + 2, o.y);
+      ctx.lineTo(o.x - 2, o.y);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(o.x+3, top + o.h*0.5, o.w-6, 5);
+    } else {
+      ctx.fillStyle = "#8A5A2B";
+      roundRect(o.x, top, o.w, o.h, 4); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "rgba(20,20,20,.4)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(o.x, top+o.h/2); ctx.lineTo(o.x+o.w, top+o.h/2); ctx.stroke();
+    }
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function render(){
+    drawBg();
+    for (var i=0;i<obstacles.length;i++){ drawObstacle(obstacles[i]); }
+    drawRobot();
+    // score on canvas
+    ctx.fillStyle = "#141414"; ctx.font = "900 22px sans-serif"; ctx.textAlign = "right";
+    ctx.fillText(Math.floor(distance) + "", W-14, 34);
+  }
+
+  // --- Main loop: delta-time, pause on hidden tab ---
+  var last = 0, running = true;
+  function frame(ts){
+    if (!last) last = ts;
+    var dt = (ts - last)/1000;
+    last = ts;
+    if (dt > 0.05) dt = 0.05;
+    if (running){ update(dt); }
+    render();
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener("visibilitychange", function(){
+    running = !document.hidden; last = 0;
+  });
+
+  document.getElementById("startBtn").addEventListener("click", function(e){ startGame(); e.stopPropagation(); });
+  document.getElementById("againBtn").addEventListener("click", function(e){ startGame(); e.stopPropagation(); });
+
+  requestAnimationFrame(frame);
+
+  if (typeof module !== "undefined" && module.exports){
+    module.exports = { hit: hit, JUMP_V: JUMP_V, GRAVITY: GRAVITY };
+  }
+})();
+</script>
+</body>
+</html>
